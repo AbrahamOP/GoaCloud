@@ -1,0 +1,17 @@
+---
+- name: Install Portainer
+  hosts: all
+  become: yes
+  tasks:
+    - name: Ensure Docker is installed
+      command: docker --version
+      register: docker_check
+      ignore_errors: yes
+
+    - name: Create Portainer volume
+      command: docker volume create portainer_data
+      when: docker_check.rc == 0
+
+    - name: Run Portainer container
+      command: docker run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest
+      when: docker_check.rc == 0

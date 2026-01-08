@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-[#0f0e17]">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoaCloud - SOAR</title>
+    <link rel="icon" type="image/png" href="https://img.icons8.com/dusk/64/server.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #0f0e17;
+            color: #d1d5db;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .gradient-text {
+            background: linear-gradient(to right, #facc15, #fbbf24, #f59e0b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar-link.active {
+            background: linear-gradient(90deg, rgba(234, 179, 8, 0.15) 0%, rgba(0, 0, 0, 0) 100%);
+            border-left: 3px solid #eab308;
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body class="h-full flex overflow-hidden selection:bg-fuchsia-500/30">
+
+    <!-- Mobile Overlay -->
+    <div id="mobile-overlay"
+        class="fixed inset-0 bg-black/50 z-40 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar"
+        class="fixed md:relative inset-y-0 left-0 z-50 w-64 bg-[#151421] border-r border-[#2a2839] flex flex-col justify-between transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
+        <div>
+            <div class="p-8">
+                <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-gradient-to-r from-fuchsia-500 to-cyan-500"></div>
+                    GoaCloud
+                </h1>
+            </div>
+
+            <nav class="mt-4 px-4 space-y-2">
+                <p class="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Menu</p>
+                <a href="/"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                    </svg>
+                    Applications
+                </a>
+                <a href="/proxmox"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    Proxmox
+                </a>
+                <a href="/wazuh"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    Sécurité (Wazuh)
+                </a>
+                <a href="/soar"
+                    class="sidebar-link active flex items-center px-4 py-3 text-sm font-medium rounded-r-lg transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    SOAR
+                </a>
+                <a href="/ssh"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z">
+                        </path>
+                    </svg>
+                    Clés SSH
+                </a>
+                <a href="/ansible"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:bg-white/5 hover:text-white text-gray-400 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                        </path>
+                    </svg>
+                    Ansible
+                </a>
+                <a href="/console"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                        </path>
+                    </svg>
+                    Console Web
+                </a>
+
+            </nav>
+        </div>
+
+        <div class="p-4 border-t border-[#2a2839] flex items-center justify-around">
+            <a href="https://github.com/AbrahamOP" target="_blank" title="Mon Profil GitHub"
+                class="block p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors duration-200">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path fill-rule="evenodd"
+                        d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+                        clip-rule="evenodd" />
+                </svg>
+            </a>
+
+            <a href="/users" title="Administration"
+                class="block p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors duration-200">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </a>
+            <form action="/logout" method="POST">
+                <button type="submit" title="Déconnexion"
+                    class="block p-2 text-red-400 hover:text-red-300 rounded-lg hover:bg-red-500/10 transition-colors duration-200">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto bg-[#0f0e17] relative">
+        <!-- Top Right Actions (Profile & Mobile Menu) -->
+        <div class="absolute top-6 right-6 z-50 flex items-center gap-4">
+            <!-- Desktop Profile Link -->
+            <a href="/profile"
+                class="hidden md:flex items-center justify-center p-2 rounded-lg bg-[#1b1928] hover:bg-white/5 text-cyan-400 hover:text-cyan-300 transition-colors border border-[#2a2839] group"
+                title="Mon Profil">
+                <svg class="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </a>
+            <button id="mobile-menu-btn"
+                class="md:hidden bg-[#1b1928] text-gray-400 p-2 rounded-lg border border-[#2a2839]">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+        </div>
+
+
+        <!-- Decoration Gradients -->
+        <div class="absolute top-0 left-0 w-96 h-96 bg-yellow-600/10 rounded-full blur-3xl filter pointer-events-none">
+        </div>
+        <div
+            class="absolute bottom-0 right-0 w-96 h-96 bg-orange-600/10 rounded-full blur-3xl filter pointer-events-none">
+        </div>
+
+        <div class="max-w-7xl mx-auto px-8 py-10 relative z-10">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-10">
+                <div>
+                    <h2 class="text-3xl font-bold text-white mb-2">SOAR <span
+                            class="text-yellow-500 text-sm border border-yellow-500/30 bg-yellow-500/10 px-2 py-0.5 rounded-full uppercase tracking-wider">Beta</span>
+                    </h2>
+                    <p class="text-gray-500 text-sm">Automated Security Response & Orchestration</p>
+                </div>
+            </div>
+
+            <!-- Discord Integration -->
+            <div class="glass rounded-2xl p-8 mb-8 border border-purple-500/20 shadow-lg shadow-purple-900/10">
+                <div class="flex items-start justify-between">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-16 h-16 rounded-xl bg-[#5865F2]/20 border border-[#5865F2]/30 flex items-center justify-center">
+                            <svg class="w-10 h-10 text-[#5865F2]" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-white">Le Veilleur (Discord)</h3>
+                            <p class="text-gray-400 text-sm">Notifications en temps réel pour les alertes critiques.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex items-center justify-between border-t border-[#2a2839] pt-6">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
+                        <span class="text-gray-300 text-sm">Module Actif</span>
+                    </div>
+                    <div>
+                        <button onclick="testDiscord()" id="test-btn"
+                            class="px-4 py-2 bg-[#5865F2] hover:bg-[#4752c4] text-white rounded-lg transition-colors text-sm font-bold flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                            </svg>
+                            Envoyer une notification de test
+                        </button>
+                        <button onclick="testAI()" id="test-ai-btn"
+                            class="px-4 py-2 bg-[#2a2839] hover:bg-[#343147] text-white rounded-lg transition-colors text-sm font-bold flex items-center gap-2 border border-gray-600">
+                            <svg class="w-4 h-4 text-fuchsia-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            Tester l'IA (Debug)
+                        </button>
+
+                    </div>
+                </div>
+                <div id="test-result" class="mt-2 text-xs text-right hidden"></div>
+
+                <!-- Configuration Alertes -->
+                <div class="mt-6 border-t border-[#2a2839] pt-4">
+                    <h4 class="text-sm font-semibold text-gray-300 mb-3">Types d'Alertes Actives</h4>
+                    <div class="space-y-2">
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input type="checkbox" id="check-status"
+                                class="form-checkbox h-4 w-4 text-fuchsia-500 bg-[#2a2839] border-gray-600 rounded focus:ring-fuchsia-500 focus:ring-offset-0"
+                                onchange="updateSoarConfig()">
+                            <span class="text-gray-400 text-sm">Statut Agent (Connexion/Déconnexion)</span>
+
+                        </label>
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input type="checkbox" id="check-ssh"
+                                class="form-checkbox h-4 w-4 text-fuchsia-500 bg-[#2a2839] border-gray-600 rounded focus:ring-fuchsia-500 focus:ring-offset-0"
+                                onchange="updateSoarConfig()">
+                            <span class="text-gray-400 text-sm">Sécurité SSH (Brute force, Login fail)</span>
+                        </label>
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input type="checkbox" id="check-sudo"
+                                class="form-checkbox h-4 w-4 text-fuchsia-500 bg-[#2a2839] border-gray-600 rounded focus:ring-fuchsia-500 focus:ring-offset-0"
+                                onchange="updateSoarConfig()">
+                            <span class="text-gray-400 text-sm">Sudo (Privilèges Root)</span>
+                        </label>
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input type="checkbox" id="check-fim"
+                                class="form-checkbox h-4 w-4 text-fuchsia-500 bg-[#2a2839] border-gray-600 rounded focus:ring-fuchsia-500 focus:ring-offset-0"
+                                onchange="updateSoarConfig()">
+                            <span class="text-gray-400 text-sm">Intégrité Fichiers (FIM)</span>
+                        </label>
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input type="checkbox" id="check-pkgs"
+                                class="form-checkbox h-4 w-4 text-fuchsia-500 bg-[#2a2839] border-gray-600 rounded focus:ring-fuchsia-500 focus:ring-offset-0"
+                                onchange="updateSoarConfig()">
+                            <span class="text-gray-400 text-sm">Gestion Paquets (Install/Remove)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                function testAI() {
+                    const btn = document.getElementById('test-ai-btn');
+                    const result = document.getElementById('test-result');
+
+                    btn.disabled = true;
+                    btn.classList.add('opacity-50', 'cursor-not-allowed');
+                    result.classList.add('hidden');
+                    result.textContent = "⏳ Test en cours...";
+                    result.classList.remove('hidden', 'text-red-400', 'text-green-400');
+                    result.classList.add('text-gray-400');
+
+                    fetch('/api/soar/ai/test')
+                        .then(response => response.json().then(data => ({ status: response.status, body: data })))
+                        .then(({ status, body }) => {
+                            if (status === 200 && body.status === 'success') {
+                                result.textContent = "✅ IA Connectée ! Réponse: " + body.analysis;
+                                result.classList.remove('hidden', 'text-red-400', 'text-gray-400');
+                                result.classList.add('text-green-400');
+                            } else {
+                                throw new Error(body.error || "Erreur inconnue");
+                            }
+                        })
+                        .catch(err => {
+                            result.textContent = "❌ Erreur IA: " + err.message;
+                            result.classList.remove('hidden', 'text-green-400', 'text-gray-400');
+                            result.classList.add('text-red-400');
+                        })
+                        .finally(() => {
+                            btn.disabled = false;
+                            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                        });
+                }
+
+                function testDiscord() {
+                    const btn = document.getElementById('test-btn');
+                    const result = document.getElementById('test-result');
+
+                    btn.disabled = true;
+                    btn.classList.add('opacity-50', 'cursor-not-allowed');
+                    result.classList.add('hidden');
+
+                    fetch('/api/soar/discord/test', { method: 'POST' })
+                        .then(response => {
+                            if (response.ok) {
+                                result.textContent = "✅ Notification envoyée !";
+                                result.classList.remove('hidden', 'text-red-400');
+                                result.classList.add('text-green-400');
+                            } else {
+                                return response.text().then(text => { throw new Error(text) });
+                            }
+                        })
+                        .catch(err => {
+                            result.textContent = "❌ Erreur: " + err.message;
+                            result.classList.remove('hidden', 'text-green-400');
+                            result.classList.add('text-red-400');
+                        })
+                        .finally(() => {
+                            btn.disabled = false;
+                            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                        });
+                }
+
+                // Config Management
+                document.addEventListener('DOMContentLoaded', loadSoarConfig);
+
+                function loadSoarConfig() {
+                    fetch('/api/soar/config')
+                        .then(r => r.json())
+                        .then(config => {
+                            document.getElementById('check-status').checked = config.alert_status;
+                            document.getElementById('check-ssh').checked = config.alert_ssh;
+                            document.getElementById('check-sudo').checked = config.alert_sudo;
+                            document.getElementById('check-fim').checked = config.alert_fim;
+                            document.getElementById('check-pkgs').checked = config.alert_packages;
+                        });
+                }
+
+                function updateSoarConfig() {
+                    const config = {
+                        alert_status: document.getElementById('check-status').checked,
+                        alert_ssh: document.getElementById('check-ssh').checked,
+                        alert_sudo: document.getElementById('check-sudo').checked,
+                        alert_fim: document.getElementById('check-fim').checked,
+                        alert_packages: document.getElementById('check-pkgs').checked
+                    };
+
+                    fetch('/api/soar/config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(config)
+                    }).then(r => {
+                        if (r.ok) {
+                            // Optional: Show saved toast
+                        }
+                    });
+                }
+
+                // Sidebar Toggle Logic
+                const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('mobile-overlay');
+
+                if (mobileMenuBtn) {
+                    mobileMenuBtn.addEventListener('click', () => {
+                        sidebar.classList.toggle('-translate-x-full');
+                        overlay.classList.toggle('hidden');
+                    });
+                }
+
+                if (overlay) {
+                    overlay.addEventListener('click', () => {
+                        sidebar.classList.add('-translate-x-full');
+                        overlay.classList.add('hidden');
+                    });
+                }
+            </script>
+
+
+
+        </div>
+    </main>
+</body>
+
+</html>

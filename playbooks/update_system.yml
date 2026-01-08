@@ -1,0 +1,18 @@
+---
+- name: System Update & Upgrade
+  hosts: all
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Upgrade all packages to the latest version
+      apt:
+        name: "*"
+        state: latest
+
+    - name: Autoremove dependencies
+      apt:
+        autoremove: yes

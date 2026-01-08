@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoaCloud - Proxmox</title>
+    <link rel="icon" type="image/png" href="https://img.icons8.com/dusk/64/server.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #0f0e17;
+            color: #d1d5db;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .gradient-text {
+            background: linear-gradient(to right, #c084fc, #6366f1, #38bdf8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar-link.active {
+            background: linear-gradient(90deg, rgba(192, 132, 252, 0.15) 0%, rgba(0, 0, 0, 0) 100%);
+            border-left: 3px solid #c084fc;
+            color: #fff;
+        }
+
+        .gauge-circle {
+            transition: stroke-dashoffset 1s ease-in-out;
+        }
+    </style>
+</head>
+
+<body class="h-screen w-full flex overflow-hidden">
+
+    <!-- Mobile Overlay -->
+    <div id="mobile-overlay"
+        class="fixed inset-0 bg-black/50 z-40 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar"
+        class="fixed md:relative inset-y-0 left-0 z-50 w-64 bg-[#151421] border-r border-[#2a2839] flex flex-col justify-between transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
+        <div>
+            <div class="p-8">
+                <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                    <span
+                        class="inline-block w-3 h-3 rounded-full bg-gradient-to-r from-fuchsia-500 to-cyan-500"></span>
+                    GoaCloud
+                </h1>
+            </div>
+
+            <nav class="mt-4 px-4 space-y-2">
+                <p class="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Menu</p>
+                <a href="/"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                    </svg>
+                    Applications
+                </a>
+                <a href="/proxmox"
+                    class="sidebar-link active flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    Proxmox
+                </a>
+                <a href="/wazuh"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    Sécurité (Wazuh)
+                </a>
+                <a href="/soar"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    SOAR
+                </a>
+                <a href="/ssh"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z">
+                        </path>
+                    </svg>
+                    Clés SSH
+                </a>
+                <a href="/ansible"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:bg-white/5 hover:text-white text-gray-400 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                        </path>
+                    </svg>
+                    Ansible
+                </a>
+
+
+                <a href="/console"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:bg-white/5 hover:text-white text-gray-400 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                        </path>
+                    </svg>
+                    Console Web
+                </a>
+
+
+            </nav>
+        </div>
+
+        <div class="p-4 border-t border-[#2a2839] flex items-center justify-around">
+            <a href="https://github.com/AbrahamOP" target="_blank" title="Mon Profil GitHub"
+                class="block p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors duration-200">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path fill-rule="evenodd"
+                        d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+                        clip-rule="evenodd" />
+                </svg>
+            </a>
+
+            <a href="/users" title="Administration"
+                class="block p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors duration-200">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </a>
+
+            <form action="/logout" method="POST">
+                <button type="submit" title="Déconnexion"
+                    class="block p-2 text-red-400 hover:text-red-300 rounded-lg hover:bg-red-500/10 transition-colors duration-200">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto relative p-8">
+        <!-- Top Right Actions (Profile & Mobile Menu) -->
+        <div class="absolute top-6 right-6 z-50 flex items-center gap-4">
+            <!-- Desktop Profile Link -->
+            <a href="/profile"
+                class="hidden md:flex items-center justify-center p-2 rounded-lg bg-[#1b1928] hover:bg-white/5 text-cyan-400 hover:text-cyan-300 transition-colors border border-[#2a2839] group"
+                title="Mon Profil">
+                <svg class="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </a>
+            <!-- Mobile Add Button -->
+            <a href="/add"
+                class="md:hidden bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white p-2 rounded-lg shadow-lg shadow-purple-500/20">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+            </a>
+            <!-- Mobile Menu Button -->
+            <button id="mobile-menu-btn"
+                class="md:hidden bg-[#1b1928] text-gray-400 p-2 rounded-lg border border-[#2a2839]">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+        </div>
+
+
+        <div class="max-w-7xl mx-auto relative z-10">
+            <!-- Header with Mobile Support -->
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold text-white mb-2">Proxmox <span class="gradient-text">Overview</span>
+                    </h2>
+                    <p class="text-gray-500 text-sm">Statistiques en temps réel de votre HomeLab.</p>
+                </div>
+            </div>
+
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <!-- CPU Usage -->
+                <div class="glass rounded-2xl p-6 relative overflow-hidden">
+                    <h3 class="text-gray-400 text-sm font-medium uppercase mb-4">CPU Usage</h3>
+                    <div class="flex items-end justify-between">
+                        <div class="text-4xl font-bold text-white" id="cpu-val">{{.CPU}}%</div>
+                        <div class="text-xs text-green-400 bg-green-400/10 px-2 py-1 rounded">+2% this hour</div>
+                    </div>
+                    <!-- Mock Progress Bar -->
+                    <div class="w-full bg-[#2a2839] h-2 rounded-full mt-4 overflow-hidden">
+                        <div id="cpu-bar" class="bg-gradient-to-r from-fuchsia-500 to-purple-600 h-full rounded-full"
+                            style="--percent: {{.CPU}}%; width: var(--percent);"></div>
+                    </div>
+                </div>
+
+                <!-- RAM Usage -->
+                <div class="glass rounded-2xl p-6 relative overflow-hidden">
+                    <h3 class="text-gray-400 text-sm font-medium uppercase mb-4">Memory Usage</h3>
+                    <div class="flex items-end justify-between">
+                        <div class="text-4xl font-bold text-white" id="ram-val">{{.RAM}}%</div>
+                        <div class="text-xs text-gray-500" id="ram-detail">{{.RAMUsedStr}} / {{.RAMTotalStr}}</div>
+                    </div>
+                    <div class="w-full bg-[#2a2839] h-2 rounded-full mt-4 overflow-hidden">
+                        <div id="ram-bar" class="bg-gradient-to-r from-cyan-500 to-blue-600 h-full rounded-full"
+                            style="--percent: {{.RAM}}%; width: var(--percent);"></div>
+                    </div>
+                </div>
+
+                <!-- Storage -->
+                <div class="glass rounded-2xl p-6 relative overflow-hidden">
+                    <h3 class="text-gray-400 text-sm font-medium uppercase mb-4">Storage (ZFS)</h3>
+                    <div class="flex items-end justify-between">
+                        <div class="text-4xl font-bold text-white" id="storage-val">{{.Storage}}%</div>
+                        <div id="storage-badge">
+                            {{if ge .Storage 85}}
+                            <div class="text-orange-500 text-xs px-2 py-1 rounded font-bold border border-orange-500">
+                                Attention
+                            </div>
+                            {{end}}
+                        </div>
+                    </div>
+                    <div class="w-full bg-[#2a2839] h-2 rounded-full mt-4 overflow-hidden">
+                        <div id="storage-bar" class="bg-gradient-to-r from-orange-500 to-red-600 h-full rounded-full"
+                            style="--percent: {{.Storage}}%; width: var(--percent);"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VM List -->
+            <h3 class="text-xl font-semibold text-white mb-4">Machines Virtuelles</h3>
+            <div class="glass rounded-2xl overflow-hidden border border-[#2a2839]">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-[#1b1928] text-gray-400 text-xs uppercase border-b border-[#2a2839]">
+                            <th class="p-4 font-semibold w-16">Type</th>
+                            <th class="p-4 font-semibold">ID</th>
+                            <th class="p-4 font-semibold">Name</th>
+                            <th class="p-4 font-semibold">Status</th>
+                            <th class="p-4 font-semibold">Uptime</th>
+                            <th class="p-4 font-semibold">IP Address</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vm-list" class="text-gray-300 text-sm divide-y divide-[#2a2839]">
+                        {{range .VMs}}
+                        <tr class="hover:bg-white/5 transition cursor-pointer"
+                            onclick="openGuestModal('{{.Type}}', '{{.ID}}')">
+                            <td class="p-4">
+                                {{if eq .Type "VM"}}
+                                <!-- Server Stack Icon -->
+                                <svg class="w-6 h-6 text-cyan-400" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+                                </svg>
+                                {{else}}
+                                <!-- Cube Icon -->
+                                <svg class="w-6 h-6 text-fuchsia-400" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                </svg>
+                                {{end}}
+                            </td>
+                            <td class="p-4 font-mono text-gray-500">{{.ID}}</td>
+                            <td class="p-4 font-medium text-white">{{.Name}}</td>
+                            <td class="p-4">
+                                {{if eq .Status "running"}}
+                                <span
+                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-400/10 text-green-400">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-green-400 mr-1.5"></span> Running
+                                </span>
+                                {{else}}
+                                <span
+                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-400/10 text-red-400">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-red-400 mr-1.5"></span> Stopped
+                                </span>
+                                {{end}}
+                            </td>
+                            <td class="p-4 text-gray-400">{{.Uptime}}</td>
+                            <td class="p-4 font-mono text-gray-400">{{.IP}}</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Guest Details Modal -->
+    <div id="guest-modal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog"
+        aria-modal="true">
+        <!-- Backdrop -->
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" aria-hidden="true"
+                onclick="closeGuestModal()"></div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <!-- Modal Panel -->
+            <div
+                class="inline-block align-bottom glass rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-[#2a2839]">
+                <div class="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-xl leading-6 font-bold text-white flex items-center justify-between"
+                                id="modal-title">
+                                <span id="modal-guest-name">Loading...</span>
+                                <span id="modal-guest-id" class="text-sm text-gray-400 font-mono"></span>
+                            </h3>
+                            <div class="mt-2 text-sm text-gray-500" id="modal-guest-status">
+                                <!-- Status Badge will go here -->
+                            </div>
+
+                            <hr class="border-[#2a2839] my-4">
+
+                            <!-- Loading State -->
+                            <div id="modal-loading" class="flex justify-center py-8">
+                                <svg class="animate-spin h-8 w-8 text-fuchsia-500" xmlns="http://www.w3.org/2000/svg"
+                                    fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                        stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                    </path>
+                                </svg>
+                            </div>
+
+                            <!-- Details Content -->
+                            <div id="modal-content" class="hidden space-y-4">
+                                <!-- Resources Grid -->
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="bg-[#151421] p-3 rounded-lg border border-[#2a2839]">
+                                        <p class="text-xs text-gray-500 uppercase">Uptime</p>
+                                        <p class="text-white font-medium" id="modal-uptime">-</p>
+                                    </div>
+                                    <div class="bg-[#151421] p-3 rounded-lg border border-[#2a2839]">
+                                        <p class="text-xs text-gray-500 uppercase">Cores</p>
+                                        <p class="text-white font-medium" id="modal-cores">-</p>
+                                    </div>
+                                </div>
+
+                                <!-- CPU -->
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span class="text-gray-400">CPU Usage</span>
+                                        <span class="text-white font-bold" id="modal-cpu-val">0%</span>
+                                    </div>
+                                    <div class="w-full bg-[#2a2839] h-2 rounded-full overflow-hidden">
+                                        <div id="modal-cpu-bar"
+                                            class="bg-gradient-to-r from-fuchsia-500 to-purple-600 h-full rounded-full"
+                                            style="width: 0%"></div>
+                                    </div>
+                                </div>
+
+                                <!-- RAM -->
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span class="text-gray-400">RAM Usage</span>
+                                        <span class="text-white font-bold" id="modal-ram-val">0%</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mb-1" id="modal-ram-text">- / -</p>
+                                    <div class="w-full bg-[#2a2839] h-2 rounded-full overflow-hidden">
+                                        <div id="modal-ram-bar"
+                                            class="bg-gradient-to-r from-cyan-500 to-blue-600 h-full rounded-full"
+                                            style="width: 0%"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Disk -->
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span class="text-gray-400">Disk Usage</span>
+                                        <span class="text-white font-bold" id="modal-disk-val">0%</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mb-1" id="modal-disk-text">- / -</p>
+                                    <div class="w-full bg-[#2a2839] h-2 rounded-full overflow-hidden">
+                                        <div id="modal-disk-bar"
+                                            class="bg-gradient-to-r from-orange-500 to-red-600 h-full rounded-full"
+                                            style="width: 0%"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Note -->
+                                <div class="bg-[#151421] p-3 rounded-lg border border-[#2a2839] hidden"
+                                    id="modal-note-container">
+                                    <p class="text-xs text-gray-500 uppercase mb-1">Note</p>
+                                    <p class="text-sm text-gray-300 italic" id="modal-note"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-[#151421]/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-[#2a2839]">
+                    <button type="button"
+                        class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-white/10 text-base font-medium text-white hover:bg-white/20 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm transition"
+                        onclick="closeGuestModal()">
+                        Fermer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateStats() {
+            fetch('/api/proxmox')
+                .then(response => response.json())
+                .then(data => {
+                    // Update CPU
+                    document.getElementById('cpu-val').textContent = data.CPU + '%';
+                    document.getElementById('cpu-bar').style.width = data.CPU + '%';
+
+                    // Update RAM
+                    document.getElementById('ram-val').textContent = data.RAM + '%';
+                    document.getElementById('ram-detail').textContent = data.RAMUsedStr + ' / ' + data.RAMTotalStr;
+                    document.getElementById('ram-bar').style.width = data.RAM + '%';
+
+                    // Update Storage
+                    document.getElementById('storage-val').textContent = data.Storage + '%';
+                    document.getElementById('storage-bar').style.width = data.Storage + '%';
+
+                    const storageBadge = document.getElementById('storage-badge');
+                    if (data.Storage >= 85) {
+                        storageBadge.innerHTML = '<div class="text-orange-500 text-xs px-2 py-1 rounded font-bold border border-orange-500">Attention</div>';
+                    } else {
+                        storageBadge.innerHTML = '';
+                    }
+
+                })
+                .catch(err => console.error('Error fetching stats:', err));
+        }
+
+        setInterval(updateStats, 500);
+
+        function openGuestModal(type, id) {
+            const modal = document.getElementById('guest-modal');
+            const loading = document.getElementById('modal-loading');
+            const content = document.getElementById('modal-content');
+
+            // Reset & Show Modal
+            modal.classList.remove('hidden');
+            loading.classList.remove('hidden');
+            content.classList.add('hidden');
+
+            // Headers
+            document.getElementById('modal-guest-name').textContent = 'Loading...';
+            document.getElementById('modal-guest-id').textContent = '#' + id;
+            document.getElementById('modal-guest-status').innerHTML = '';
+            document.getElementById('modal-note-container').classList.add('hidden');
+
+            fetch(`/api/proxmox/guest?type=${type}&id=${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Populate Data
+                    document.getElementById('modal-guest-name').textContent = data.name;
+                    document.getElementById('modal-guest-id').textContent = '#' + data.id;
+
+                    // Status Badge
+                    let statusHtml = '';
+                    if (data.status === 'running') {
+                        statusHtml = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-400/10 text-green-400"><span class="w-1.5 h-1.5 rounded-full bg-green-400 mr-1.5"></span> Running</span>';
+                    } else {
+                        statusHtml = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-400/10 text-red-400"><span class="w-1.5 h-1.5 rounded-full bg-red-400 mr-1.5"></span> Stopped</span>';
+                    }
+                    document.getElementById('modal-guest-status').innerHTML = statusHtml;
+
+                    // Details
+                    document.getElementById('modal-uptime').textContent = data.uptime;
+                    document.getElementById('modal-cores').textContent = data.cores;
+
+                    // CPU
+                    document.getElementById('modal-cpu-val').textContent = data.cpu + '%';
+                    document.getElementById('modal-cpu-bar').style.width = Math.min(data.cpu, 100) + '%';
+
+                    // RAM
+                    document.getElementById('modal-ram-val').textContent = data.ram_percent + '%';
+                    document.getElementById('modal-ram-text').textContent = data.ram_used + ' / ' + data.ram_total;
+                    document.getElementById('modal-ram-bar').style.width = data.ram_percent + '%';
+
+                    // Disk
+                    document.getElementById('modal-disk-val').textContent = data.disk_percent + '%';
+                    document.getElementById('modal-disk-text').textContent = data.disk_used + ' / ' + data.disk_total;
+                    document.getElementById('modal-disk-bar').style.width = data.disk_percent + '%';
+
+                    // Note
+                    if (data.note) {
+                        document.getElementById('modal-note').textContent = data.note;
+                        document.getElementById('modal-note-container').classList.remove('hidden');
+                    }
+
+                    // Show Content
+                    loading.classList.add('hidden');
+                    content.classList.remove('hidden');
+                })
+                .catch(err => {
+                    console.error('Error fetching details:', err);
+                    document.getElementById('modal-guest-name').textContent = 'Error';
+                    loading.classList.add('hidden');
+                });
+        }
+
+        function closeGuestModal() {
+            document.getElementById('guest-modal').classList.add('hidden');
+        }
+
+        // Mobile Menu Logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('mobile-menu-btn');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobile-overlay');
+
+            if (btn && sidebar && overlay) {
+                function toggleMenu() {
+                    const isClosed = sidebar.classList.contains('-translate-x-full');
+                    if (isClosed) {
+                        sidebar.classList.remove('-translate-x-full');
+                        overlay.classList.remove('hidden');
+                    } else {
+                        sidebar.classList.add('-translate-x-full');
+                        overlay.classList.add('hidden');
+                    }
+                }
+
+                btn.addEventListener('click', toggleMenu);
+                overlay.addEventListener('click', toggleMenu);
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,54 @@
+services:
+  app:
+    build: .
+    container_name: goacloud_app
+    ports:
+      - "8082:8080"
+      - "8443:8443"
+    environment:
+      - DB_HOST=db:3306
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASSWORD}
+      - PORT=8080
+      # Proxmox API Config
+      - PROXMOX_URL=${PROXMOX_URL}
+      - PROXMOX_NODE=pve
+      - PROXMOX_TOKEN_ID=${PROXMOX_TOKEN_ID}
+      - PROXMOX_TOKEN_SECRET=${PROXMOX_TOKEN_SECRET}
+      # Wazuh API Config
+      - WAZUH_API_URL=${WAZUH_API_URL}
+      - WAZUH_USER=${WAZUH_USER}
+      - WAZUH_PASSWORD=${WAZUH_PASSWORD}
+      - WAZUH_INDEXER_URL=${WAZUH_INDEXER_URL}
+      - WAZUH_INDEXER_USER=${WAZUH_INDEXER_USER}
+      - WAZUH_INDEXER_PASSWORD=${WAZUH_INDEXER_PASSWORD}
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+      - DISCORD_CHANNEL_ID=${DISCORD_CHANNEL_ID}
+      # AI Config
+      - AI_PROVIDER=${AI_PROVIDER:-ollama}
+      - AI_URL=${AI_URL:-http://host.docker.internal:11434} # Default to host or override in .env
+      - AI_MODEL=${AI_MODEL:-nemotron-3-nano}
+    depends_on:
+      - db
+    restart: unless-stopped
+    volumes:
+      - ./soar_config.json:/app/soar_config.json
+      - ansible_playbooks:/app/playbooks
+
+  db:
+    image: mysql:8.0
+    container_name: goacloud_db
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # Initialisation de la BDD au premier démarrage
+      - ./schema.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  ansible_playbooks:

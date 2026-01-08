@@ -1,0 +1,22 @@
+---
+- name: Install Nginx Web Server
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Ensure Nginx is running
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Allow Nginx HTTP traffic (UFW)
+      ufw:
+        rule: allow
+        name: 'Nginx Full'
+      ignore_errors: yes # Ignore if UFW is not installed
