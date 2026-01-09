@@ -29,7 +29,7 @@ GoaCloud est une interface unifiée "Single Pane of Glass" pour gérer vos infra
 ### 1. Cloner le dépôt
 
 ```bash
-git clone https://github.com/votre-repo/goacloud.git
+git clone https://github.com/AbrahamOP/goacloud.git
 cd goacloud
 ```
 
