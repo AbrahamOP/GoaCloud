@@ -3,19 +3,17 @@ package main
 import (
     "crypto/rand"
     "crypto/rsa"
-    "crypto/tls"
     "crypto/x509"
     "encoding/json"
     "encoding/pem"
     "fmt"
-    // "log" // Removed if unused
-    "time"
-
-    "golang.org/x/crypto/ssh"
+    "io"
     "net/http"
     "net/url"
     "strings"
-    "io"
+    "time"
+
+    "golang.org/x/crypto/ssh"
 )
 
 type SSHKey struct {
@@ -132,7 +130,7 @@ func DeployKeyToProxmox(vmid int, vmType string, pubKey string) error {
 
 	client := &http.Client{
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			TLSClientConfig: newTLSConfig(),
 		},
 		Timeout: 10 * time.Second,
 	}
@@ -245,12 +243,11 @@ func DeployKeyViaSSHPassword(ip string, port int, user string, password string, 
     }
     defer session.Close()
 
-    // Command to safely append key
-    // 1. Create .ssh dir if not exists
-    // 2. Append key with newline
-    // 3. Set permissions
-    cmd := fmt.Sprintf(`mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo "%s" >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys`, pubKey)
-    
+    // Déploiement de la clé via stdin pour éviter toute injection de commande
+    // On utilise un pipe stdin vers tee plutôt qu'interpoler la clé dans la commande shell
+    session.Stdin = strings.NewReader(pubKey + "\n")
+    cmd := "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+
     output, err := session.CombinedOutput(cmd)
     if err != nil {
         return fmt.Errorf("Failed to install key: %v. Output: %s", err, string(output))

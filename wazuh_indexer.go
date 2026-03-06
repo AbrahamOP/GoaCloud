@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -52,7 +51,7 @@ func NewWazuhIndexerClient(url, user, password string) *WazuhIndexerClient {
 		Client: &http.Client{
 			Timeout: 10 * time.Second,
 			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				TLSClientConfig: newTLSConfig(),
 			},
 		},
 	}

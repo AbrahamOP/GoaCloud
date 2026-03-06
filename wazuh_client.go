@@ -1,8 +1,6 @@
 package main
 
 import (
-
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -72,7 +70,7 @@ func NewWazuhClient(url, user, password string) *WazuhClient {
 		Client: &http.Client{
 			Timeout: 10 * time.Second,
 			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				TLSClientConfig: newTLSConfig(),
 			},
 		},
 	}
@@ -135,14 +133,24 @@ func (w *WazuhClient) GetAgents() ([]WazuhAgent, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode == 401 {
-		// Token expired, retry once
-		w.Authenticate()
-		req.Header.Set("Authorization", "Bearer "+w.Token)
-		resp, _ = w.Client.Do(req)
+		// Token expiré : fermer l'ancienne réponse avant de réessayer
+		resp.Body.Close()
+		if err := w.Authenticate(); err != nil {
+			return nil, fmt.Errorf("Re-authentication failed: %v", err)
+		}
+		req2, err2 := http.NewRequest("GET", w.BaseURL+"/agents?pretty=true&select=id,name,ip,status,os.name,os.platform,version,node_name,lastKeepAlive", nil)
+		if err2 != nil {
+			return nil, err2
+		}
+		req2.Header.Add("Authorization", "Bearer "+w.Token)
+		resp, err = w.Client.Do(req2)
+		if err != nil {
+			return nil, err
+		}
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		body, _ := io.ReadAll(resp.Body)
@@ -175,13 +183,18 @@ func (w *WazuhClient) GetAgentVulnerabilities(agentID string) (int, int, int, in
     if err != nil {
         return 0, 0, 0, 0, 0, err
     }
-    defer resp.Body.Close()
-    
+
     if resp.StatusCode == 401 {
-         w.Authenticate()
-         req.Header.Set("Authorization", "Bearer "+w.Token)
-         resp, _ = w.Client.Do(req)
+        resp.Body.Close()
+        w.Authenticate()
+        req2, _ := http.NewRequest("GET", url, nil)
+        req2.Header.Add("Authorization", "Bearer "+w.Token)
+        resp, err = w.Client.Do(req2)
+        if err != nil {
+            return 0, 0, 0, 0, 0, err
+        }
     }
+    defer resp.Body.Close()
     
 	if resp.StatusCode == 404 || resp.StatusCode == 400 {
 		// Module likely disabled or no data, return 0s gracefully
@@ -235,13 +248,18 @@ func (w *WazuhClient) GetAgentVulnerabilitiesList(agentID string) ([]WazuhVuln, 
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode == 401 {
+		resp.Body.Close()
 		w.Authenticate()
-		req.Header.Set("Authorization", "Bearer "+w.Token)
-		resp, _ = w.Client.Do(req)
+		req2, _ := http.NewRequest("GET", url, nil)
+		req2.Header.Add("Authorization", "Bearer "+w.Token)
+		resp, err = w.Client.Do(req2)
+		if err != nil {
+			return nil, err
+		}
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode == 404 || resp.StatusCode == 400 {
 		// Module likely disabled or no data, return empty list gracefully

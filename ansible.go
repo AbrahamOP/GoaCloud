@@ -51,7 +51,7 @@ func ListPlaybooks(dir string) (map[string][]string, error) {
 
 // RunPlaybook executes an ansible-playbook command
 // Returns: stdout pipe, cleanup function, error
-// The caller MUST call cleanup() after reading the output to remove the temp key.
+// Le caller DOIT appeler cleanup() après avoir lu tout l'output.
 func RunPlaybook(playbookPath string, targetIP string, privateKey string) (io.ReadCloser, func(), error) {
 
 	// 1. Create Temp Private Key File
@@ -60,51 +60,54 @@ func RunPlaybook(playbookPath string, targetIP string, privateKey string) (io.Re
 		return nil, nil, fmt.Errorf("failed to create temp key: %v", err)
 	}
     tmpKeyName := tmpKey.Name()
-    
-    // Cleanup helper
-    cleanup := func() {
-        os.Remove(tmpKeyName)
-    }
 
 	// Important: SSH requires strict permissions
     if err := os.Chmod(tmpKeyName, 0600); err != nil {
-        cleanup()
+        os.Remove(tmpKeyName)
         return nil, nil, fmt.Errorf("failed to chmod temp key: %v", err)
     }
 	if _, err := tmpKey.WriteString(privateKey); err != nil {
-        cleanup()
+        os.Remove(tmpKeyName)
 		return nil, nil, fmt.Errorf("failed to write temp key: %v", err)
 	}
 	tmpKey.Close()
 
     // Command Construction
-    cmd := exec.Command("ansible-playbook", 
-        "-i", fmt.Sprintf("%s,", targetIP), 
-        playbookPath, 
+    cmd := exec.Command("ansible-playbook",
+        "-i", fmt.Sprintf("%s,", targetIP),
+        playbookPath,
         "--private-key", tmpKeyName,
         "--user", "root",
         "--ssh-common-args", "-o StrictHostKeyChecking=no",
     )
-    
-    stdout, err := cmd.StdoutPipe()
+
+    // Merge stderr into stdout pour tout streamer au client
+    pr, pw, err := os.Pipe()
     if err != nil {
-        cleanup()
+        os.Remove(tmpKeyName)
         return nil, nil, err
     }
-    cmd.Stderr = cmd.Stdout // Merge stderr into stdout
+    cmd.Stdout = pw
+    cmd.Stderr = pw
 
     if err := cmd.Start(); err != nil {
-        cleanup()
+        pw.Close()
+        pr.Close()
+        os.Remove(tmpKeyName)
         return nil, nil, err
     }
-    
-    // We need to keep the file until the process is done.
-    // The caller reads log stream (stdout). When stream ends (EOF), likely process is done.
-    // However, technically Wait() is needed.
-    // For simplicity in this specific "Fire & Stream" use case:
-    // We provided a cleanup function. The Handler will call it when loop breaks.
-    
-    return stdout, cleanup, nil 
+
+    // Goroutine qui attend la fin du processus et ferme le pipe writer
+    go func() {
+        cmd.Wait()
+        pw.Close()
+    }()
+
+    cleanup := func() {
+        os.Remove(tmpKeyName)
+    }
+
+    return pr, cleanup, nil
 }
 
 // Helper to clean up securely

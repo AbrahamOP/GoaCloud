@@ -6,6 +6,7 @@ import (
     "log"
     "net/http"
     "strconv"
+    "strings"
     "time"
 
     "github.com/gorilla/websocket"
@@ -14,7 +15,13 @@ import (
 
 var upgrader = websocket.Upgrader{
     CheckOrigin: func(r *http.Request) bool {
-        return true 
+        origin := r.Header.Get("Origin")
+        if origin == "" {
+            return true // connexion directe (pas navigateur)
+        }
+        // Accepte si même host que le serveur
+        host := r.Host
+        return strings.Contains(origin, host)
     },
 }
 
@@ -70,7 +77,7 @@ func handleSSHWebSocket(w http.ResponseWriter, r *http.Request) {
 
     // 3. Get Private Key
     keyID, _ := strconv.Atoi(keyIDStr)
-    key, err := GetKeyByID(keyID)
+    key, err := GetSSHKeyByID(keyID)
     if err != nil {
         ws.WriteMessage(websocket.TextMessage, []byte("Error: Key not found"))
         return

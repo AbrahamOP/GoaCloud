@@ -46,6 +46,12 @@ var wazuhClient *WazuhClient
 var wazuhIndexerClient *WazuhIndexerClient
 var ollamaClient *OllamaClient
 var store *sessions.CookieStore
+var skipTLSVerify bool
+
+// newTLSConfig retourne une config TLS contrôlée par SKIP_TLS_VERIFY
+func newTLSConfig() *tls.Config {
+    return &tls.Config{InsecureSkipVerify: skipTLSVerify} //nolint:gosec
+}
 
 type Config struct {
     // ...
@@ -200,6 +206,12 @@ type AuditLog struct {
 
 
 func main() {
+    // Lire la config TLS globale avant tout
+    skipTLSVerify = getEnv("SKIP_TLS_VERIFY", "false") == "true"
+    if skipTLSVerify {
+        log.Println("ATTENTION: SKIP_TLS_VERIFY=true — vérification des certificats TLS désactivée")
+    }
+
     // Configuration de la base de données via variables d'environnement
     cfg := mysql.Config{
         User:                 getEnv("DB_USER", "root"),
@@ -307,12 +319,17 @@ func main() {
 
     // Initialize Session Store
     sessionKey := getEnv("SESSION_SECRET", "super-secret-key-change-me")
+    if sessionKey == "super-secret-key-change-me" {
+        log.Println("AVERTISSEMENT: SESSION_SECRET est la valeur par défaut. Définissez une clé secrète forte en production !")
+    }
     store = sessions.NewCookieStore([]byte(sessionKey))
+    secureCookie := getEnv("COOKIE_SECURE", "true") != "false"
     store.Options = &sessions.Options{
         Path:     "/",
         MaxAge:   86400 * 1, // 1 day
         HttpOnly: true,
-        Secure:   false, // Set to true in production with HTTPS
+        Secure:   secureCookie,
+        SameSite: http.SameSiteStrictMode, // Protection CSRF basique
     }
 
     // Discord Bot Config
@@ -364,8 +381,12 @@ func main() {
     // User Management Routes
     http.HandleFunc("/users", authMiddleware(handleUsers))
     http.HandleFunc("/audit-logs", authMiddleware(handleAuditLogs))
+    http.HandleFunc("/api/users/add", authMiddleware(handleAddUser))
     http.HandleFunc("/api/users/delete", authMiddleware(handleDeleteUser))
     http.HandleFunc("/api/users/update", authMiddleware(handleUpdateUser))
+
+    // Proxmox API (JSON)
+    http.HandleFunc("/api/proxmox/stats", authMiddleware(handleProxmoxAPI))
 
     // User Profile
     http.HandleFunc("/profile", authMiddleware(handleProfile))
@@ -402,11 +423,20 @@ func main() {
     httpPort := getEnv("PORT", "8080")
     httpsPort := getEnv("HTTPS_PORT", "8443")
 
-    // Goroutine pour HTTP (Redirection optionnelle ou fallback)
+    // Goroutine pour HTTP → redirige vers HTTPS
     go func() {
-        log.Printf("Serveur HTTP démarré sur http://0.0.0.0:%s", httpPort)
-        if err := http.ListenAndServe(":"+httpPort, nil); err != nil {
-             log.Printf("Erreur serveur HTTP: %v", err)
+        log.Printf("Serveur HTTP démarré sur http://0.0.0.0:%s (redirection HTTPS)", httpPort)
+        redirectMux := http.NewServeMux()
+        redirectMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+            host := r.Host
+            if h, _, err := net.SplitHostPort(host); err == nil {
+                host = h
+            }
+            target := "https://" + host + ":" + httpsPort + r.RequestURI
+            http.Redirect(w, r, target, http.StatusMovedPermanently)
+        })
+        if err := http.ListenAndServe(":"+httpPort, redirectMux); err != nil {
+            log.Printf("Erreur serveur HTTP: %v", err)
         }
     }()
 
@@ -561,6 +591,7 @@ func updateVMCache() {
 
 // SOAR Worker
 var soarAgentStatus sync.Map // map[string]string (AgentID -> Status)
+var soarAlertDedup sync.Map  // map[string]bool (alertKey -> true) — déduplication des alertes envoyées
 
 type SoarConfig struct {
     AlertStatus   bool `json:"alert_status"`
@@ -759,8 +790,8 @@ func checkSoarEvents() {
         } else {
             for _, alert := range alerts {
                 alertKey := alert.Agent.ID + alert.Rule.ID + alert.Timestamp
-                if _, loaded := soarAgentStatus.Load(alertKey); !loaded {
-                     soarAgentStatus.Store(alertKey, "alerted")
+                if _, loaded := soarAlertDedup.Load(alertKey); !loaded {
+                     soarAlertDedup.Store(alertKey, true)
                      
                      var title, msg, severity string
                      shouldSend := false
@@ -1064,6 +1095,11 @@ func handleAddUser(w http.ResponseWriter, r *http.Request) {
         return
     }
 
+    if len(password) < 8 {
+        http.Error(w, "Le mot de passe doit contenir au moins 8 caractères", http.StatusBadRequest)
+        return
+    }
+
     hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
     if err != nil {
         http.Error(w, "Error processing password", http.StatusInternalServerError)
@@ -1078,8 +1114,10 @@ func handleAddUser(w http.ResponseWriter, r *http.Request) {
     }
 
     // Audit Log
-    if c, err := r.Cookie("session_token"); err == nil {
-         go logAudit(0, c.Value, "AddUser", fmt.Sprintf("Added user: %s (Role: %s)", username, role), r.RemoteAddr)
+    if sess, err := store.Get(r, "goacloud-session"); err == nil {
+        if u, ok := sess.Values["username"].(string); ok && u != "" {
+            go logAudit(0, u, "AddUser", fmt.Sprintf("Added user: %s (Role: %s)", username, role), r.RemoteAddr)
+        }
     }
 
     http.Redirect(w, r, "/users", http.StatusSeeOther)
@@ -1107,8 +1145,10 @@ func handleDeleteUser(w http.ResponseWriter, r *http.Request) {
     }
 
     // Audit Log
-    if c, err := r.Cookie("session_token"); err == nil {
-         go logAudit(0, c.Value, "DeleteUser", fmt.Sprintf("Deleted user ID: %s", userID), r.RemoteAddr)
+    if sess, err := store.Get(r, "goacloud-session"); err == nil {
+        if u, ok := sess.Values["username"].(string); ok && u != "" {
+            go logAudit(0, u, "DeleteUser", fmt.Sprintf("Deleted user ID: %s", userID), r.RemoteAddr)
+        }
     }
 
     http.Redirect(w, r, "/users", http.StatusSeeOther)
@@ -1305,7 +1345,7 @@ func getProxmoxStats(baseURL, configuredNode, tokenID, secret string, includeGue
     client := &http.Client{
         Timeout: 5 * time.Second,
         Transport: &http.Transport{
-            TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+            TLSClientConfig: newTLSConfig(),
         },
     }
 
@@ -1538,7 +1578,7 @@ func getProxmoxGuestDetail(baseURL, configuredNode, tokenID, secret, pveType, vm
     client := &http.Client{
         Timeout: 5 * time.Second,
         Transport: &http.Transport{
-            TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+            TLSClientConfig: newTLSConfig(),
         },
     }
 
@@ -1713,6 +1753,11 @@ func handleSetup(w http.ResponseWriter, r *http.Request) {
              return
         }
 
+        if len(password) < 8 {
+             tmpl.ExecuteTemplate(w, "setup.html", map[string]interface{}{"Error": "Le mot de passe doit contenir au moins 8 caractères"})
+             return
+        }
+
         if password != confirm {
              tmpl.ExecuteTemplate(w, "setup.html", map[string]interface{}{"Error": "Les mots de passe ne correspondent pas"})
              return
@@ -1726,7 +1771,7 @@ func handleSetup(w http.ResponseWriter, r *http.Request) {
         }
 
         // Force Role = Admin
-        _, err = db.Exec("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", username, string(hashedPassword), "Admin")
+        _, err = db.Exec("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", username, string(hashedPassword), "Admin")
         if err != nil {
              log.Printf("Error creating admin user: %v", err)
              tmpl.ExecuteTemplate(w, "setup.html", map[string]interface{}{"Error": "Erreur base de données: " + err.Error()})
@@ -1784,11 +1829,13 @@ func handleWazuh(w http.ResponseWriter, r *http.Request) {
 
 	// Enrich with Proxmox Stats (Existing loop content needs to be preserved or I should target the specific lines)
     // The previous view_file showed lines 950-952 inside the loop.
+    wazuhSess, _ := store.Get(r, "goacloud-session")
+    currentUser, _ := wazuhSess.Values["username"].(string)
     data := struct {
         User   string
         Agents []WazuhAgent
     }{
-        User:   "Antoine", // TODO: Get from session
+        User:   currentUser,
         Agents: agents,
     }
 
@@ -1840,12 +1887,13 @@ func handleWazuhVulns(w http.ResponseWriter, r *http.Request) {
 
 func handleSoar(w http.ResponseWriter, r *http.Request) {
     // Auth handled by middleware
+    soarSess, _ := store.Get(r, "goacloud-session")
+    currentUser, _ := soarSess.Values["username"].(string)
 
-    // Pass user name for personalization if needed
     data := struct {
         User string
     }{
-        User: "Antoine", // TODO: Session
+        User: currentUser,
     }
 
     err := tmpl.ExecuteTemplate(w, "soar.html", data)
@@ -2203,9 +2251,15 @@ func handleAnsibleRun(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // 3. Prepare Playbook Path
-    playbookPath := filepath.Join("playbooks", req.Playbook)
-    
+    // 3. Prepare Playbook Path (avec protection path traversal)
+    playbookPath := filepath.Join("playbooks", filepath.Clean(req.Playbook))
+    absPlaybooks, _ := filepath.Abs("playbooks")
+    absPath, _ := filepath.Abs(playbookPath)
+    if !strings.HasPrefix(absPath, absPlaybooks+string(filepath.Separator)) {
+        http.Error(w, "Invalid playbook path", http.StatusBadRequest)
+        return
+    }
+
     // 4. Run & Stream
     // Set headers for streaming
     w.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -2278,8 +2332,14 @@ func handleAnsibleUpload(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // Save Path
-    savePath := filepath.Join("playbooks", filename)
+    // Save Path (avec protection path traversal)
+    savePath := filepath.Join("playbooks", filepath.Base(filename))
+    absPlaybooks, _ := filepath.Abs("playbooks")
+    absSavePath, _ := filepath.Abs(savePath)
+    if !strings.HasPrefix(absSavePath, absPlaybooks+string(filepath.Separator)) {
+        http.Error(w, "Invalid filename", http.StatusBadRequest)
+        return
+    }
 
     // Create file
     dst, err := os.Create(savePath)
@@ -2298,16 +2358,6 @@ func handleAnsibleUpload(w http.ResponseWriter, r *http.Request) {
 
     w.WriteHeader(http.StatusOK)
     fmt.Fprintf(w, "Playbook uploaded successfully")
-}
-
-func GetKeyByID(id int) (*SSHKey, error) {
-    var k SSHKey
-    err := db.QueryRow("SELECT id, name, key_type, public_key, private_key, fingerprint, created_at FROM ssh_keys WHERE id = ?", id).
-        Scan(&k.ID, &k.Name, &k.KeyType, &k.PublicKey, &k.PrivateKey, &k.Fingerprint, &k.CreatedAt)
-    if err != nil {
-        return nil, err
-    }
-    return &k, nil
 }
 
 func generateSelfSignedCert() error {
@@ -2384,8 +2434,10 @@ func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
     }
 
     // Audit Log
-    if c, err := r.Cookie("session_token"); err == nil {
-         go logAudit(0, c.Value, "UpdateUserRole", fmt.Sprintf("Updated user ID %s to role %s", userID, role), r.RemoteAddr)
+    if sess, err := store.Get(r, "goacloud-session"); err == nil {
+        if u, ok := sess.Values["username"].(string); ok && u != "" {
+            go logAudit(0, u, "UpdateUserRole", fmt.Sprintf("Updated user ID %s to role %s", userID, role), r.RemoteAddr)
+        }
     }
 
     http.Redirect(w, r, "/users", http.StatusSeeOther)
@@ -2424,12 +2476,16 @@ func handleUpdateProfile(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    c, err := r.Cookie("session_token")
-    if err != nil || c.Value == "" {
+    session, err := store.Get(r, "goacloud-session")
+    if err != nil {
         http.Redirect(w, r, "/login", http.StatusSeeOther)
         return
     }
-    username := c.Value
+    username, ok := session.Values["username"].(string)
+    if !ok || username == "" {
+        http.Redirect(w, r, "/login", http.StatusSeeOther)
+        return
+    }
 
     oldPassword := r.FormValue("old_password")
     newPassword := r.FormValue("new_password")
@@ -2437,6 +2493,11 @@ func handleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 
     if oldPassword == "" || newPassword == "" {
         http.Error(w, "All fields are required", http.StatusBadRequest)
+        return
+    }
+
+    if len(newPassword) < 8 {
+        http.Redirect(w, r, "/profile?error=Le mot de passe doit contenir au moins 8 caractères", http.StatusSeeOther)
         return
     }
 
@@ -2479,12 +2540,16 @@ func handleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 // MFA Handlers
 
 func handleSetupMFA(w http.ResponseWriter, r *http.Request) {
-    sessionToken, err := r.Cookie("session_token")
+    session, err := store.Get(r, "goacloud-session")
     if err != nil {
         http.Redirect(w, r, "/login", http.StatusSeeOther)
         return
     }
-    username := sessionToken.Value
+    username, ok := session.Values["username"].(string)
+    if !ok || username == "" {
+        http.Redirect(w, r, "/login", http.StatusSeeOther)
+        return
+    }
 
     // Generate Key
     key, err := totp.Generate(totp.GenerateOpts{
@@ -2522,12 +2587,16 @@ func handleVerifyMFA(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    sessionToken, err := r.Cookie("session_token")
+    session, err := store.Get(r, "goacloud-session")
     if err != nil {
         http.Redirect(w, r, "/login", http.StatusSeeOther)
         return
     }
-    username := sessionToken.Value
+    username, ok := session.Values["username"].(string)
+    if !ok || username == "" {
+        http.Redirect(w, r, "/login", http.StatusSeeOther)
+        return
+    }
 
     var req struct {
         Code   string `json:"code"`
@@ -2567,12 +2636,16 @@ func handleDisableMFA(w http.ResponseWriter, r *http.Request) {
          return
     }
 
-    sessionToken, err := r.Cookie("session_token")
+    session, err := store.Get(r, "goacloud-session")
     if err != nil {
         http.Redirect(w, r, "/login", http.StatusSeeOther)
         return
     }
-    username := sessionToken.Value
+    username, ok := session.Values["username"].(string)
+    if !ok || username == "" {
+        http.Redirect(w, r, "/login", http.StatusSeeOther)
+        return
+    }
 
     _, err = db.Exec("UPDATE users SET mfa_enabled = FALSE, mfa_secret = NULL WHERE username = ?", username)
     if err != nil {
