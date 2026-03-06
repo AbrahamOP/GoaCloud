@@ -1,9 +1,12 @@
 package main
 
 import (
+    "database/sql"
+    "encoding/base64"
     "fmt"
     "io"
     "log"
+    "net"
     "net/http"
     "strconv"
     "strings"
@@ -12,6 +15,30 @@ import (
     "github.com/gorilla/websocket"
     "golang.org/x/crypto/ssh"
 )
+
+// sshHostKeyCallback implémente Trust-On-First-Use (TOFU) pour la vérification des clés d'hôte SSH.
+// À la première connexion vers une IP, la clé est stockée en base. Les connexions suivantes la vérifient.
+func sshHostKeyCallback(ip string) ssh.HostKeyCallback {
+    return func(_ string, _ net.Addr, key ssh.PublicKey) error {
+        keyB64 := base64.StdEncoding.EncodeToString(key.Marshal())
+        var stored string
+        err := db.QueryRow("SELECT host_key FROM ssh_host_keys WHERE ip = ?", ip).Scan(&stored)
+        if err == sql.ErrNoRows {
+            // Première connexion : on fait confiance et on stocke (TOFU)
+            if _, err := db.Exec("INSERT INTO ssh_host_keys (ip, host_key) VALUES (?, ?)", ip, keyB64); err != nil {
+                log.Printf("TOFU: impossible de stocker la clé hôte pour %s: %v", ip, err)
+            }
+            return nil
+        }
+        if err != nil {
+            return fmt.Errorf("erreur de lecture clé hôte: %v", err)
+        }
+        if stored != keyB64 {
+            return fmt.Errorf("clé hôte SSH modifiée pour %s — possible attaque MITM", ip)
+        }
+        return nil
+    }
+}
 
 var upgrader = websocket.Upgrader{
     CheckOrigin: func(r *http.Request) bool {
@@ -95,7 +122,7 @@ func handleSSHWebSocket(w http.ResponseWriter, r *http.Request) {
         Auth: []ssh.AuthMethod{
             ssh.PublicKeys(signer),
         },
-        HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+        HostKeyCallback: sshHostKeyCallback(ip),
         Timeout:         5 * time.Second,
     }
 

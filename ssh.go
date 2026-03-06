@@ -226,7 +226,7 @@ func DeployKeyViaSSHPassword(ip string, port int, user string, password string, 
         Auth: []ssh.AuthMethod{
             ssh.Password(password),
         },
-        HostKeyCallback: ssh.InsecureIgnoreHostKey(), // In a real app we might want to check host keys
+        HostKeyCallback: sshHostKeyCallback(ip),
         Timeout:         10 * time.Second,
     }
 

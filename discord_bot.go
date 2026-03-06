@@ -9,6 +9,7 @@ import (
 
 var discordSession *discordgo.Session
 var discordChannelID string
+var discordAuthChannelID string
 
 // InitDiscordBot initializes the Discord session
 func InitDiscordBot(token, channelID string) error {
@@ -59,6 +60,35 @@ func SendDiscordAlert(title, message, severity string) error {
 	}
 
 	_, err := discordSession.ChannelMessageSendEmbed(discordChannelID, embed)
+	return err
+}
+
+// SendAuthAlert envoie une alerte d'authentification au canal dédié (ou canal principal en fallback)
+func SendAuthAlert(title, message string, blocked bool) error {
+	if discordSession == nil {
+		return fmt.Errorf("discord session not initialized")
+	}
+
+	channelID := discordAuthChannelID
+	if channelID == "" {
+		channelID = discordChannelID
+	}
+
+	color := 0xffa500 // Orange — échec simple
+	if blocked {
+		color = 0xff0000 // Rouge — IP bloquée
+	}
+
+	embed := &discordgo.MessageEmbed{
+		Title:       "🔐 Auth: " + title,
+		Description: message,
+		Color:       color,
+		Footer: &discordgo.MessageEmbedFooter{
+			Text: "GoaCloud Auth Monitor",
+		},
+	}
+
+	_, err := discordSession.ChannelMessageSendEmbed(channelID, embed)
 	return err
 }
 

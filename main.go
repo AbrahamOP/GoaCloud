@@ -218,7 +218,7 @@ func main() {
         Passwd:               getEnv("DB_PASS", "root"),
         Net:                  "tcp",
         Addr:                 getEnv("DB_HOST", "127.0.0.1:3306"),
-        DBName:               "goacloud",
+        DBName:               getEnv("DB_NAME", "goacloud"),
         AllowNativePasswords: true,
         ParseTime:            true,
     }
@@ -341,6 +341,8 @@ func main() {
             log.Printf("Failed to init Discord Bot: %v", err)
         } else {
             defer CloseDiscordBot()
+            // Canal dédié aux alertes d'authentification (optionnel, fallback sur canal principal)
+            discordAuthChannelID = getEnv("DISCORD_AUTH_CHANNEL_ID", "")
         }
     } else {
         log.Println("Discord Bot not configured (missing token or channel)")
@@ -404,9 +406,10 @@ func main() {
     go startCacheWorker()
     // Start Wazuh Worker
     go startWazuhWorker()
-    
     // Start SOAR Worker
     go startSoarWorker()
+    // Start SOAR alert dedup cleaner
+    go startAlertDedupCleaner()
 
     // Démarrage du serveur
     // SSL Setup
@@ -441,18 +444,45 @@ func main() {
     }()
 
     log.Printf("Serveur HTTPS démarré sur https://0.0.0.0:%s", httpsPort)
-    
+
+    // Middleware de sécurité appliqué globalement à toutes les routes HTTPS
+    secureHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("X-Frame-Options", "DENY")
+        w.Header().Set("X-Content-Type-Options", "nosniff")
+        w.Header().Set("X-XSS-Protection", "1; mode=block")
+        w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' wss:;")
+        w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+        http.DefaultServeMux.ServeHTTP(w, r)
+    })
+
     // Explicitly disable HTTP/2 to avoid protocol errors with self-signed certs
     server := &http.Server{
-        Addr:      ":" + httpsPort,
-        TLSConfig: &tls.Config{},
-        // This disables HTTP/2
+        Addr:         ":" + httpsPort,
+        Handler:      secureHandler,
+        TLSConfig:    &tls.Config{},
         TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
     }
 
     if err := server.ListenAndServeTLS(certFile, keyFile); err != nil {
         log.Fatalf("Erreur serveur HTTPS: %v", err)
     }
+}
+
+// startAlertDedupCleaner purge les entrées de soarAlertDedup vieilles de plus de 2h
+// pour éviter une fuite mémoire en production longue durée.
+func startAlertDedupCleaner() {
+	ticker := time.NewTicker(1 * time.Hour)
+	defer ticker.Stop()
+	for range ticker.C {
+		cutoff := time.Now().Add(-2 * time.Hour)
+		soarAlertDedup.Range(func(k, v interface{}) bool {
+			if t, ok := v.(time.Time); ok && t.Before(cutoff) {
+				soarAlertDedup.Delete(k)
+			}
+			return true
+		})
+	}
 }
 
 func startWazuhWorker() {
@@ -591,7 +621,66 @@ func updateVMCache() {
 
 // SOAR Worker
 var soarAgentStatus sync.Map // map[string]string (AgentID -> Status)
-var soarAlertDedup sync.Map  // map[string]bool (alertKey -> true) — déduplication des alertes envoyées
+var soarAlertDedup sync.Map  // map[string]time.Time (alertKey -> insertedAt) — déduplication des alertes envoyées
+
+// --- Rate Limiting Login ---
+type rateLimitEntry struct {
+	count        int
+	blockedUntil time.Time
+}
+
+var (
+	loginMu      sync.Mutex
+	loginLimiter = make(map[string]*rateLimitEntry)
+)
+
+func isLoginBlocked(ip string) bool {
+	loginMu.Lock()
+	defer loginMu.Unlock()
+	e, ok := loginLimiter[ip]
+	if !ok {
+		return false
+	}
+	return time.Now().Before(e.blockedUntil)
+}
+
+// recordLoginFailure enregistre un échec et retourne (count, blocked)
+func recordLoginFailure(ip string) (int, bool) {
+	loginMu.Lock()
+	defer loginMu.Unlock()
+	e, ok := loginLimiter[ip]
+	if !ok {
+		e = &rateLimitEntry{}
+		loginLimiter[ip] = e
+	}
+	e.count++
+	if e.count >= 5 {
+		e.blockedUntil = time.Now().Add(15 * time.Minute)
+		e.count = 0
+		return 5, true
+	}
+	return e.count, false
+}
+
+func resetLoginFailures(ip string) {
+	loginMu.Lock()
+	defer loginMu.Unlock()
+	delete(loginLimiter, ip)
+}
+
+// notifyLoginFailure envoie une alerte Discord en cas d'échec de connexion
+func notifyLoginFailure(ip, username, reason string, attempt int, blocked bool) {
+	if discordSession == nil {
+		return
+	}
+	title := "Échec de connexion"
+	msg := fmt.Sprintf("**IP:** `%s`\n**Utilisateur:** `%s`\n**Raison:** %s\n**Tentatives:** %d/5", ip, username, reason, attempt)
+	if blocked {
+		title = "⛔ IP Bloquée"
+		msg += "\n\n> L'adresse IP a été bloquée pendant **15 minutes** suite à trop d'échecs."
+	}
+	SendAuthAlert(title, msg, blocked)
+}
 
 type SoarConfig struct {
     AlertStatus   bool `json:"alert_status"`
@@ -737,9 +826,6 @@ func checkSoarEvents() {
     config := currentSoarConfig
     soarConfigMutex.RUnlock()
     
-    // Debug Log
-    log.Printf("SOAR Check: Status=%v, SSH=%v", config.AlertStatus, config.AlertSSH)
-
     // 1. Check for Status Changes
     if config.AlertStatus {
         agents, err := wazuhClient.GetAgents()
@@ -791,7 +877,7 @@ func checkSoarEvents() {
             for _, alert := range alerts {
                 alertKey := alert.Agent.ID + alert.Rule.ID + alert.Timestamp
                 if _, loaded := soarAlertDedup.Load(alertKey); !loaded {
-                     soarAlertDedup.Store(alertKey, true)
+                     soarAlertDedup.Store(alertKey, time.Now())
                      
                      var title, msg, severity string
                      shouldSend := false
@@ -891,6 +977,12 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
     }
 
     if r.Method == http.MethodPost {
+        clientIP, _, _ := net.SplitHostPort(r.RemoteAddr)
+        if isLoginBlocked(clientIP) {
+            http.Error(w, "Trop de tentatives de connexion. Réessayez dans 15 minutes.", http.StatusTooManyRequests)
+            return
+        }
+
         username := r.FormValue("username")
         password := r.FormValue("password")
         mfaCode := r.FormValue("mfa_code")
@@ -901,6 +993,8 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 
         err := db.QueryRow("SELECT password_hash, mfa_enabled, mfa_secret FROM users WHERE username = ?", username).Scan(&hashedPassword, &mfaEnabled, &mfaSecret)
         if err == sql.ErrNoRows {
+            n, blocked := recordLoginFailure(clientIP)
+            go notifyLoginFailure(clientIP, username, "Utilisateur inconnu", n, blocked)
             renderError(w, "login.html", "Utilisateur inconnu")
             return
         } else if err != nil {
@@ -911,6 +1005,8 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 
         err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
         if err != nil {
+            n, blocked := recordLoginFailure(clientIP)
+            go notifyLoginFailure(clientIP, username, "Mot de passe incorrect", n, blocked)
             renderError(w, "login.html", "Mot de passe incorrect")
             return
         }
@@ -918,8 +1014,6 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
         // MFA Check
         if mfaEnabled {
             if mfaCode == "" {
-                // Return to login page with mfa_required flag to show the second input
-                // Or better, just render login.html with a specific error/state
                 data := map[string]interface{}{
                     "Error":       "Code MFA requis",
                     "MFARequired": true,
@@ -932,6 +1026,8 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
             // Verify Code
             valid := totp.Validate(mfaCode, mfaSecret.String)
             if !valid {
+                n, blocked := recordLoginFailure(clientIP)
+                go notifyLoginFailure(clientIP, username, "Code MFA invalide", n, blocked)
                 renderError(w, "login.html", "Code MFA invalide")
                 return
             }
@@ -942,6 +1038,8 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
         session.Values["authenticated"] = true
         session.Values["username"] = username
         session.Save(r, w)
+
+        resetLoginFailures(clientIP)
 
         // Audit Log
         go logAudit(0, username, "Login", "Successful login", r.RemoteAddr)
@@ -1038,11 +1136,19 @@ func initUsersDB() {
     // Add Associated VMs Column to SSH Keys
     _, err = db.Exec("ALTER TABLE ssh_keys ADD COLUMN associated_vms TEXT")
     if err != nil {
-        // Ignore error if column already exists (Duplicate column name)
-        // In proper migration we check schema, but here we just log debug
         if !strings.Contains(err.Error(), "Duplicate column") && !strings.Contains(err.Error(), "exists") {
              log.Printf("DB Migration (SSH Keys): %v", err)
         }
+    }
+
+    // Create SSH known hosts table (TOFU)
+    _, err = db.Exec(`CREATE TABLE IF NOT EXISTS ssh_host_keys (
+        ip VARCHAR(255) PRIMARY KEY,
+        host_key TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`)
+    if err != nil {
+        log.Printf("DB Migration (SSH Host Keys): %v", err)
     }
 }
 
@@ -1205,22 +1311,17 @@ func handleProxmox(w http.ResponseWriter, r *http.Request) {
     proxmoxTokenSecret := getEnv("PROXMOX_TOKEN_SECRET", "")
     proxmoxNode := getEnv("PROXMOX_NODE", "pve")
 
-    log.Printf("DEBUG: Proxmox Config - URL: %s, Node: %s, TokenID: %s", proxmoxURL, proxmoxNode, proxmoxTokenID)
-
     var stats ProxmoxStats
 
     if proxmoxURL != "" && proxmoxTokenID != "" {
         realStats, err := getProxmoxStats(proxmoxURL, proxmoxNode, proxmoxTokenID, proxmoxTokenSecret, true, false)
         if err != nil {
             log.Printf("Erreur API Proxmox: %v", err)
-            // On ajoute une erreur visible dans stats pour le debug
             stats.VMs = []VM{{Name: fmt.Sprintf("Erreur: %v", err), Status: "error"}}
         } else {
-            log.Printf("Succès API Proxmox: %d VMs trouvées", len(realStats.VMs))
             stats = realStats
         }
     } else {
-        log.Println("DEBUG: Config Proxmox incomplète, utilisation Mock Data")
         // Fallback Mock Data si pas de config
          stats = ProxmoxStats{
             CPU:      12,
@@ -1387,12 +1488,12 @@ func getProxmoxStats(baseURL, configuredNode, tokenID, secret string, includeGue
                 }
             }
             if !found && firstOnline != "" {
-                log.Printf("DEBUG: Node '%s' introuvable ou offline. Utilisation du noeud actif trouvé : '%s'", configuredNode, firstOnline)
+                log.Printf("Proxmox: noeud '%s' introuvable, utilisation de '%s'", configuredNode, firstOnline)
                 targetNode = firstOnline
             }
         }
     } else {
-        log.Printf("WARN: Impossible de lister les noeuds (Status %s). Tentative avec '%s'", respNodes.Status, targetNode)
+        log.Printf("Proxmox: impossible de lister les noeuds (Status %s), tentative avec '%s'", respNodes.Status, targetNode)
     }
 
     // 1. Node Status using targetNode
@@ -2061,8 +2162,6 @@ func handleSSHManager(w http.ResponseWriter, r *http.Request) {
     stats, err := getProxmoxStats(proxmoxURL, proxmoxNode, proxmoxTokenID, proxmoxTokenSecret, true, false) // true=guests, false=no real ip check
     if err != nil {
         log.Printf("ERROR SSH Manager: Failed to fetch VMs: %v", err)
-    } else {
-        log.Printf("DEBUG SSH Manager: Fetched %d VMs from Proxmox (Node: %s)", len(stats.VMs), proxmoxNode)
     }
     vms := []VM{}
     if err == nil {
