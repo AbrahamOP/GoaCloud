@@ -424,10 +424,10 @@
             }
 
             const grid = document.getElementById('apps-grid');
-            if (!grid) return;
-
-            const cards = Array.from(grid.getElementsByClassName('app-card'));
             const filterContainer = document.getElementById('category-filters');
+
+            if (grid && filterContainer) {
+            const cards = Array.from(grid.getElementsByClassName('app-card'));
 
             // Extract unique categories
             const categories = new Set(['All']);
@@ -462,6 +462,7 @@
                 };
                 filterContainer.appendChild(btn);
             });
+            } // end if grid
 
             // Clock Feature
             function updateClock() {
