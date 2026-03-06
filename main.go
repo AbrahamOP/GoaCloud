@@ -921,13 +921,9 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
                 // Return to login page with mfa_required flag to show the second input
                 // Or better, just render login.html with a specific error/state
                 data := map[string]interface{}{
-                    "Error": "Code MFA requis",
+                    "Error":       "Code MFA requis",
                     "MFARequired": true,
-                    "Username": username, // Keep username to prefill
-                    "Password": password, // Keep password hidden/submitted? No, security risk.
-                    // Better flow: User enters user/pass -> Server says MFA needed -> User enters User/Pass/Code?
-                    // Or 2-step.
-                    // Let's do: If MFA Code missing, show error "Code 2FA Requis" and keep username fileded.
+                    "Username":    username,
                 }
                 tmpl.ExecuteTemplate(w, "login.html", data)
                 return
@@ -1135,8 +1131,18 @@ func handleDeleteUser(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // Prevent deleting the last admin or specific protection could go here, 
-    // but for now we just delete.
+    // Protect against deleting the last admin
+    var role string
+    db.QueryRow("SELECT role FROM users WHERE id = ?", userID).Scan(&role)
+    if role == "Admin" {
+        var adminCount int
+        db.QueryRow("SELECT COUNT(*) FROM users WHERE role = 'Admin'").Scan(&adminCount)
+        if adminCount <= 1 {
+            http.Error(w, "Impossible de supprimer le dernier administrateur", http.StatusBadRequest)
+            return
+        }
+    }
+
     _, err := db.Exec("DELETE FROM users WHERE id = ?", userID)
     if err != nil {
         log.Printf("Error deleting user: %v", err)
@@ -1963,6 +1969,7 @@ func handleAITest(w http.ResponseWriter, r *http.Request) {
 
 func handleSoarConfig(w http.ResponseWriter, r *http.Request) {
     if r.Method == http.MethodGet {
+        w.Header().Set("Content-Type", "application/json")
         soarConfigMutex.RLock()
         json.NewEncoder(w).Encode(currentSoarConfig)
         soarConfigMutex.RUnlock()
