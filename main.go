@@ -1517,46 +1517,45 @@ func getProxmoxStats(baseURL, configuredNode, tokenID, secret string, includeGue
         req.Header.Add("Authorization", fmt.Sprintf("PVEAPIToken=%s=%s", tokenID, secret))
     }
 
-    // 0. Auto-discover Node if needed or verify existence
-    // On récupère la liste des noeuds pour trouver le bon (souvent ce n'est pas "pve")
+    // 0. Auto-discover Node — toujours tenter, quelle que soit la réponse HTTP
     reqNodes, _ := http.NewRequest("GET", fmt.Sprintf("%s/api2/json/nodes", baseURL), nil)
     headers(reqNodes)
     respNodes, err := client.Do(reqNodes)
     if err != nil {
         return stats, fmt.Errorf("Network error (Nodes): %v", err)
     }
-    defer respNodes.Body.Close()
+    bodyNodes, _ := io.ReadAll(respNodes.Body)
+    respNodes.Body.Close()
 
     targetNode := configuredNode
-    if respNodes.StatusCode == 200 {
-        var nodeList PveNodesList
-        if err := json.NewDecoder(respNodes.Body).Decode(&nodeList); err == nil {
-            found := false
-            firstOnline := ""
-            for _, n := range nodeList.Data {
-                if n.Status == "online" {
-                    if firstOnline == "" {
-                        firstOnline = n.Node
-                    }
-                    if n.Node == configuredNode {
-                        found = true
-                        break
-                    }
-                }
+    var nodeList PveNodesList
+    if jsonErr := json.Unmarshal(bodyNodes, &nodeList); jsonErr == nil && len(nodeList.Data) > 0 {
+        found := false
+        firstAny := ""
+        firstOnline := ""
+        for _, n := range nodeList.Data {
+            if firstAny == "" {
+                firstAny = n.Node
             }
-            if !found {
-                if firstOnline != "" {
-                    log.Printf("Proxmox: noeud '%s' introuvable, utilisation de '%s'", configuredNode, firstOnline)
-                    targetNode = firstOnline
-                } else if len(nodeList.Data) > 0 {
-                    // Aucun nœud "online" trouvé, on prend le premier disponible
-                    log.Printf("Proxmox: aucun nœud online, utilisation de '%s'", nodeList.Data[0].Node)
-                    targetNode = nodeList.Data[0].Node
-                }
+            if n.Status == "online" && firstOnline == "" {
+                firstOnline = n.Node
+            }
+            if n.Node == configuredNode {
+                found = true
+                break
+            }
+        }
+        if !found {
+            if firstOnline != "" {
+                log.Printf("Proxmox: noeud '%s' introuvable, utilisation de '%s'", configuredNode, firstOnline)
+                targetNode = firstOnline
+            } else {
+                log.Printf("Proxmox: aucun nœud online, utilisation du premier disponible '%s'", firstAny)
+                targetNode = firstAny
             }
         }
     } else {
-        log.Printf("Proxmox: impossible de lister les noeuds (Status %s), tentative avec '%s'", respNodes.Status, targetNode)
+        log.Printf("Proxmox: impossible de décoder la liste des nœuds (HTTP %d): %s", respNodes.StatusCode, string(bodyNodes))
     }
 
     // 1. Node Status using targetNode
@@ -1566,15 +1565,15 @@ func getProxmoxStats(baseURL, configuredNode, tokenID, secret string, includeGue
     if err != nil {
         return stats, fmt.Errorf("Network error: %v", err)
     }
-    defer resp.Body.Close()
+    bodyStatus, _ := io.ReadAll(resp.Body)
+    resp.Body.Close()
 
     if resp.StatusCode != 200 {
-         // Si ça échoue encore, c'est peut-être autre chose, mais on aura essayé
-        return stats, fmt.Errorf("API Error Node Status (%s): %s", targetNode, resp.Status)
+        return stats, fmt.Errorf("API Error Node Status (%s) HTTP %d: %s", targetNode, resp.StatusCode, string(bodyStatus))
     }
 
     var nodeStatus PveNodeStatus
-    if err := json.NewDecoder(resp.Body).Decode(&nodeStatus); err == nil {
+    if err := json.Unmarshal(bodyStatus, &nodeStatus); err == nil {
         stats.CPU = int(nodeStatus.Data.CPU * 100)
         stats.RAMTotal = float64(nodeStatus.Data.Memory.Total) / 1024 / 1024 / 1024
         stats.RAMUsed = float64(nodeStatus.Data.Memory.Used) / 1024 / 1024 / 1024
