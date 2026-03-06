@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 )
 
@@ -62,9 +65,17 @@ type WazuhVulnSummaryResponse struct {
 	} `json:"data"`
 }
 
-func NewWazuhClient(url, user, password string) *WazuhClient {
+func NewWazuhClient(rawURL, user, password string) *WazuhClient {
+	// Normalise l'URL : enlève les slashes finaux et tout path parasite
+	// L'API Wazuh doit être de la forme https://host:55000
+	baseURL := strings.TrimRight(rawURL, "/")
+	if u, err := url.Parse(baseURL); err == nil {
+		// Ne conserver que scheme + host (port inclus), ignorer tout path
+		baseURL = u.Scheme + "://" + u.Host
+	}
+	log.Printf("WazuhClient baseURL: %s", baseURL)
 	return &WazuhClient{
-		BaseURL:  url,
+		BaseURL:  baseURL,
 		User:     user,
 		Password: password,
 		Client: &http.Client{
