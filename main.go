@@ -1385,7 +1385,9 @@ func handleProxmoxGuestDetail(w http.ResponseWriter, r *http.Request) {
     guestID := r.URL.Query().Get("id")
 
     if guestType == "" || guestID == "" {
-        http.Error(w, "Missing type or id", http.StatusBadRequest)
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(http.StatusBadRequest)
+        json.NewEncoder(w).Encode(map[string]string{"error": "Missing type or id"})
         return
     }
 
@@ -1405,7 +1407,9 @@ func handleProxmoxGuestDetail(w http.ResponseWriter, r *http.Request) {
     if proxmoxURL != "" && proxmoxTokenID != "" {
         detail, err = getProxmoxGuestDetail(proxmoxURL, proxmoxNode, proxmoxTokenID, proxmoxTokenSecret, pveType, guestID)
         if err != nil {
-            http.Error(w, fmt.Sprintf("Error fetching details: %v", err), http.StatusInternalServerError)
+            w.Header().Set("Content-Type", "application/json")
+            w.WriteHeader(http.StatusInternalServerError)
+            json.NewEncoder(w).Encode(map[string]string{"error": fmt.Sprintf("Error fetching details: %v", err)})
             return
         }
     } else {
@@ -1487,9 +1491,15 @@ func getProxmoxStats(baseURL, configuredNode, tokenID, secret string, includeGue
                     }
                 }
             }
-            if !found && firstOnline != "" {
-                log.Printf("Proxmox: noeud '%s' introuvable, utilisation de '%s'", configuredNode, firstOnline)
-                targetNode = firstOnline
+            if !found {
+                if firstOnline != "" {
+                    log.Printf("Proxmox: noeud '%s' introuvable, utilisation de '%s'", configuredNode, firstOnline)
+                    targetNode = firstOnline
+                } else if len(nodeList.Data) > 0 {
+                    // Aucun nœud "online" trouvé, on prend le premier disponible
+                    log.Printf("Proxmox: aucun nœud online, utilisation de '%s'", nodeList.Data[0].Node)
+                    targetNode = nodeList.Data[0].Node
+                }
             }
         }
     } else {

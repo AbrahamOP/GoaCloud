@@ -264,8 +264,8 @@
                     </thead>
                     <tbody id="vm-list" class="text-gray-300 text-sm divide-y divide-[#2a2839]">
                         {{range .VMs}}
-                        <tr class="hover:bg-white/5 transition cursor-pointer"
-                            onclick="openGuestModal('{{.Type}}', '{{.ID}}')">
+                        <tr class="hover:bg-white/5 transition{{if and .Type (ne .Status "error")}} cursor-pointer{{end}}"
+                            {{if and .Type (ne .Status "error")}}onclick="openGuestModal('{{.Type}}', '{{.ID}}')"{{end}}>
                             <td class="p-4">
                                 {{if eq .Type "VM"}}
                                 <!-- Server Stack Icon -->
@@ -425,7 +425,7 @@
 
     <script>
         function updateStats() {
-            fetch('/api/proxmox')
+            fetch('/api/proxmox/stats')
                 .then(response => response.json())
                 .then(data => {
                     // Update CPU
