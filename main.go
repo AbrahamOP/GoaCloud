@@ -1091,10 +1091,63 @@ func handleAddApp(w http.ResponseWriter, r *http.Request) {
 
 
 func initUsersDB() {
+    // Create core tables if they don't exist yet.
+    // This makes the app self-sufficient regardless of whether schema.sql has been
+    // applied by MySQL yet (avoids race condition on Docker first-start).
+    coreTables := []string{
+        `CREATE TABLE IF NOT EXISTS users (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            username VARCHAR(50) NOT NULL UNIQUE,
+            password_hash VARCHAR(255) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`,
+        `CREATE TABLE IF NOT EXISTS apps (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            description TEXT,
+            external_url VARCHAR(255) NOT NULL,
+            icon_url VARCHAR(255),
+            category VARCHAR(50) DEFAULT 'General',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`,
+        `CREATE TABLE IF NOT EXISTS vm_cache (
+            vmid INT PRIMARY KEY,
+            name VARCHAR(255),
+            ip_address VARCHAR(45),
+            vm_type VARCHAR(10),
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`,
+        `CREATE TABLE IF NOT EXISTS ssh_keys (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            key_type VARCHAR(20) DEFAULT 'RSA',
+            public_key TEXT NOT NULL,
+            private_key TEXT NOT NULL,
+            fingerprint VARCHAR(100),
+            associated_vms TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`,
+        `CREATE TABLE IF NOT EXISTS soar_config (
+            id INT PRIMARY KEY DEFAULT 1,
+            alert_status BOOLEAN DEFAULT TRUE,
+            alert_ssh BOOLEAN DEFAULT TRUE,
+            alert_sudo BOOLEAN DEFAULT TRUE,
+            alert_fim BOOLEAN DEFAULT TRUE,
+            alert_packages BOOLEAN DEFAULT TRUE
+        )`,
+    }
+    for _, stmt := range coreTables {
+        if _, err := db.Exec(stmt); err != nil {
+            log.Printf("DB Init (create table): %v", err)
+        }
+    }
+    // Ensure soar_config default row exists
+    db.Exec(`INSERT IGNORE INTO soar_config (id, alert_status, alert_ssh, alert_sudo, alert_fim, alert_packages) VALUES (1, TRUE, TRUE, TRUE, TRUE, TRUE)`)
+
     // Ensure email and role columns exist
     // Simple migration: try to add columns, ignore specific errors if they exist.
     // In a production app, we would check information_schema or use a migration tool.
-    
+
     // Add Email column
     _, err := db.Exec("ALTER TABLE users ADD COLUMN email VARCHAR(255) NOT NULL DEFAULT ''")
     if err != nil {
@@ -1811,7 +1864,8 @@ func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
         // If NO users exist, force redirect to /setup (unless we are already on /setup or /static)
         if r.URL.Path != "/setup" && !strings.HasPrefix(r.URL.Path, "/static") {
             count, err := CountUsers()
-            if err == nil && count == 0 {
+            // Redirect to setup if no users exist OR if DB isn't ready yet (table not created)
+            if (err == nil && count == 0) || (err != nil && strings.Contains(err.Error(), "doesn't exist")) {
                 http.Redirect(w, r, "/setup", http.StatusSeeOther)
                 return
             }
@@ -1846,7 +1900,7 @@ func CountUsers() (int, error) {
 func handleSetup(w http.ResponseWriter, r *http.Request) {
     // Safety Check: If users exist, Setup is disabled
     count, err := CountUsers()
-    if err != nil {
+    if err != nil && !strings.Contains(err.Error(), "doesn't exist") {
         http.Error(w, "Database Error", http.StatusInternalServerError)
         return
     }
