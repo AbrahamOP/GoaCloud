@@ -1504,7 +1504,14 @@ func handleProxmoxIPs(w http.ResponseWriter, r *http.Request) {
 
 
 
-func getProxmoxStats(baseURL, configuredNode, tokenID, secret string, includeGuests bool, forceRealIPs bool) (ProxmoxStats, error) {
+func getProxmoxStats(rawURL, configuredNode, tokenID, secret string, includeGuests bool, forceRealIPs bool) (ProxmoxStats, error) {
+    // Normalise l'URL : enlève les slashes finaux et tout path parasite
+    baseURL := strings.TrimRight(rawURL, "/")
+    if u, err := url.Parse(baseURL); err == nil {
+        baseURL = u.Scheme + "://" + u.Host
+    }
+    log.Printf("ProxmoxStats baseURL: %s", baseURL)
+
     stats := ProxmoxStats{VMs: []VM{}}
     client := &http.Client{
         Timeout: 5 * time.Second,
@@ -1742,7 +1749,13 @@ func getGuestIP(client *http.Client, baseURL, node, tokenID, secret, kind string
     return "", nil
 }
 
-func getProxmoxGuestDetail(baseURL, configuredNode, tokenID, secret, pveType, vmid string) (GuestDetail, error) {
+func getProxmoxGuestDetail(rawURL, configuredNode, tokenID, secret, pveType, vmid string) (GuestDetail, error) {
+    // Normalise l'URL
+    baseURL := strings.TrimRight(rawURL, "/")
+    if u, err := url.Parse(baseURL); err == nil {
+        baseURL = u.Scheme + "://" + u.Host
+    }
+
     var detail GuestDetail
     client := &http.Client{
         Timeout: 5 * time.Second,
