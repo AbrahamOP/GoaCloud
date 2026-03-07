@@ -2003,12 +2003,9 @@ func getEnv(key, fallback string) string {
 }
 
 func renderError(w http.ResponseWriter, templateName string, errorMsg string) {
-    data := struct {
-        Error string
-    }{
-        Error: errorMsg,
-    }
-    tmpl.ExecuteTemplate(w, templateName, data)
+    tmpl.ExecuteTemplate(w, templateName, map[string]interface{}{
+        "Error": errorMsg,
+    })
 }
 
 // WAZUH HANDLER
