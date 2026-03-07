@@ -548,6 +548,13 @@
             }
         });
     </script>
+    <script>
+        document.querySelectorAll('.sidebar-link').forEach(link => {
+            if (link.getAttribute('href') === window.location.pathname) {
+                link.classList.add('active');
+            }
+        });
+    </script>
 </body>
 
 </html>
