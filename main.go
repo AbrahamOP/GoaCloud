@@ -401,6 +401,7 @@ func main() {
     http.HandleFunc("/api/mfa/disable", authMiddleware(handleDisableMFA))
 
 	http.HandleFunc("/api/wazuh/vulns/", authMiddleware(handleWazuhVulns))
+    http.HandleFunc("/api/wazuh/agents/refresh", authMiddleware(handleWazuhAgentsRefresh))
     http.HandleFunc("/", authMiddleware(handleDashboard))
 
     // Start Cache Worker
@@ -2067,6 +2068,20 @@ func handleWazuhVulns(w http.ResponseWriter, r *http.Request) {
     
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode([]WazuhVuln{})
+}
+
+// Force-refresh du cache Wazuh et retourne les agents mis à jour en JSON
+func handleWazuhAgentsRefresh(w http.ResponseWriter, r *http.Request) {
+    if wazuhClient == nil {
+        http.Error(w, `{"error":"Wazuh not configured"}`, http.StatusInternalServerError)
+        return
+    }
+    updateWazuhCache()
+    wazuhCache.Mutex.RLock()
+    agents := wazuhCache.Agents
+    wazuhCache.Mutex.RUnlock()
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(agents)
 }
 
 func handleSoar(w http.ResponseWriter, r *http.Request) {
