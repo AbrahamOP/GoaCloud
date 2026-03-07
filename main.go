@@ -193,6 +193,7 @@ type User struct {
     CreatedAt string
     MFAEnabled bool
     MFASecret  string
+    GithubURL  string
 }
 
 type AuditLog struct {
@@ -394,6 +395,8 @@ func main() {
     // User Profile
     http.HandleFunc("/profile", authMiddleware(handleProfile))
     http.HandleFunc("/api/profile/update", authMiddleware(handleUpdateProfile))
+    http.HandleFunc("/api/profile/github", authMiddleware(handleUpdateGithub))
+    http.HandleFunc("/api/me", authMiddleware(handleMe))
     
     // MFA Routes
     http.HandleFunc("/api/mfa/setup", authMiddleware(handleSetupMFA))
@@ -1193,6 +1196,12 @@ func initUsersDB() {
     _, err = db.Exec("ALTER TABLE users ADD COLUMN mfa_secret TEXT")
     if err != nil {
         log.Printf("DB Migration (MFA Secret): %v", err)
+    }
+
+    // Add GitHub URL column
+    _, err = db.Exec("ALTER TABLE users ADD COLUMN github_url VARCHAR(500) NOT NULL DEFAULT ''")
+    if err != nil {
+        log.Printf("DB Migration (GitHub URL): %v", err)
     }
 
     // Create Audit Logs Table
@@ -2674,8 +2683,8 @@ func handleProfile(w http.ResponseWriter, r *http.Request) {
 
     var user User
     var mfaSecret sql.NullString
-    err = db.QueryRow("SELECT id, username, email, role, created_at, mfa_enabled, mfa_secret FROM users WHERE username = ?", username).Scan(
-        &user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt, &user.MFAEnabled, &mfaSecret,
+    err = db.QueryRow("SELECT id, username, email, role, created_at, mfa_enabled, mfa_secret, github_url FROM users WHERE username = ?", username).Scan(
+        &user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt, &user.MFAEnabled, &mfaSecret, &user.GithubURL,
     )
     if err != nil {
         http.Error(w, "User not found", http.StatusNotFound)
@@ -2751,6 +2760,39 @@ func handleUpdateProfile(w http.ResponseWriter, r *http.Request) {
     }
 
     http.Redirect(w, r, "/profile?success=true", http.StatusSeeOther)
+}
+
+func handleUpdateGithub(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodPost {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+    session, _ := store.Get(r, "goacloud-session")
+    username, ok := session.Values["username"].(string)
+    if !ok || username == "" {
+        http.Redirect(w, r, "/login", http.StatusSeeOther)
+        return
+    }
+    githubURL := strings.TrimSpace(r.FormValue("github_url"))
+    if githubURL != "" && !strings.HasPrefix(githubURL, "http://") && !strings.HasPrefix(githubURL, "https://") {
+        http.Redirect(w, r, "/profile?error=URL invalide", http.StatusSeeOther)
+        return
+    }
+    _, err := db.Exec("UPDATE users SET github_url = ? WHERE username = ?", githubURL, username)
+    if err != nil {
+        http.Error(w, "Database error", http.StatusInternalServerError)
+        return
+    }
+    http.Redirect(w, r, "/profile?success=true", http.StatusSeeOther)
+}
+
+func handleMe(w http.ResponseWriter, r *http.Request) {
+    session, _ := store.Get(r, "goacloud-session")
+    username, _ := session.Values["username"].(string)
+    var githubURL string
+    db.QueryRow("SELECT github_url FROM users WHERE username = ?", username).Scan(&githubURL)
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(map[string]string{"github_url": githubURL})
 }
 
 // MFA Handlers
