@@ -2146,17 +2146,37 @@ func handleWazuhDebug(w http.ResponseWriter, r *http.Request) {
     if testAgentID != "" {
         result["test_agent_id"] = testAgentID
 
-        // Raw HTTP call pour voir la réponse brute
+        // Test legacy API vuln endpoint
         testURL := wazuhClient.BaseURL + "/vulnerability/" + testAgentID + "?limit=5"
         req, _ := http.NewRequest("GET", testURL, nil)
         req.Header.Add("Authorization", "Bearer "+wazuhClient.Token)
         resp, err := wazuhClient.Client.Do(req)
         if err != nil {
-            result["vuln_raw"] = map[string]interface{}{"ok": false, "error": err.Error()}
+            result["vuln_legacy_api"] = map[string]interface{}{"ok": false, "error": err.Error()}
         } else {
             body, _ := io.ReadAll(resp.Body)
             resp.Body.Close()
-            result["vuln_raw"] = map[string]interface{}{
+            result["vuln_legacy_api"] = map[string]interface{}{
+                "status": resp.StatusCode,
+                "body":   string(body),
+            }
+        }
+    }
+
+    // Test Wazuh Indexer
+    result["indexer_configured"] = wazuhIndexerClient != nil
+    if wazuhIndexerClient != nil {
+        // Test connexion indexer + index vuln
+        idxURL := fmt.Sprintf("%s/wazuh-states-vulnerabilities-*/_count", wazuhIndexerClient.BaseURL)
+        req, _ := http.NewRequest("GET", idxURL, nil)
+        req.SetBasicAuth(wazuhIndexerClient.User, wazuhIndexerClient.Password)
+        resp, err := wazuhIndexerClient.Client.Do(req)
+        if err != nil {
+            result["indexer_vuln_index"] = map[string]interface{}{"ok": false, "error": err.Error()}
+        } else {
+            body, _ := io.ReadAll(resp.Body)
+            resp.Body.Close()
+            result["indexer_vuln_index"] = map[string]interface{}{
                 "status": resp.StatusCode,
                 "body":   string(body),
             }
