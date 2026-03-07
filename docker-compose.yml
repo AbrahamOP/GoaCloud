@@ -10,12 +10,13 @@ services:
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASSWORD}
       - PORT=8080
+      - SESSION_SECRET=${SESSION_SECRET}
       # Proxmox API Config
       - PROXMOX_URL=${PROXMOX_URL}
-      - PROXMOX_NODE=pve
+      - PROXMOX_NODE=${PROXMOX_NODE:-pve}
       - PROXMOX_TOKEN_ID=${PROXMOX_TOKEN_ID}
       - PROXMOX_TOKEN_SECRET=${PROXMOX_TOKEN_SECRET}
-      - SKIP_TLS_VERIFY=true
+      - SKIP_TLS_VERIFY=${SKIP_TLS_VERIFY:-true}
       # Wazuh API Config
       - WAZUH_API_URL=${WAZUH_API_URL}
       - WAZUH_USER=${WAZUH_USER}
@@ -23,12 +24,14 @@ services:
       - WAZUH_INDEXER_URL=${WAZUH_INDEXER_URL}
       - WAZUH_INDEXER_USER=${WAZUH_INDEXER_USER}
       - WAZUH_INDEXER_PASSWORD=${WAZUH_INDEXER_PASSWORD}
-      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+      # Discord Config
+      - DISCORD_BOT_TOKEN=${DISCORD_BOTTOKEN}
       - DISCORD_CHANNEL_ID=${DISCORD_CHANNEL_ID}
+      - DISCORD_AUTH_CHANNEL_ID=${DISCORD_AUTH_CHANNEL_ID}
       # AI Config
       - AI_PROVIDER=${AI_PROVIDER:-ollama}
-      - AI_URL=${AI_URL:-http://host.docker.internal:11434} # Default to host or override in .env
-      - AI_MODEL=${AI_MODEL:-nemotron-3-nano}
+      - AI_URL=${AI_URL:-http://host.docker.internal:11434}
+      - AI_MODEL=${AI_MODEL:-phi3:medium}
     depends_on:
       - db
     restart: unless-stopped

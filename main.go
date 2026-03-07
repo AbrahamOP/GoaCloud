@@ -548,15 +548,36 @@ func updateWazuhCache() {
 
         if err != nil {
             log.Printf("Worker Error (Vuln Details %s): %v", agent.ID, err)
-            // Keep old cache if exists? Or empty? Let's not overwrite if error to avoid flickering empty state.
-            continue 
+            continue
         }
 
-        // Store in Vuln Cache (Valid for 10 min, but refreshed every 2 min by worker)
+        // Store in Vuln Cache
         vulnCache.Store(agent.ID, CachedVulns{
             Data:   vulns,
-            Expiry: time.Now().Add(10 * time.Minute), 
+            Expiry: time.Now().Add(10 * time.Minute),
         })
+
+        // Si pas d'indexer, calculer le résumé depuis la liste
+        if wazuhIndexerClient == nil {
+            for i := range agents {
+                if agents[i].ID == agent.ID {
+                    for _, v := range vulns {
+                        agents[i].VulnSummary.Total++
+                        switch v.Severity {
+                        case "Critical":
+                            agents[i].VulnSummary.Critical++
+                        case "High":
+                            agents[i].VulnSummary.High++
+                        case "Medium":
+                            agents[i].VulnSummary.Medium++
+                        case "Low":
+                            agents[i].VulnSummary.Low++
+                        }
+                    }
+                    break
+                }
+            }
+        }
     }
 
     wazuhCache.Mutex.Lock()
