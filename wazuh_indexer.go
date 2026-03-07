@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 )
 
@@ -43,9 +45,13 @@ type IndexerResponse struct {
 	} `json:"hits"`
 }
 
-func NewWazuhIndexerClient(url, user, password string) *WazuhIndexerClient {
+func NewWazuhIndexerClient(rawURL, user, password string) *WazuhIndexerClient {
+	baseURL := strings.TrimRight(rawURL, "/")
+	if u, err := url.Parse(baseURL); err == nil {
+		baseURL = u.Scheme + "://" + u.Host
+	}
 	return &WazuhIndexerClient{
-		BaseURL:  url,
+		BaseURL:  baseURL,
 		User:     user,
 		Password: password,
 		Client: &http.Client{
