@@ -180,14 +180,25 @@
                     </h2>
                     <p class="text-gray-500 text-sm">Surveillance des vulnérabilités de votre infrastructure.</p>
                 </div>
-                <!-- Filters -->
-                <div class="flex bg-[#1b1928] p-1 rounded-lg border border-[#2a2839]">
-                    <button onclick="filterAgents('all')" id="btn-all"
-                        class="px-4 py-2 text-sm font-medium rounded-md text-white bg-[#2a2839] transition-all">Tous</button>
-                    <button onclick="filterAgents('active')" id="btn-active"
-                        class="px-4 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Actifs</button>
-                    <button onclick="filterAgents('disconnected')" id="btn-disconnected"
-                        class="px-4 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Déconnectés</button>
+                <div class="flex items-center gap-3">
+                    <!-- Refresh Button -->
+                    <button id="btn-refresh" onclick="refreshPage()"
+                        class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[#1b1928] border border-[#2a2839] text-gray-400 hover:text-white hover:border-cyan-500/50 transition-all">
+                        <svg id="refresh-icon" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Rafraîchir
+                    </button>
+                    <!-- Filters -->
+                    <div class="flex bg-[#1b1928] p-1 rounded-lg border border-[#2a2839]">
+                        <button onclick="filterAgents('all')" id="btn-all"
+                            class="px-4 py-2 text-sm font-medium rounded-md text-white bg-[#2a2839] transition-all">Tous</button>
+                        <button onclick="filterAgents('active')" id="btn-active"
+                            class="px-4 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Actifs</button>
+                        <button onclick="filterAgents('disconnected')" id="btn-disconnected"
+                            class="px-4 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Déconnectés</button>
+                    </div>
                 </div>
             </div>
 
@@ -443,6 +454,17 @@
 
 
     <script>
+        // --- Refresh Logic ---
+        function refreshPage() {
+            const icon = document.getElementById('refresh-icon');
+            const btn = document.getElementById('btn-refresh');
+            icon.style.transition = 'transform 0.6s ease';
+            icon.style.transform = 'rotate(360deg)';
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+            setTimeout(() => { window.location.reload(); }, 400);
+        }
+
         // --- Filtering Logic ---
         function filterAgents(status) {
             const rows = document.querySelectorAll('#agents-table-body tr');
