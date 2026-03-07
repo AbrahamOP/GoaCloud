@@ -402,7 +402,6 @@ func main() {
 
 	http.HandleFunc("/api/wazuh/vulns/", authMiddleware(handleWazuhVulns))
     http.HandleFunc("/api/wazuh/agents/refresh", authMiddleware(handleWazuhAgentsRefresh))
-    http.HandleFunc("/api/wazuh/debug", authMiddleware(handleWazuhDebug))
     http.HandleFunc("/", authMiddleware(handleDashboard))
 
     // Start Cache Worker
@@ -2101,90 +2100,6 @@ func handleWazuhAgentsRefresh(w http.ResponseWriter, r *http.Request) {
     wazuhCache.Mutex.RUnlock()
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(agents)
-}
-
-// Debug : teste l'API Wazuh et retourne les réponses brutes pour diagnostic
-func handleWazuhDebug(w http.ResponseWriter, r *http.Request) {
-    if wazuhClient == nil {
-        http.Error(w, `{"error":"Wazuh not configured"}`, http.StatusInternalServerError)
-        return
-    }
-
-    result := map[string]interface{}{}
-
-    // Test auth
-    if err := wazuhClient.Authenticate(); err != nil {
-        result["auth"] = map[string]interface{}{"ok": false, "error": err.Error()}
-        w.Header().Set("Content-Type", "application/json")
-        json.NewEncoder(w).Encode(result)
-        return
-    }
-    result["auth"] = map[string]interface{}{"ok": true}
-
-    // Test agents
-    agents, err := wazuhClient.GetAgents()
-    if err != nil {
-        result["agents"] = map[string]interface{}{"ok": false, "error": err.Error()}
-        w.Header().Set("Content-Type", "application/json")
-        json.NewEncoder(w).Encode(result)
-        return
-    }
-    result["agents_count"] = len(agents)
-
-    // Test vuln endpoint sur le premier agent actif
-    testAgentID := ""
-    for _, a := range agents {
-        if a.Status == "active" && a.ID != "000" {
-            testAgentID = a.ID
-            break
-        }
-    }
-    if testAgentID == "" && len(agents) > 0 {
-        testAgentID = agents[0].ID
-    }
-
-    if testAgentID != "" {
-        result["test_agent_id"] = testAgentID
-
-        // Test legacy API vuln endpoint
-        testURL := wazuhClient.BaseURL + "/vulnerability/" + testAgentID + "?limit=5"
-        req, _ := http.NewRequest("GET", testURL, nil)
-        req.Header.Add("Authorization", "Bearer "+wazuhClient.Token)
-        resp, err := wazuhClient.Client.Do(req)
-        if err != nil {
-            result["vuln_legacy_api"] = map[string]interface{}{"ok": false, "error": err.Error()}
-        } else {
-            body, _ := io.ReadAll(resp.Body)
-            resp.Body.Close()
-            result["vuln_legacy_api"] = map[string]interface{}{
-                "status": resp.StatusCode,
-                "body":   string(body),
-            }
-        }
-    }
-
-    // Test Wazuh Indexer
-    result["indexer_configured"] = wazuhIndexerClient != nil
-    if wazuhIndexerClient != nil {
-        // Test connexion indexer + index vuln
-        idxURL := fmt.Sprintf("%s/wazuh-states-vulnerabilities-*/_count", wazuhIndexerClient.BaseURL)
-        req, _ := http.NewRequest("GET", idxURL, nil)
-        req.SetBasicAuth(wazuhIndexerClient.User, wazuhIndexerClient.Password)
-        resp, err := wazuhIndexerClient.Client.Do(req)
-        if err != nil {
-            result["indexer_vuln_index"] = map[string]interface{}{"ok": false, "error": err.Error()}
-        } else {
-            body, _ := io.ReadAll(resp.Body)
-            resp.Body.Close()
-            result["indexer_vuln_index"] = map[string]interface{}{
-                "status": resp.StatusCode,
-                "body":   string(body),
-            }
-        }
-    }
-
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(result)
 }
 
 func handleSoar(w http.ResponseWriter, r *http.Request) {
