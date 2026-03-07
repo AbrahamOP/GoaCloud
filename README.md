@@ -2,8 +2,6 @@
 
 GoaCloud est une interface unifiée "Single Pane of Glass" pour gérer vos infrastructures. Elle centralise la gestion de VMs Proxmox, la sécurité avec Wazuh, l'automatisation Ansible et le monitoring SIEM/SOAR.
 
-![GoaCloud Dashboard](uploaded_image_1767870252499.png)
-
 ## Fonctionnalités
 
 *   **Dashboard** : Vue d'ensemble de l'état du parc (VMs, Alertes, Agents).
