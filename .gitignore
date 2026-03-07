@@ -49,3 +49,5 @@ tmp/
 # Application Specific
 soar_config.json
 PROJECT_CONTEXT.md
+config.json
+soar_config.json
