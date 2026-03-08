@@ -1,9 +1,12 @@
 package main
 
 import (
+    "crypto/aes"
+    "crypto/cipher"
     "crypto/rand"
     "crypto/rsa"
     "crypto/x509"
+    "encoding/base64"
     "encoding/json"
     "encoding/pem"
     "fmt"
@@ -15,6 +18,51 @@ import (
 
     "golang.org/x/crypto/ssh"
 )
+
+// sshEncKey est la clé AES-256 dérivée de SESSION_SECRET pour chiffrer les clés privées SSH en BDD.
+// Initialisée au démarrage dans main().
+var sshEncKey [32]byte
+
+func encryptSSHKey(plaintext string) (string, error) {
+    block, err := aes.NewCipher(sshEncKey[:])
+    if err != nil {
+        return "", err
+    }
+    gcm, err := cipher.NewGCM(block)
+    if err != nil {
+        return "", err
+    }
+    nonce := make([]byte, gcm.NonceSize())
+    if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+        return "", err
+    }
+    ciphertext := gcm.Seal(nonce, nonce, []byte(plaintext), nil)
+    return base64.StdEncoding.EncodeToString(ciphertext), nil
+}
+
+func decryptSSHKey(encrypted string) (string, error) {
+    data, err := base64.StdEncoding.DecodeString(encrypted)
+    if err != nil {
+        return "", err
+    }
+    block, err := aes.NewCipher(sshEncKey[:])
+    if err != nil {
+        return "", err
+    }
+    gcm, err := cipher.NewGCM(block)
+    if err != nil {
+        return "", err
+    }
+    nonceSize := gcm.NonceSize()
+    if len(data) < nonceSize {
+        return "", fmt.Errorf("ciphertext too short")
+    }
+    plaintext, err := gcm.Open(nil, data[:nonceSize], data[nonceSize:], nil)
+    if err != nil {
+        return "", err
+    }
+    return string(plaintext), nil
+}
 
 type SSHKey struct {
     ID          int
@@ -64,8 +112,12 @@ func GenerateRSAKey(name string) (*SSHKey, error) {
 }
 
 func SaveSSHKey(key *SSHKey) error {
-    _, err := db.Exec("INSERT INTO ssh_keys (name, key_type, public_key, private_key, fingerprint) VALUES (?, ?, ?, ?, ?)",
-        key.Name, key.KeyType, key.PublicKey, key.PrivateKey, key.Fingerprint)
+    encrypted, err := encryptSSHKey(key.PrivateKey)
+    if err != nil {
+        return fmt.Errorf("failed to encrypt private key: %v", err)
+    }
+    _, err = db.Exec("INSERT INTO ssh_keys (name, key_type, public_key, private_key, fingerprint) VALUES (?, ?, ?, ?, ?)",
+        key.Name, key.KeyType, key.PublicKey, encrypted, key.Fingerprint)
     return err
 }
 
@@ -99,6 +151,15 @@ func GetSSHKeyByID(id int) (*SSHKey, error) {
     if err != nil {
         return nil, err
     }
+    // Les clés PEM en clair commencent par "-----" (migration depuis ancien format)
+    if strings.HasPrefix(k.PrivateKey, "-----") {
+        return &k, nil
+    }
+    decrypted, err := decryptSSHKey(k.PrivateKey)
+    if err != nil {
+        return nil, fmt.Errorf("failed to decrypt private key: %v", err)
+    }
+    k.PrivateKey = decrypted
     return &k, nil
 }
 

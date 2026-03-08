@@ -5,6 +5,7 @@ import (
     "crypto/ecdsa"
     "crypto/elliptic"
     "crypto/rand"
+    "crypto/sha256"
     "crypto/tls"
     "crypto/x509"
     "crypto/x509/pkix"
@@ -325,6 +326,7 @@ func main() {
         log.Println("AVERTISSEMENT: SESSION_SECRET est la valeur par défaut. Définissez une clé secrète forte en production !")
     }
     store = sessions.NewCookieStore([]byte(sessionKey))
+    sshEncKey = sha256.Sum256([]byte(sessionKey + ":goacloud-ssh-keys"))
     secureCookie := getEnv("COOKIE_SECURE", "true") != "false"
     store.Options = &sessions.Options{
         Path:     "/",
@@ -1234,6 +1236,30 @@ func initUsersDB() {
     )`)
     if err != nil {
         log.Printf("DB Migration (SSH Host Keys): %v", err)
+    }
+
+    // Chiffrer les clés SSH privées encore en clair (migration depuis ancien format)
+    migrateEncryptSSHKeys()
+}
+
+func migrateEncryptSSHKeys() {
+    rows, err := db.Query("SELECT id, private_key FROM ssh_keys")
+    if err != nil {
+        return
+    }
+    defer rows.Close()
+    for rows.Next() {
+        var id int
+        var privKey string
+        if err := rows.Scan(&id, &privKey); err != nil {
+            continue
+        }
+        if strings.HasPrefix(privKey, "-----") {
+            encrypted, err := encryptSSHKey(privKey)
+            if err == nil {
+                db.Exec("UPDATE ssh_keys SET private_key = ? WHERE id = ?", encrypted, id)
+            }
+        }
     }
 }
 
