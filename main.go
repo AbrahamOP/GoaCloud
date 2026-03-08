@@ -417,6 +417,8 @@ func main() {
     go startSoarWorker()
     // Start SOAR alert dedup cleaner
     go startAlertDedupCleaner()
+    // Start Proxmox Auth Monitor
+    go startProxmoxAuthMonitor()
 
     // Démarrage du serveur
     // SSL Setup
@@ -591,6 +593,130 @@ func updateWazuhCache() {
     wazuhCache.Mutex.Unlock()
     
     log.Printf("Worker: Wazuh Cache updated (%d agents)", len(agents))
+}
+
+// proxmoxSyslogLastN tracks the last syslog line number seen to avoid duplicate alerts.
+var proxmoxSyslogLastN int
+
+func startProxmoxAuthMonitor() {
+    proxmoxURL := getEnv("PROXMOX_URL", "")
+    if proxmoxURL == "" {
+        return
+    }
+    // Wait for startup before first poll
+    time.Sleep(20 * time.Second)
+    log.Println("Starting Proxmox Auth Monitor...")
+
+    // Initialise lastN sans alerter (évite le spam au démarrage)
+    proxmoxSyslogLastN = proxmoxSyslogGetLastN()
+
+    ticker := time.NewTicker(2 * time.Minute)
+    defer ticker.Stop()
+    for range ticker.C {
+        checkProxmoxAuthEvents()
+    }
+}
+
+// proxmoxSyslogGetLastN retourne le numéro de la dernière ligne syslog Proxmox.
+func proxmoxSyslogGetLastN() int {
+    entries := proxmoxFetchSyslog(0, 1)
+    if len(entries) == 0 {
+        return 0
+    }
+    // On demande la dernière ligne : start=0 limit=1 ne suffit pas.
+    // On fait une requête limit=1 depuis la fin en utilisant un grand start.
+    // Proxmox retourne les dernières entrées quand start est au-delà du total.
+    // Stratégie : récupérer limit=500, retenir le N le plus élevé.
+    entries = proxmoxFetchSyslog(0, 500)
+    maxN := 0
+    for _, e := range entries {
+        if e.N > maxN {
+            maxN = e.N
+        }
+    }
+    return maxN
+}
+
+type proxmoxSyslogEntry struct {
+    N int    `json:"n"`
+    T string `json:"t"`
+}
+
+func proxmoxFetchSyslog(start, limit int) []proxmoxSyslogEntry {
+    proxmoxURL := getEnv("PROXMOX_URL", "")
+    tokenID := getEnv("PROXMOX_TOKEN_ID", "")
+    tokenSecret := getEnv("PROXMOX_TOKEN_SECRET", "")
+    node := getEnv("PROXMOX_NODE", "pve")
+
+    client := &http.Client{
+        Transport: &http.Transport{TLSClientConfig: newTLSConfig()},
+        Timeout:   10 * time.Second,
+    }
+    apiURL := fmt.Sprintf("%s/api2/json/nodes/%s/syslog?start=%d&limit=%d", proxmoxURL, node, start, limit)
+    req, err := http.NewRequest("GET", apiURL, nil)
+    if err != nil {
+        return nil
+    }
+    req.Header.Set("Authorization", fmt.Sprintf("PVEAPIToken=%s=%s", tokenID, tokenSecret))
+    resp, err := client.Do(req)
+    if err != nil || resp.StatusCode != http.StatusOK {
+        return nil
+    }
+    defer resp.Body.Close()
+    var result struct {
+        Data []proxmoxSyslogEntry `json:"data"`
+    }
+    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+        return nil
+    }
+    return result.Data
+}
+
+func checkProxmoxAuthEvents() {
+    entries := proxmoxFetchSyslog(proxmoxSyslogLastN, 200)
+    proxmoxURL := getEnv("PROXMOX_URL", "")
+
+    for _, entry := range entries {
+        if entry.N <= proxmoxSyslogLastN {
+            continue
+        }
+        proxmoxSyslogLastN = entry.N
+        line := entry.T
+
+        if !strings.Contains(line, "pvedaemon") {
+            continue
+        }
+
+        if strings.Contains(line, "successful auth for user") {
+            user := proxmoxExtractUser(line)
+            go SendAuthAlert(
+                "✅ Connexion Proxmox réussie",
+                fmt.Sprintf("**Utilisateur :** %s\n**Serveur :** %s\n**Log :** `%s`", user, proxmoxURL, line),
+                false,
+            )
+        } else if strings.Contains(line, "authentication failure") || strings.Contains(line, "failed auth") {
+            user := proxmoxExtractUser(line)
+            go SendAuthAlert(
+                "❌ Échec de connexion Proxmox",
+                fmt.Sprintf("**Utilisateur :** %s\n**Serveur :** %s\n**Log :** `%s`", user, proxmoxURL, line),
+                false,
+            )
+        }
+    }
+}
+
+func proxmoxExtractUser(line string) string {
+    for _, prefix := range []string{"for user '", "for user "} {
+        if idx := strings.Index(line, prefix); idx != -1 {
+            rest := line[idx+len(prefix):]
+            rest = strings.TrimPrefix(rest, "'")
+            if end := strings.IndexAny(rest, "' \t"); end != -1 {
+                return rest[:end]
+            }
+            return strings.Fields(rest)[0]
+        }
+    }
+    return "inconnu"
 }
 
 func startCacheWorker() {
