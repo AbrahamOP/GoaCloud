@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoaCloud</title>
+    <link rel="icon" type="image/png" href="https://img.icons8.com/dusk/64/server.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #0f0e17;
+            color: #d1d5db;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .gradient-text {
+            background: linear-gradient(to right, #c084fc, #6366f1, #38bdf8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar-link.active {
+            background: linear-gradient(90deg, rgba(192, 132, 252, 0.15) 0%, rgba(0, 0, 0, 0) 100%);
+            border-left: 3px solid #c084fc;
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex">
+
+    <!-- Mobile Overlay -->
+    <div id="mobile-overlay"
+        class="fixed inset-0 bg-black/50 z-40 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar"
+        class="fixed md:relative inset-y-0 left-0 z-50 w-64 bg-[#151421] border-r border-[#2a2839] flex flex-col justify-between transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
+        <div>
+            <div class="p-8">
+                <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-gradient-to-r from-fuchsia-500 to-cyan-500"></div>
+                    GoaCloud
+                </h1>
+            </div>
+
+            <nav class="mt-4 px-4 space-y-2">
+                <p class="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Menu</p>
+                <a href="/"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                    </svg>
+                    Applications
+                </a>
+                <a href="/proxmox"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    Proxmox
+                </a>
+                <a href="/wazuh"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    Sécurité (Wazuh)
+                </a>
+                <a href="/soar"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    SOAR
+                </a>
+                <a href="/ssh"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z">
+                        </path>
+                    </svg>
+                    Clés SSH
+                </a>
+                <a href="/ansible"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:bg-white/5 hover:text-white text-gray-400 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                        </path>
+                    </svg>
+                    Ansible
+                </a>
+                <a href="/console"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:bg-white/5 hover:text-white text-gray-400 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                        </path>
+                    </svg>
+                    Console Web
+                </a>
+
+
+
+            </nav>
+        </div>
+
+        <div class="p-4 border-t border-[#2a2839] flex items-center justify-around">
+
+            <a id="sidebar-github-link" href="/profile" title="Mon profil"
+                class="block p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors duration-200">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </a>
+            <a href="/users" title="Administration"
+                class="block p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors duration-200">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </a>
+
+            <form action="/logout" method="POST">
+                <button type="submit" title="Déconnexion"
+                    class="block p-2 text-red-400 hover:text-red-300 rounded-lg hover:bg-red-500/10 transition-colors duration-200">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto bg-[#0f0e17] relative">
+        <!-- Top Right Actions (Profile & Mobile Menu) -->
+        <div class="absolute top-6 right-6 z-50 flex items-center gap-4">
+            <!-- Desktop Profile Link -->
+            <a href="/profile"
+                class="hidden md:flex items-center justify-center p-2 rounded-lg bg-[#1b1928] hover:bg-white/5 text-cyan-400 hover:text-cyan-300 transition-colors border border-[#2a2839] group"
+                title="Mon Profil">
+                <svg class="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </a>
+            <!-- Mobile Add Button -->
+            <a href="/add"
+                class="md:hidden bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white p-2 rounded-lg shadow-lg shadow-purple-500/20">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+            </a>
+            <!-- Mobile Menu Button -->
+            <button id="mobile-menu-btn"
+                class="md:hidden bg-[#1b1928] text-gray-400 p-2 rounded-lg border border-[#2a2839]">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Decoration Gradients -->
+        <div class="absolute top-0 left-0 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl filter pointer-events-none">
+        </div>
+        <div
+            class="absolute bottom-0 right-0 w-96 h-96 bg-cyan-600/10 rounded-full blur-3xl filter pointer-events-none">
+        </div>
+
+        <div class="max-w-7xl mx-auto px-8 py-10 relative z-10">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-10">
+                <div>
+                    <h2 class="text-3xl font-bold text-white mb-2"><span id="greeting"></span>, <span
+                            class="gradient-text">{{.Username}}</span>
+                    </h2>
+                    <p class="text-gray-500 text-sm">Ravi de vous revoir sur votre dashboard.</p>
+                </div>
+            </div>
+
+            <!-- Stats/Featured Cards (Optional decorative) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                <div
+                    class="rounded-3xl p-6 bg-gradient-to-br from-purple-600 to-indigo-600 text-white shadow-xl shadow-purple-900/20 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                    <div class="relative z-10">
+                        <p class="text-purple-200 text-sm font-medium mb-1">Nombre d'Applications</p>
+                        <h3 class="text-4xl font-bold">{{len .Apps}}</h3>
+                        <p class="text-xs text-purple-200 mt-4 bg-white/20 inline-block px-2 py-1 rounded-md">Système
+                            opérationnel</p>
+                    </div>
+                </div>
+                <!-- Digital Clock -->
+                <div
+                    class="rounded-3xl p-6 bg-[#1b1928] border border-[#2a2839] shadow-xl relative overflow-hidden flex flex-col items-center justify-center">
+                    <div class="text-center z-10">
+                        <p class="text-purple-400 text-sm font-medium uppercase tracking-widest mb-1" id="clock-date">
+                            CHARGEMENT...</p>
+                        <h3 class="text-5xl font-bold text-white tracking-tight" id="clock-time">--:--</h3>
+                    </div>
+                    <!-- Decorative glow -->
+                    <div
+                        class="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-purple-900/20 to-transparent pointer-events-none">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Apps Grid -->
+            <div class="mb-4 flex items-center justify-between">
+                <h3 class="text-xl font-semibold text-white">Vos Applications</h3>
+                <div class="flex gap-2" id="category-filters">
+                    <!-- Filters injected by JS -->
+                </div>
+            </div>
+
+            {{if .Apps}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6" id="apps-grid">
+                {{range .Apps}}
+                <a href="{{.ExternalURL}}" target="_blank" data-category="{{.Category}}"
+                    class="app-card group relative bg-[#1b1928] rounded-2xl p-6 border border-[#2a2839] hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-300 transform hover:-translate-y-1">
+                    <div class="flex items-start justify-between mb-4">
+                        {{if eq .Name "Wazuh"}}
+                        <div
+                            class="w-12 h-12 rounded-xl bg-[#232133] p-2 flex items-center justify-center border border-[#2f2d40] group-hover:border-cyan-500/30 transition-colors">
+                            <svg class="w-8 h-8 text-cyan-400" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.18 14.09h-1.36l-1.63-6.62-1.63 6.62H10.2L7.95 6h1.71l1.55 7.06 1.63-7.06h1.39l1.63 7.06 1.55-7.06h1.71l-2.25 9.09z" />
+                            </svg>
+                        </div>
+                        {{else if eq .Name "Bot - FluxRSS"}}
+                        <div
+                            class="w-12 h-12 rounded-xl bg-[#232133] p-2 flex items-center justify-center border border-[#2f2d40] group-hover:border-orange-500/30 transition-colors">
+                            <svg class="w-8 h-8 text-orange-400" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M6.18 15.64a2.18 2.18 0 0 1 2.18 2.18C8.36 19 7.38 20 6.18 20C5 20 4 19 4 17.82a2.18 2.18 0 0 1 2.18-2.18M4 4.44v2.83c7.03 0 12.73 5.7 12.73 12.73h2.83c0-8.59-6.97-15.56-15.56-15.56m0 5.66v2.83c3.9 0 7.07 3.17 7.07 7.07h2.83c0-5.47-4.43-9.9-9.9-9.9Z" />
+                            </svg>
+                        </div>
+                        {{else if .IconURL}}
+                        <div
+                            class="w-12 h-12 rounded-xl bg-[#232133] p-2 flex items-center justify-center border border-[#2f2d40] group-hover:border-purple-500/30 transition-colors">
+                            <img src="{{.IconURL}}" alt="{{.Name}}" class="w-full h-full object-contain">
+                        </div>
+                        {{else}}
+                        <div
+                            class="w-12 h-12 rounded-xl bg-[#232133] flex items-center justify-center text-xl text-gray-500 border border-[#2f2d40]">
+                            <!-- Keep first 2 letters as generic icon -->
+                            <span class="font-bold font-mono">{{slice .Name 0 2}}</span>
+                        </div>
+                        {{end}}
+                        <div
+                            class="w-8 h-8 rounded-full bg-[#151421] flex items-center justify-center text-gray-600 group-hover:text-purple-400 group-hover:bg-purple-400/10 transition-colors">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-lg font-bold text-white mb-1 group-hover:text-purple-300 transition-colors">
+                            {{.Name}}</h3>
+                        <p class="text-xs text-gray-500 uppercase tracking-wide mb-2">{{.Category}}</p>
+                        {{if .Description}}
+                        <p class="text-sm text-gray-400 line-clamp-2 leading-relaxed">{{.Description}}</p>
+                        {{end}}
+                    </div>
+                </a>
+                {{end}}
+
+                <!-- Add App Card -->
+                <button onclick="openAddModal()"
+                    class="app-card group relative bg-[#1b1928] rounded-2xl p-6 border border-[#2a2839] border-dashed hover:border-fuchsia-500/50 hover:bg-fuchsia-500/5 transition-all duration-300 transform hover:-translate-y-1 flex flex-col items-center justify-center text-center cursor-pointer min-h-[180px] w-full">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-[#232133] border border-[#2f2d40] flex items-center justify-center mb-3 group-hover:scale-110 transition-transform group-hover:border-fuchsia-500/30">
+                        <svg class="w-6 h-6 text-gray-500 group-hover:text-fuchsia-400 transition-colors" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-300 group-hover:text-white transition-colors">Ajouter une app
+                    </h3>
+                    <p class="text-xs text-gray-500 mt-1">Configurer un nouveau service</p>
+                </button>
+            </div>
+            {{else}}
+            <div class="glass rounded-xl p-12 text-center border-dashed border-gray-700">
+                <p class="text-gray-400">Aucune application configurée.</p>
+                <button onclick="openAddModal()"
+                    class="inline-block mt-4 text-sm text-fuchsia-400 hover:text-fuchsia-300">Ajouter votre
+                    première app -></button>
+            </div>
+            {{end}}
+        </div>
+    </main>
+
+
+    <!-- Add App Modal -->
+    <div id="add-modal"
+        class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+        <div
+            class="glass-panel w-full max-w-2xl p-8 rounded-3xl shadow-2xl transform transition-all scale-100 border border-[#2a2839] bg-[#1b1928] relative">
+            <button onclick="closeAddModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+
+            <h2 class="text-3xl font-bold text-white mb-2">Nouvelle Application</h2>
+            <p class="text-gray-500 mb-8">Ajoutez un service externe à votre dashboard.</p>
+
+            <form action="/add" method="POST" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label for="name"
+                            class="block text-xs font-semibold text-gray-400 uppercase tracking-widest pl-1">Nom</label>
+                        <input type="text" id="name" name="name" required placeholder="Ex: Plex"
+                            class="w-full bg-[#151421] border border-[#2a2839] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition placeholder-gray-600">
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="category"
+                            class="block text-xs font-semibold text-gray-400 uppercase tracking-widest pl-1">Catégorie</label>
+                        <div class="relative">
+                            <select id="category" name="category"
+                                class="w-full bg-[#151421] border border-[#2a2839] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition appearance-none cursor-pointer">
+                                <option value="General">Général</option>
+                                <option value="Infrastructure">Infrastructure</option>
+                                <option value="Monitoring">Monitoring</option>
+                                <option value="Media">Média</option>
+                                <option value="Home Automation">Domotique</option>
+                                <option value="Development">Développement</option>
+                            </select>
+                            <div
+                                class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label for="url"
+                        class="block text-xs font-semibold text-gray-400 uppercase tracking-widest pl-1">URL
+                        Externe</label>
+                    <input type="url" id="url" name="url" required placeholder="http://192.168.1.15:32400"
+                        class="w-full bg-[#151421] border border-[#2a2839] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition placeholder-gray-600 text-cyan-400">
+                </div>
+
+                <div class="space-y-2">
+                    <label for="description"
+                        class="block text-xs font-semibold text-gray-400 uppercase tracking-widest pl-1">Description
+                        (Optionnel)</label>
+                    <input type="text" id="description" name="description" placeholder="Serveur Média personnel"
+                        class="w-full bg-[#151421] border border-[#2a2839] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition placeholder-gray-600">
+                </div>
+
+                <div class="space-y-2">
+                    <label for="icon_url"
+                        class="block text-xs font-semibold text-gray-400 uppercase tracking-widest pl-1">URL de l'icône
+                        (Optionnel)</label>
+                    <input type="url" id="icon_url" name="icon_url" placeholder="https://..."
+                        class="w-full bg-[#151421] border border-[#2a2839] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition placeholder-gray-600">
+                </div>
+
+                <div class="pt-6 flex justify-end gap-3">
+                    <button type="button" onclick="closeAddModal()"
+                        class="px-6 py-3 bg-[#2a2839] hover:bg-[#353346] text-gray-300 rounded-xl font-medium transition-colors">
+                        Annuler
+                    </button>
+                    <button type="submit"
+                        class="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-3 px-8 rounded-xl transition duration-300 shadow-lg shadow-cyan-900/30">
+                        Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openAddModal() {
+            document.getElementById('add-modal').classList.remove('hidden');
+        }
+
+        function closeAddModal() {
+            document.getElementById('add-modal').classList.add('hidden');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Dynamic Greeting
+            const hour = new Date().getHours();
+            const greeting = document.getElementById('greeting');
+            if (greeting) {
+                if (hour >= 18 || hour < 5) {
+                    greeting.textContent = 'Bonsoir';
+                } else {
+                    greeting.textContent = 'Bonjour';
+                }
+            }
+
+            const grid = document.getElementById('apps-grid');
+            const filterContainer = document.getElementById('category-filters');
+
+            if (grid && filterContainer) {
+            const cards = Array.from(grid.getElementsByClassName('app-card'));
+
+            // Extract unique categories
+            const categories = new Set(['All']);
+            cards.forEach(card => {
+                const cat = card.getAttribute('data-category');
+                if (cat) categories.add(cat);
+            });
+
+            // Create Buttons
+            categories.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.textContent = cat;
+                btn.className = `px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition ${cat === 'All'
+                    ? 'bg-white/10 text-white'
+                    : 'bg-[#1b1928] text-gray-500 border border-[#2a2839] hover:text-white'}`;
+
+                btn.onclick = () => {
+                    // Update active state
+                    Array.from(filterContainer.children).forEach(child => {
+                        child.className = 'px-3 py-1 rounded-full text-xs font-medium bg-[#1b1928] text-gray-500 border border-[#2a2839] cursor-pointer hover:text-white transition';
+                    });
+                    btn.className = 'px-3 py-1 rounded-full text-xs font-medium bg-white/10 text-white cursor-pointer transition';
+
+                    // Filter items
+                    cards.forEach(card => {
+                        if (cat === 'All' || card.getAttribute('data-category') === cat) {
+                            card.classList.remove('hidden');
+                        } else {
+                            card.classList.add('hidden');
+                        }
+                    });
+                };
+                filterContainer.appendChild(btn);
+            });
+            } // end if grid
+
+            // Clock Feature
+            function updateClock() {
+                const now = new Date();
+
+                // Format Time (HH:MM)
+                const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: false };
+                const timeStr = now.toLocaleTimeString('fr-FR', timeOptions);
+
+                // Format Date (Lundi 24 Octobre)
+                const dateOptions = { weekday: 'long', day: 'numeric', month: 'long' };
+                const dateStr = now.toLocaleDateString('fr-FR', dateOptions);
+
+                // Update DOM
+                const timeEl = document.getElementById('clock-time');
+                const dateEl = document.getElementById('clock-date');
+
+                if (timeEl) timeEl.textContent = timeStr;
+                if (dateEl) dateEl.textContent = dateStr;
+            }
+
+            setInterval(updateClock, 1000);
+            updateClock(); // Initial call
+
+            // Mobile Menu Logic
+            const btn = document.getElementById('mobile-menu-btn');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobile-overlay');
+
+            if (btn && sidebar && overlay) {
+                function toggleMenu() {
+                    const isClosed = sidebar.classList.contains('-translate-x-full');
+                    if (isClosed) {
+                        sidebar.classList.remove('-translate-x-full');
+                        overlay.classList.remove('hidden');
+                    } else {
+                        sidebar.classList.add('-translate-x-full');
+                        overlay.classList.add('hidden');
+                    }
+                }
+
+                btn.addEventListener('click', toggleMenu);
+                overlay.addEventListener('click', toggleMenu);
+            }
+        });
+    </script>
+    <script>
+        document.querySelectorAll('.sidebar-link').forEach(link => {
+            if (link.getAttribute('href') === window.location.pathname) {
+                link.classList.add('active');
+            }
+        });
+        fetch('/api/me').then(r => r.json()).then(data => {
+            if (data.github_url) {
+                const link = document.getElementById('sidebar-github-link');
+                if (link) {
+                    link.href = data.github_url;
+                    link.target = '_blank';
+                    link.title = 'Mon profil GitHub';
+                }
+            }
+        }).catch(() => {});
+    </script>
+</body>
+
+</html>

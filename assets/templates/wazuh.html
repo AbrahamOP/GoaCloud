@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoaCloud - Wazuh</title>
+    <link rel="icon" type="image/png" href="https://img.icons8.com/dusk/64/server.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #0f0e17;
+            color: #d1d5db;
+        }
+
+        .glass {
+            background: #1b1928;
+            border: 1px solid #2a2839;
+        }
+
+        .gradient-text {
+            background: linear-gradient(to right, #f87171, #f472b6, #fbbf24);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar-link.active {
+            background: linear-gradient(90deg, rgba(248, 113, 113, 0.15) 0%, rgba(0, 0, 0, 0) 100%);
+            border-left: 3px solid #f87171;
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body class="h-screen w-full flex overflow-hidden">
+    <!-- Mobile Overlay -->
+    <div id="mobile-overlay"
+        class="fixed inset-0 bg-black/50 z-40 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar"
+        class="fixed md:relative inset-y-0 left-0 z-50 w-64 bg-[#151421] border-r border-[#2a2839] flex flex-col justify-between transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
+        <div>
+            <div class="p-8">
+                <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                    <span class="inline-block w-3 h-3 rounded-full bg-gradient-to-r from-red-500 to-orange-500"></span>
+                    GoaCloud
+                </h1>
+            </div>
+            <nav class="mt-4 px-4 space-y-2">
+                <p class="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Menu</p>
+                <a href="/"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                    </svg>
+                    Applications
+                </a>
+                <a href="/proxmox"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    Proxmox
+                </a>
+                <a href="/wazuh"
+                    class="sidebar-link active flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    Sécurité (Wazuh)
+                </a>
+                <a href="/soar"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg text-gray-400 hover:bg-white/5 hover:text-white transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    SOAR
+                </a>
+                <a href="/ssh"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z">
+                        </path>
+                    </svg>
+                    Clés SSH
+                </a>
+                <a href="/ansible"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:bg-white/5 hover:text-white text-gray-400 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                        </path>
+                    </svg>
+                    Ansible
+                </a>
+                <a href="/console"
+                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                        </path>
+                    </svg>
+                    Console Web
+                </a>
+
+
+
+            </nav>
+        </div>
+        <div class="p-4 border-t border-[#2a2839] flex items-center justify-around">
+
+            <a id="sidebar-github-link" href="/profile" title="Mon profil"
+                class="block p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors duration-200">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </a>
+
+            <a href="/users" title="Administration"
+                class="block p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors duration-200">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </a>
+            <form action="/logout" method="POST">
+                <button type="submit" title="Déconnexion"
+                    class="block p-2 text-red-400 hover:text-red-300 rounded-lg hover:bg-red-500/10 transition-colors duration-200">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto relative p-8">
+        <!-- Top Right Actions (Profile & Mobile Menu) -->
+        <div class="absolute top-6 right-6 z-50 flex items-center gap-4">
+            <!-- Desktop Profile Link -->
+            <a href="/profile"
+                class="hidden md:flex items-center justify-center p-2 rounded-lg bg-[#1b1928] hover:bg-white/5 text-cyan-400 hover:text-cyan-300 transition-colors border border-[#2a2839] group"
+                title="Mon Profil">
+                <svg class="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </a>
+            <!-- Mobile Menu Button -->
+            <button id="mobile-menu-btn"
+                class="md:hidden bg-[#1b1928] text-gray-400 p-2 rounded-lg border border-[#2a2839]">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+        </div>
+
+
+        <div class="max-w-7xl mx-auto relative z-10">
+            <!--            -->
+            <div class="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+                <div>
+                    <h2 class="text-3xl font-bold text-white mb-2">Wazuh <span class="gradient-text">Security</span>
+                    </h2>
+                    <p class="text-gray-500 text-sm">Surveillance des vulnérabilités de votre infrastructure.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <!-- Refresh Button -->
+                    <button id="btn-refresh" onclick="refreshPage()"
+                        class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[#1b1928] border border-[#2a2839] text-gray-400 hover:text-white hover:border-cyan-500/50 transition-all">
+                        <svg id="refresh-icon" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Rafraîchir
+                    </button>
+                    <!-- Filters -->
+                    <div class="flex bg-[#1b1928] p-1 rounded-lg border border-[#2a2839]">
+                        <button onclick="filterAgents('all')" id="btn-all"
+                            class="px-4 py-2 text-sm font-medium rounded-md text-white bg-[#2a2839] transition-all">Tous</button>
+                        <button onclick="filterAgents('active')" id="btn-active"
+                            class="px-4 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Actifs</button>
+                        <button onclick="filterAgents('disconnected')" id="btn-disconnected"
+                            class="px-4 py-2 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Déconnectés</button>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="glass rounded-2xl overflow-hidden border border-[#2a2839]">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-[#1b1928] text-gray-400 text-xs uppercase border-b border-[#2a2839]">
+                            <th class="p-4 font-semibold">Agent</th>
+                            <th class="p-4 font-semibold">IP Address</th>
+                            <th class="p-4 font-semibold">OS</th>
+                            <th class="p-4 font-semibold">Status</th>
+                            <th class="p-4 font-semibold">Vulnerabilities</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-gray-300 text-sm divide-y divide-[#2a2839]" id="agents-table-body">
+                        {{range .Agents}}
+                        <tr class="hover:bg-[#2a2839] cursor-pointer group" onclick="openAgentModal(this)"
+                            data-status="{{.Status}}" data-agent='{{json .}}'>
+                            <td class="p-4 font-medium text-white flex items-center gap-3">
+                                <div
+                                    class="w-8 h-8 rounded bg-cyan-500/10 flex items-center justify-center text-cyan-400">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M5 12h14M12 5l7 7-7 7" />
+                                    </svg>
+                                </div>
+                                {{.Name}}
+                            </td>
+                            <td class="p-4 font-mono text-gray-500">{{.IP}}</td>
+                            <td class="p-4 text-gray-400">{{.OS.Name}}</td>
+                            <td class="p-4">
+                                {{if eq .Status "active"}}
+                                <span
+                                    class="px-2 py-1 text-xs font-semibold rounded-full bg-green-500/10 text-green-400 border border-green-500/20">
+                                    Active
+                                </span>
+                                {{else}}
+                                <span
+                                    class="px-2 py-1 text-xs font-semibold rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
+                                    {{.Status}}
+                                </span>
+                                {{end}}
+                            </td>
+                            <td class="p-4">
+                                <div class="flex gap-2">
+                                    {{if gt .VulnSummary.Critical 0}}
+                                    <span
+                                        class="px-2 py-1 text-xs font-bold rounded bg-red-500/20 text-red-500 border border-red-500/30"
+                                        title="Critique">
+                                        {{.VulnSummary.Critical}} C
+                                    </span>
+                                    {{end}}
+                                    {{if gt .VulnSummary.High 0}}
+                                    <span
+                                        class="px-2 py-1 text-xs font-bold rounded bg-orange-500/20 text-orange-500 border border-orange-500/30"
+                                        title="Élevée">
+                                        {{.VulnSummary.High}} H
+                                    </span>
+                                    {{end}}
+                                    {{if gt .VulnSummary.Medium 0}}
+                                    <span
+                                        class="px-2 py-1 text-xs font-bold rounded bg-yellow-500/20 text-yellow-500 border border-yellow-500/30"
+                                        title="Moyenne">
+                                        {{.VulnSummary.Medium}} M
+                                    </span>
+                                    {{end}}
+                                    {{if gt .VulnSummary.Low 0}}
+                                    <span
+                                        class="px-2 py-1 text-xs font-bold rounded bg-blue-500/20 text-blue-500 border border-blue-500/30"
+                                        title="Faible">
+                                        {{.VulnSummary.Low}} L
+                                    </span>
+                                    {{end}}
+                                    {{if eq .VulnSummary.Total 0}}
+                                    <span class="text-gray-600 text-xs italic">Aucune vulnérabilité</span>
+                                    {{end}}
+                                </div>
+                            </td>
+                        </tr>
+                        {{else}}
+                        <tr>
+                            <td colspan="5" class="p-8 text-center text-gray-500">Aucun agent trouvé ou erreur de
+                                connexion API.</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Details -->
+    <div id="agent-modal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog"
+        aria-modal="true">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity opacity-0" id="modal-backdrop"></div>
+
+        <div class="fixed inset-0 z-10 overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="relative transform rounded-2xl bg-[#1b1928] border border-[#2a2839] text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    id="modal-panel">
+
+                    <!-- Header -->
+                    <div class="bg-[#2a2839]/50 px-6 py-4 border-b border-[#2a2839] flex justify-between items-center">
+                        <h3 class="text-xl font-bold text-white flex items-center gap-3">
+                            <div class="w-8 h-8 rounded bg-cyan-500/10 flex items-center justify-center text-cyan-400">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                                </svg>
+                            </div>
+                            <span id="modal-agent-name">Agent Name</span>
+                        </h3>
+                        <button type="button" onclick="closeAgentModal()"
+                            class="text-gray-400 hover:text-white transition-colors">
+                            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="px-6 py-6 text-gray-300 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-[#2a2839]/30 p-3 rounded-lg">
+                                <p class="text-xs text-gray-500 uppercase font-semibold">ID</p>
+                                <p class="text-sm font-mono text-white" id="modal-agent-id">-</p>
+                            </div>
+                            <div class="bg-[#2a2839]/30 p-3 rounded-lg">
+                                <p class="text-xs text-gray-500 uppercase font-semibold">Status</p>
+                                <p class="text-sm font-medium" id="modal-agent-status">-</p>
+                            </div>
+                            <div class="bg-[#2a2839]/30 p-3 rounded-lg col-span-2">
+                                <p class="text-xs text-gray-500 uppercase font-semibold">IP Address</p>
+                                <p class="text-sm font-mono text-cyan-400" id="modal-agent-ip">-</p>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-[#2a2839] my-4"></div>
+
+                        <div class="grid grid-cols-1 gap-3">
+                            <div>
+                                <p class="text-xs text-gray-500 uppercase font-semibold mb-1">Système d'exploitation</p>
+                                <p class="text-sm text-white flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                    </svg>
+                                    <span id="modal-agent-os">-</span>
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500 uppercase font-semibold mb-1">Version Wazuh</p>
+                                <p class="text-sm text-white" id="modal-agent-version">-</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500 uppercase font-semibold mb-1">Dernier Keep-Alive</p>
+                                <p class="text-sm text-white" id="modal-agent-lastkeepalive">-</p>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-[#2a2839] my-4"></div>
+
+
+                        <!-- Top 10 Packages -->
+                        <div class="mb-6">
+                            <h4
+                                class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                <span class="flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                    </svg>
+                                    Top 10 Packages Vulnérables
+                                </span>
+
+                                <!-- Legend Tooltip (Moved outside table to avoid overflow clipping) -->
+                                <div class="group relative flex items-center ml-2">
+                                    <svg class="w-4 h-4 text-cyan-500 cursor-help" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <div
+                                        class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-56 p-3 bg-[#1b1928] border border-gray-600 rounded text-xs text-gray-300 shadow-xl z-[60]">
+                                        <p class="font-bold mb-2 border-b border-gray-700 pb-1">Légende "Patch /
+                                            Condition" :</p>
+                                        <div class="flex items-center gap-2 mb-1"><span
+                                                class="text-cyan-400 font-bold">&lt;</span> Mettre à jour (Version <
+                                                cible)</div>
+                                                <div class="flex items-center gap-2"><span
+                                                        class="text-yellow-400 font-bold">=</span> Version vulnérable
+                                                    exacte</div>
+                                        </div>
+                                    </div>
+                            </h4>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-sm text-gray-400">
+                                    <thead class="text-xs uppercase bg-[#2a2839]/50 text-gray-300">
+                                        <tr>
+                                            <th class="px-3 py-2 rounded-l">Package</th>
+                                            <th class="px-3 py-2">Version Actuelle</th>
+                                            <th class="px-3 py-2">Patch / Condition</th>
+                                            <th class="px-3 py-2 text-right rounded-r">Vulns</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-[#2a2839]" id="modal-top-packages-body">
+                                        <tr>
+                                            <td colspan="4" class="px-3 py-4 text-center text-xs text-gray-500">
+                                                Chargement...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Vulnerabilities List -->
+                        <div>
+                            <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Détails des
+                                Vulnérabilités</h4>
+                            <div id="modal-vulns-loading" class="text-center py-4 hidden">
+                                <svg class="animate-spin h-5 w-5 text-cyan-500 mx-auto"
+                                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                        stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                    </path>
+                                </svg>
+                                <p class="text-xs text-gray-500 mt-2">Chargement...</p>
+                            </div>
+                            <div id="modal-vulns-content" class="space-y-3">
+                                <!-- Populated via JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="bg-[#2a2839]/50 px-6 py-4 sm:flex sm:flex-row-reverse border-t border-[#2a2839]">
+                        <button type="button"
+                            class="w-full inline-flex justify-center rounded-lg border border-transparent bg-cyan-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-cyan-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm transition-colors"
+                            onclick="closeAgentModal()">
+                            Fermer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- Refresh Logic ---
+        async function refreshPage() {
+            const icon = document.getElementById('refresh-icon');
+            const btn = document.getElementById('btn-refresh');
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+            icon.classList.add('animate-spin');
+
+            try {
+                const res = await fetch('/api/wazuh/agents/refresh');
+                if (!res.ok) throw new Error('Erreur serveur');
+                const agents = await res.json();
+                renderAgentsTable(agents);
+            } catch (e) {
+                console.error('Refresh failed:', e);
+            } finally {
+                icon.classList.remove('animate-spin');
+                btn.disabled = false;
+                btn.classList.remove('opacity-50');
+            }
+        }
+
+        function renderAgentsTable(agents) {
+            const tbody = document.getElementById('agents-table-body');
+            if (!agents || agents.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-500">Aucun agent trouvé ou erreur de connexion API.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = agents.map(a => {
+                const statusBadge = a.status === 'active'
+                    ? `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-500/10 text-green-400 border border-green-500/20">Active</span>`
+                    : `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-500/10 text-red-400 border border-red-500/20">${a.status}</span>`;
+
+                const vs = a.vuln_summary || {};
+                let vulnHtml = '';
+                if (vs.critical > 0) vulnHtml += `<span class="px-2 py-1 text-xs font-bold rounded bg-red-500/20 text-red-500 border border-red-500/30" title="Critique">${vs.critical} C</span>`;
+                if (vs.high > 0)     vulnHtml += `<span class="px-2 py-1 text-xs font-bold rounded bg-orange-500/20 text-orange-500 border border-orange-500/30" title="Élevée">${vs.high} H</span>`;
+                if (vs.medium > 0)   vulnHtml += `<span class="px-2 py-1 text-xs font-bold rounded bg-yellow-500/20 text-yellow-500 border border-yellow-500/30" title="Moyenne">${vs.medium} M</span>`;
+                if (vs.low > 0)      vulnHtml += `<span class="px-2 py-1 text-xs font-bold rounded bg-blue-500/20 text-blue-500 border border-blue-500/30" title="Faible">${vs.low} L</span>`;
+                if (!vs.total)       vulnHtml = `<span class="text-gray-600 text-xs italic">Aucune vulnérabilité</span>`;
+
+                return `<tr class="hover:bg-[#2a2839] cursor-pointer group" onclick="openAgentModal(this)"
+                    data-status="${a.status}" data-agent='${JSON.stringify(a)}'>
+                    <td class="p-4 font-medium text-white flex items-center gap-3">
+                        <div class="w-8 h-8 rounded bg-cyan-500/10 flex items-center justify-center text-cyan-400">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7" />
+                            </svg>
+                        </div>
+                        ${a.name}
+                    </td>
+                    <td class="p-4 font-mono text-gray-500">${a.ip || ''}</td>
+                    <td class="p-4 text-gray-400">${a.os ? a.os.name : ''}</td>
+                    <td class="p-4">${statusBadge}</td>
+                    <td class="p-4"><div class="flex gap-2">${vulnHtml}</div></td>
+                </tr>`;
+            }).join('');
+        }
+
+        // --- Filtering Logic ---
+        function filterAgents(status) {
+            const rows = document.querySelectorAll('#agents-table-body tr');
+            const btns = {
+                'all': document.getElementById('btn-all'),
+                'active': document.getElementById('btn-active'),
+                'disconnected': document.getElementById('btn-disconnected')
+            };
+
+            // Reset buttons styles
+            Object.values(btns).forEach(btn => {
+                btn.classList.remove('bg-[#2a2839]', 'text-white');
+                btn.classList.add('text-gray-400');
+            });
+            // Active button style
+            btns[status].classList.add('bg-[#2a2839]', 'text-white');
+            btns[status].classList.remove('text-gray-400');
+
+            rows.forEach(row => {
+                // Skip if it's the 'No agent found' row
+                if (row.cells.length === 1) return;
+
+                const rowStatus = row.getAttribute('data-status');
+                if (status === 'all') {
+                    row.style.display = '';
+                } else {
+                    if (rowStatus === status) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            });
+        }
+
+        // --- Modal Logic ---
+        const modal = document.getElementById('agent-modal');
+        const modalBackdrop = document.getElementById('modal-backdrop');
+        const modalPanel = document.getElementById('modal-panel');
+        const modalVulnsContent = document.getElementById('modal-vulns-content');
+        const modalVulnsLoading = document.getElementById('modal-vulns-loading');
+
+        function openAgentModal(row) {
+            const data = JSON.parse(row.getAttribute('data-agent'));
+
+            // Populate fields
+            document.getElementById('modal-agent-name').textContent = data.name;
+            document.getElementById('modal-agent-id').textContent = data.id;
+            document.getElementById('modal-agent-ip').textContent = data.ip;
+            document.getElementById('modal-agent-os').textContent = data.os ? (data.os.name + ' (' + data.os.platform + ')') : 'N/A';
+            document.getElementById('modal-agent-version').textContent = data.version || 'N/A';
+            document.getElementById('modal-agent-lastkeepalive').textContent = data.lastKeepAlive || 'N/A';
+
+            const statusEl = document.getElementById('modal-agent-status');
+            statusEl.textContent = data.status.toUpperCase();
+            if (data.status === 'active') {
+                statusEl.className = 'text-sm font-bold text-green-400';
+            } else {
+                statusEl.className = 'text-sm font-bold text-red-400';
+            }
+
+            // Show Modal (Anim)
+            modal.classList.remove('hidden');
+            // Trigger reflow
+            void modal.offsetWidth;
+
+            modalBackdrop.classList.remove('opacity-0');
+            modalPanel.classList.remove('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+            modalPanel.classList.add('translate-y-0', 'sm:scale-100');
+
+            // Load Vulns
+            loadVulnerabilities(data.id);
+        }
+
+        function closeAgentModal() {
+            modalBackdrop.classList.add('opacity-0');
+            modalPanel.classList.add('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+            modalPanel.classList.remove('translate-y-0', 'sm:scale-100');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300); // Match transition duration
+        }
+
+        async function loadVulnerabilities(agentId) {
+            modalVulnsContent.innerHTML = '';
+            modalVulnsLoading.classList.remove('hidden');
+
+            try {
+                const response = await fetch(`/api/wazuh/vulns/${agentId}`);
+                if (!response.ok) throw new Error('Failed to fetch');
+                const vulns = await response.json();
+
+                renderVulnerabilities(vulns);
+            } catch (error) {
+                console.error("Error loading vulns:", error);
+                modalVulnsContent.innerHTML = `<p class="text-red-400 text-xs text-center">Erreur lors du chargement des vulnérabilités.</p>`;
+            } finally {
+                modalVulnsLoading.classList.add('hidden');
+            }
+        }
+
+        function renderVulnerabilities(vulns) {
+            if (!vulns || vulns.length === 0) {
+                document.getElementById('modal-top-packages-body').innerHTML = `<tr><td colspan="4" class="px-3 py-4 text-center text-xs text-gray-500">Aucune donnée.</td></tr>`;
+                modalVulnsContent.innerHTML = `<p class="text-gray-500 text-xs text-center">Aucune vulnérabilité détectée.</p>`;
+                return;
+            }
+
+            // --- Top 10 Packages Logic ---
+            const pkgCounts = {};
+            vulns.forEach(v => {
+                const key = v.package.name + '|||' + v.package.version; // Use unique key
+                if (!pkgCounts[key]) {
+                    pkgCounts[key] = {
+                        name: v.package.name,
+                        version: v.package.version,
+                        count: 0,
+                        condition: v.condition || 'N/A'
+                    };
+                }
+                pkgCounts[key].count++;
+
+                // Try to find a meaningful condition if current is N/A or generic
+                if (v.condition && pkgCounts[key].condition === 'N/A') {
+                    pkgCounts[key].condition = v.condition;
+                }
+            });
+
+            // Convert to array and sort
+            const sortedPkgs = Object.values(pkgCounts).sort((a, b) => b.count - a.count).slice(0, 10);
+
+            // Render Top 10
+            let topPkgHtml = '';
+            if (sortedPkgs.length === 0) {
+                topPkgHtml = `<tr><td colspan="4" class="px-3 py-4 text-center text-xs text-gray-500">Aucun package trouvé.</td></tr>`;
+            } else {
+                sortedPkgs.forEach(p => {
+                    let condDisplay = p.condition;
+                    let condClass = "text-gray-400";
+
+                    // Parse symbols
+                    if (condDisplay.includes("Package less than")) {
+                        condDisplay = `<span class="text-cyan-400 font-bold mr-1">&lt;</span> ` + condDisplay.replace("Package less than", "").trim();
+                    } else if (condDisplay.includes("Package equal to")) {
+                        condDisplay = `<span class="text-yellow-400 font-bold mr-1">=</span> ` + condDisplay.replace("Package equal to", "").trim();
+                    }
+
+                    topPkgHtml += `
+                    <tr class="hover:bg-[#2a2839]">
+                        <td class="px-3 py-2 font-medium text-white">${p.name}</td>
+                        <td class="px-3 py-2 text-xs font-mono text-gray-400">${p.version}</td>
+                        <td class="px-3 py-2 text-xs font-mono truncate max-w-[150px]" title="${p.condition}">${condDisplay}</td>
+                        <td class="px-3 py-2 text-right">
+                            <span class="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs font-bold border border-red-500/30">
+                                ${p.count}
+                            </span>
+                        </td>
+                    </tr>`;
+                });
+            }
+            document.getElementById('modal-top-packages-body').innerHTML = topPkgHtml;
+            // -----------------------------
+
+            // Group by severity
+            const groups = { 'Critical': [], 'High': [], 'Medium': [], 'Low': [] };
+            vulns.forEach(v => {
+                if (groups[v.severity]) groups[v.severity].push(v);
+                else groups['Low'].push(v); // Default fallback
+            });
+
+            let html = '';
+            const order = ['Critical', 'High', 'Medium', 'Low'];
+            const colors = {
+                'Critical': 'border-red-500/50 bg-red-500/10 text-red-400',
+                'High': 'border-orange-500/50 bg-orange-500/10 text-orange-400',
+                'Medium': 'border-yellow-500/50 bg-yellow-500/10 text-yellow-400',
+                'Low': 'border-blue-500/50 bg-blue-500/10 text-blue-400'
+            };
+
+            order.forEach(sev => {
+                const items = groups[sev];
+                if (items.length > 0) {
+                    html += `<div class="mb-4">
+                        <h5 class="text-xs font-bold uppercase mb-2 ${colors[sev].split(' ').pop()}">${sev} (${items.length})</h5>
+                        <div class="space-y-2">`;
+
+                    items.forEach(v => {
+                        html += `
+                        <div class="p-2 rounded border ${colors[sev]} border-l-4">
+                            <div class="flex justify-between items-start">
+                                <span class="font-mono font-bold text-xs">${v.cve}</span>
+                                <span class="text-[10px] opacity-70">${v.package.name} ${v.package.version}</span>
+                            </div>
+                            <p class="text-xs mt-1 opacity-90 truncate" title="${v.title}">${v.title}</p>
+                        </div>`;
+                    });
+
+                    html += `</div></div>`;
+                }
+            });
+
+            modalVulnsContent.innerHTML = html;
+        }
+
+        // Close on backdrop click
+        modalBackdrop.addEventListener('click', closeAgentModal);
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('mobile-menu-btn');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobile-overlay');
+            if (btn && sidebar && overlay) {
+                function toggleMenu() {
+                    const isClosed = sidebar.classList.contains('-translate-x-full');
+                    if (isClosed) { sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden'); }
+                    else { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden'); }
+                }
+                btn.addEventListener('click', toggleMenu);
+                overlay.addEventListener('click', toggleMenu);
+            }
+        });
+    </script>
+    <script>
+        document.querySelectorAll('.sidebar-link').forEach(link => {
+            if (link.getAttribute('href') === window.location.pathname) {
+                link.classList.add('active');
+            }
+        });
+        fetch('/api/me').then(r => r.json()).then(data => {
+            if (data.github_url) {
+                const link = document.getElementById('sidebar-github-link');
+                if (link) {
+                    link.href = data.github_url;
+                    link.target = '_blank';
+                    link.title = 'Mon profil GitHub';
+                }
+            }
+        }).catch(() => {});
+    </script>
+</body>
+
+</html>

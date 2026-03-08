@@ -3,28 +3,28 @@ FROM golang:alpine AS builder
 
 WORKDIR /app
 
-# Installation des dépendances pour le build (git n'est pas toujours dans alpine par défaut)
+# Installation des dépendances pour le build
 RUN apk add --no-cache git
 
 # Copie des fichiers de définition de module
-COPY go.mod ./
+COPY go.mod go.sum ./
 
-# Copie du code source pour que go mod tidy puisse analyser les déps
-COPY *.go ./
+# Copie du code source
+COPY cmd/ ./cmd/
+COPY internal/ ./internal/
+COPY assets/ ./assets/
 # Cache busting
 ARG CACHEBUST=1
 COPY templates/ ./templates/
 COPY playbooks/ ./playbooks/
 
 # Téléchargement des dépendances
-RUN go mod tidy
 RUN go mod download
 
-# Build de l'application statique
-RUN CGO_ENABLED=0 GOOS=linux go build -o goacloud .
+# Build de l'application statique depuis le nouveau point d'entrée
+RUN CGO_ENABLED=0 GOOS=linux go build -o goacloud ./cmd/server
 
 # Final Stage
-# Utilisation d'une image minimale
 FROM alpine:latest
 
 WORKDIR /app
