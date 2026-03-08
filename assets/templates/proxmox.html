@@ -451,7 +451,8 @@
                 .catch(err => console.error('Error fetching stats:', err));
         }
 
-        setInterval(updateStats, 500);
+        updateStats(); // Initial call on page load
+        setInterval(updateStats, 30000); // Refresh every 30s (cache updates every 5min)
 
         function openGuestModal(type, id) {
             const modal = document.getElementById('guest-modal');
