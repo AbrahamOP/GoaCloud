@@ -47,3 +47,45 @@ function onSSE(event, callback) {
     _sseListeners[event].push(callback);
     connectSSE();
 }
+
+// ---- Browser Notifications ----
+function requestNotifPermission() {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+}
+
+function sendLocalNotif(title, body) {
+    if (Notification.permission === 'granted') {
+        new Notification(title, {
+            body: body,
+            icon: 'https://img.icons8.com/dusk/64/server.png',
+        });
+    }
+}
+
+// Auto-request on first visit
+if ('Notification' in window && Notification.permission === 'default') {
+    // Defer permission request to avoid being annoying on first load
+    setTimeout(requestNotifPermission, 5000);
+}
+
+// Hook into SSE to trigger notifications for VM status changes
+(function() {
+    let knownVMStatus = {};
+
+    if (typeof onSSE === 'function') {
+        onSSE('proxmox_stats', function(data) {
+            if (!data.VMs) return;
+            data.VMs.forEach(function(vm) {
+                const prev = knownVMStatus[vm.ID];
+                if (prev && prev !== vm.Status) {
+                    const action = vm.Status === 'running' ? 'd\u00e9marr\u00e9e' : 'arr\u00eat\u00e9e';
+                    sendLocalNotif('GoaCloud - VM ' + action, vm.Name + ' (#' + vm.ID + ') est maintenant ' + action);
+                }
+                knownVMStatus[vm.ID] = vm.Status;
+            });
+        });
+    }
+})();

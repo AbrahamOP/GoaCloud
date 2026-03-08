@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -60,6 +61,84 @@ func (h *Handler) HandleWazuhVulns(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode([]models.WazuhVuln{})
+}
+
+// HandleWazuhCVESummary returns aggregated CVE statistics across all agents.
+func (h *Handler) HandleWazuhCVESummary(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	h.WazuhCache.Mutex.RLock()
+	agents := h.WazuhCache.Agents
+	h.WazuhCache.Mutex.RUnlock()
+
+	summary := map[string]interface{}{
+		"total_agents": len(agents),
+		"critical":     0,
+		"high":         0,
+		"medium":       0,
+		"low":          0,
+		"total_vulns":  0,
+		"top_agents":   []map[string]interface{}{},
+	}
+
+	type agentVulns struct {
+		Name  string `json:"name"`
+		Total int    `json:"total"`
+		Crit  int    `json:"critical"`
+		High  int    `json:"high"`
+	}
+
+	var topAgents []agentVulns
+	for _, a := range agents {
+		summary["critical"] = summary["critical"].(int) + a.VulnSummary.Critical
+		summary["high"] = summary["high"].(int) + a.VulnSummary.High
+		summary["medium"] = summary["medium"].(int) + a.VulnSummary.Medium
+		summary["low"] = summary["low"].(int) + a.VulnSummary.Low
+		summary["total_vulns"] = summary["total_vulns"].(int) + a.VulnSummary.Total
+		if a.VulnSummary.Total > 0 {
+			topAgents = append(topAgents, agentVulns{Name: a.Name, Total: a.VulnSummary.Total, Crit: a.VulnSummary.Critical, High: a.VulnSummary.High})
+		}
+	}
+
+	// Sort top agents by total vulns descending, take top 5
+	sort.Slice(topAgents, func(i, j int) bool { return topAgents[i].Total > topAgents[j].Total })
+	if len(topAgents) > 5 {
+		topAgents = topAgents[:5]
+	}
+	summary["top_agents"] = topAgents
+
+	json.NewEncoder(w).Encode(summary)
+}
+
+// HandleWazuhGeoData returns geo/IP threat data from recent auth-related alerts.
+func (h *Handler) HandleWazuhGeoData(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if h.WazuhIndexer == nil {
+		json.NewEncoder(w).Encode([]map[string]interface{}{})
+		return
+	}
+
+	alerts, err := h.WazuhIndexer.GetRecentAlerts(24 * time.Hour)
+	if err != nil {
+		json.NewEncoder(w).Encode([]map[string]interface{}{})
+		return
+	}
+
+	// Extract unique source IPs from auth-related alerts
+	ipSet := make(map[string]int)
+	for _, a := range alerts {
+		if a.Data.SrcIP != "" && a.Data.SrcIP != "127.0.0.1" && a.Rule.Level >= 5 {
+			ipSet[a.Data.SrcIP]++
+		}
+	}
+
+	var result []map[string]interface{}
+	for ip, count := range ipSet {
+		result = append(result, map[string]interface{}{"ip": ip, "count": count})
+	}
+
+	json.NewEncoder(w).Encode(result)
 }
 
 // HandleWazuhAgentsRefresh force-refreshes the Wazuh cache and returns updated agents as JSON.

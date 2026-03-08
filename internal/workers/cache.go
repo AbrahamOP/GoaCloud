@@ -54,6 +54,11 @@ func updateVMCache(db *sql.DB, cfg *config.Config, proxmox *services.ProxmoxServ
 			slog.Error("Worker DB Error", "vmid", vm.ID, "error", err)
 		}
 	}
+	// Record metrics for history/sparklines
+	db.Exec("INSERT INTO metrics_history (cpu, ram, storage) VALUES (?, ?, ?)", stats.CPU, stats.RAM, stats.Storage)
+	// Prune old entries (keep last 7 days)
+	db.Exec("DELETE FROM metrics_history WHERE recorded_at < DATE_SUB(NOW(), INTERVAL 7 DAY)")
+
 	// Broadcast to SSE clients
 	if broker != nil {
 		if data, err := json.Marshal(stats); err == nil {

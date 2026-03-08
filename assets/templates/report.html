@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoaCloud - Rapport Infrastructure</title>
+    <link rel="stylesheet" href="/static/tailwind.min.css">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: white;
+            color: #111827;
+        }
+        @media print {
+            body { background: white; }
+            .no-print { display: none !important; }
+            .page-break { page-break-before: always; }
+        }
+        .stat-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="p-8 max-w-4xl mx-auto">
+    <!-- Print Button -->
+    <div class="no-print flex justify-between items-center mb-8">
+        <a href="/" class="text-blue-600 hover:underline text-sm">&larr; Retour au dashboard</a>
+        <button onclick="window.print()"
+            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
+            Exporter en PDF
+        </button>
+    </div>
+
+    <!-- Header -->
+    <div class="text-center mb-10">
+        <h1 class="text-3xl font-bold text-gray-900">Rapport d'Infrastructure</h1>
+        <p class="text-gray-500 text-sm mt-1">GoaCloud &mdash; G&eacute;n&eacute;r&eacute; le {{.GeneratedAt}}</p>
+    </div>
+
+    <!-- Infrastructure Overview -->
+    <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Infrastructure Proxmox</h2>
+    <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="stat-card">
+            <p class="text-3xl font-bold text-purple-600">{{.CPU}}%</p>
+            <p class="text-xs text-gray-500 uppercase mt-1">CPU</p>
+        </div>
+        <div class="stat-card">
+            <p class="text-3xl font-bold text-blue-600">{{.RAM}}%</p>
+            <p class="text-xs text-gray-500 uppercase mt-1">RAM</p>
+            <p class="text-xs text-gray-400 mt-0.5">{{.RAMUsedStr}} / {{.RAMTotalStr}}</p>
+        </div>
+        <div class="stat-card">
+            <p class="text-3xl font-bold text-orange-600">{{.Storage}}%</p>
+            <p class="text-xs text-gray-500 uppercase mt-1">Stockage</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 mb-8">
+        <div class="stat-card bg-green-50">
+            <p class="text-2xl font-bold text-green-600">{{.VMsRunning}}</p>
+            <p class="text-xs text-gray-500">VMs en marche</p>
+        </div>
+        <div class="stat-card bg-red-50">
+            <p class="text-2xl font-bold text-red-600">{{.VMsStopped}}</p>
+            <p class="text-xs text-gray-500">VMs arr&ecirc;t&eacute;es</p>
+        </div>
+    </div>
+
+    <!-- VM Table -->
+    <h3 class="text-lg font-semibold text-gray-700 mb-3">Liste des machines</h3>
+    <table class="w-full text-sm border border-gray-200 rounded-lg overflow-hidden mb-8">
+        <thead>
+            <tr class="bg-gray-50 text-gray-500 text-xs uppercase">
+                <th class="p-3 text-left">Type</th>
+                <th class="p-3 text-left">ID</th>
+                <th class="p-3 text-left">Nom</th>
+                <th class="p-3 text-left">Statut</th>
+                <th class="p-3 text-left">IP</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+            {{range .VMs}}
+            <tr>
+                <td class="p-3 font-mono text-xs text-gray-500">{{.Type}}</td>
+                <td class="p-3 font-mono">{{.ID}}</td>
+                <td class="p-3 font-medium">{{.Name}}</td>
+                <td class="p-3">
+                    {{if eq .Status "running"}}
+                    <span class="text-green-600 font-medium">Running</span>
+                    {{else}}
+                    <span class="text-red-600 font-medium">Stopped</span>
+                    {{end}}
+                </td>
+                <td class="p-3 font-mono text-gray-500">{{.IP}}</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+
+    <div class="page-break"></div>
+
+    <!-- Applications -->
+    <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Applications</h2>
+    <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="stat-card bg-green-50">
+            <p class="text-2xl font-bold text-green-600">{{.AppsUp}}</p>
+            <p class="text-xs text-gray-500">En ligne</p>
+        </div>
+        <div class="stat-card bg-red-50">
+            <p class="text-2xl font-bold text-red-600">{{.AppsDown}}</p>
+            <p class="text-xs text-gray-500">Hors ligne</p>
+        </div>
+    </div>
+
+    <table class="w-full text-sm border border-gray-200 rounded-lg overflow-hidden mb-8">
+        <thead>
+            <tr class="bg-gray-50 text-gray-500 text-xs uppercase">
+                <th class="p-3 text-left">Nom</th>
+                <th class="p-3 text-left">Cat&eacute;gorie</th>
+                <th class="p-3 text-left">Statut</th>
+                <th class="p-3 text-left">Temps de r&eacute;ponse</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+            {{range .Apps}}
+            <tr>
+                <td class="p-3 font-medium">{{.Name}}</td>
+                <td class="p-3 text-gray-500">{{.Category}}</td>
+                <td class="p-3">
+                    {{if eq .HealthStatus "up"}}
+                    <span class="text-green-600 font-medium">En ligne</span>
+                    {{else if eq .HealthStatus "down"}}
+                    <span class="text-red-600 font-medium">Hors ligne</span>
+                    {{else}}
+                    <span class="text-gray-400">Non v&eacute;rifi&eacute;</span>
+                    {{end}}
+                </td>
+                <td class="p-3 font-mono text-gray-500">{{.HealthRespMs}} ms</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+
+    <!-- Footer -->
+    <div class="text-center text-xs text-gray-400 mt-12 border-t pt-4">
+        <p>GoaCloud Infrastructure Report &mdash; {{.GeneratedAt}}</p>
+    </div>
+</body>
+</html>

@@ -407,6 +407,423 @@ func (p *ProxmoxService) PowerAction(rawURL, configuredNode, tokenID, secret, pv
 	return nil
 }
 
+// ListSnapshots fetches the list of snapshots for a VM/CT.
+func (p *ProxmoxService) ListSnapshots(rawURL, configuredNode, tokenID, secret, pveType, vmid string) ([]models.Snapshot, error) {
+	baseURL := strings.TrimRight(rawURL, "/")
+	if u, err := url.Parse(baseURL); err == nil {
+		baseURL = u.Scheme + "://" + u.Host
+	}
+
+	client := &http.Client{
+		Timeout:   5 * time.Second,
+		Transport: &http.Transport{TLSClientConfig: p.tlsConfig()},
+	}
+
+	addAuth := func(req *http.Request) {
+		req.Header.Add("Authorization", fmt.Sprintf("PVEAPIToken=%s=%s", tokenID, secret))
+	}
+
+	// Auto-discover node
+	targetNode := configuredNode
+	reqNodes, _ := http.NewRequest("GET", fmt.Sprintf("%s/api2/json/nodes", baseURL), nil)
+	addAuth(reqNodes)
+	if respNodes, err := client.Do(reqNodes); err == nil {
+		defer respNodes.Body.Close()
+		if respNodes.StatusCode == 200 {
+			var nodeList models.PveNodesList
+			if err := json.NewDecoder(respNodes.Body).Decode(&nodeList); err == nil {
+				found := false
+				firstOnline := ""
+				for _, n := range nodeList.Data {
+					if n.Status == "online" {
+						if firstOnline == "" {
+							firstOnline = n.Node
+						}
+						if n.Node == configuredNode {
+							found = true
+							break
+						}
+					}
+				}
+				if !found && firstOnline != "" {
+					targetNode = firstOnline
+				}
+			}
+		}
+	}
+
+	apiURL := fmt.Sprintf("%s/api2/json/nodes/%s/%s/%s/snapshot", baseURL, targetNode, pveType, vmid)
+	req, _ := http.NewRequest("GET", apiURL, nil)
+	addAuth(req)
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+	}
+
+	var snapList models.PveSnapshotList
+	if err := json.NewDecoder(resp.Body).Decode(&snapList); err != nil {
+		return nil, err
+	}
+
+	var snapshots []models.Snapshot
+	for _, s := range snapList.Data {
+		if s.Name == "current" {
+			continue
+		}
+		snapshots = append(snapshots, models.Snapshot{
+			Name:        s.Name,
+			Description: s.Description,
+			SnapTime:    s.SnapTime,
+			Parent:      s.Parent,
+			Running:     s.Running == 1,
+		})
+	}
+
+	return snapshots, nil
+}
+
+// CreateSnapshot creates a new snapshot for a VM/CT.
+func (p *ProxmoxService) CreateSnapshot(rawURL, configuredNode, tokenID, secret, pveType, vmid, snapName, description string) error {
+	baseURL := strings.TrimRight(rawURL, "/")
+	if u, err := url.Parse(baseURL); err == nil {
+		baseURL = u.Scheme + "://" + u.Host
+	}
+
+	client := &http.Client{
+		Timeout:   10 * time.Second,
+		Transport: &http.Transport{TLSClientConfig: p.tlsConfig()},
+	}
+
+	addAuth := func(req *http.Request) {
+		req.Header.Add("Authorization", fmt.Sprintf("PVEAPIToken=%s=%s", tokenID, secret))
+	}
+
+	// Auto-discover node
+	targetNode := configuredNode
+	reqNodes, _ := http.NewRequest("GET", fmt.Sprintf("%s/api2/json/nodes", baseURL), nil)
+	addAuth(reqNodes)
+	if respNodes, err := client.Do(reqNodes); err == nil {
+		defer respNodes.Body.Close()
+		if respNodes.StatusCode == 200 {
+			var nodeList models.PveNodesList
+			if err := json.NewDecoder(respNodes.Body).Decode(&nodeList); err == nil {
+				found := false
+				firstOnline := ""
+				for _, n := range nodeList.Data {
+					if n.Status == "online" {
+						if firstOnline == "" {
+							firstOnline = n.Node
+						}
+						if n.Node == configuredNode {
+							found = true
+							break
+						}
+					}
+				}
+				if !found && firstOnline != "" {
+					targetNode = firstOnline
+				}
+			}
+		}
+	}
+
+	formData := url.Values{}
+	formData.Set("snapname", snapName)
+	formData.Set("description", description)
+
+	apiURL := fmt.Sprintf("%s/api2/json/nodes/%s/%s/%s/snapshot", baseURL, targetNode, pveType, vmid)
+	req, _ := http.NewRequest("POST", apiURL, strings.NewReader(formData.Encode()))
+	addAuth(req)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+// DeleteSnapshot deletes a snapshot from a VM/CT.
+func (p *ProxmoxService) DeleteSnapshot(rawURL, configuredNode, tokenID, secret, pveType, vmid, snapName string) error {
+	baseURL := strings.TrimRight(rawURL, "/")
+	if u, err := url.Parse(baseURL); err == nil {
+		baseURL = u.Scheme + "://" + u.Host
+	}
+
+	client := &http.Client{
+		Timeout:   10 * time.Second,
+		Transport: &http.Transport{TLSClientConfig: p.tlsConfig()},
+	}
+
+	addAuth := func(req *http.Request) {
+		req.Header.Add("Authorization", fmt.Sprintf("PVEAPIToken=%s=%s", tokenID, secret))
+	}
+
+	// Auto-discover node
+	targetNode := configuredNode
+	reqNodes, _ := http.NewRequest("GET", fmt.Sprintf("%s/api2/json/nodes", baseURL), nil)
+	addAuth(reqNodes)
+	if respNodes, err := client.Do(reqNodes); err == nil {
+		defer respNodes.Body.Close()
+		if respNodes.StatusCode == 200 {
+			var nodeList models.PveNodesList
+			if err := json.NewDecoder(respNodes.Body).Decode(&nodeList); err == nil {
+				found := false
+				firstOnline := ""
+				for _, n := range nodeList.Data {
+					if n.Status == "online" {
+						if firstOnline == "" {
+							firstOnline = n.Node
+						}
+						if n.Node == configuredNode {
+							found = true
+							break
+						}
+					}
+				}
+				if !found && firstOnline != "" {
+					targetNode = firstOnline
+				}
+			}
+		}
+	}
+
+	apiURL := fmt.Sprintf("%s/api2/json/nodes/%s/%s/%s/snapshot/%s", baseURL, targetNode, pveType, vmid, snapName)
+	req, _ := http.NewRequest("DELETE", apiURL, nil)
+	addAuth(req)
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+// RollbackSnapshot rolls back a VM/CT to a specific snapshot.
+func (p *ProxmoxService) RollbackSnapshot(rawURL, configuredNode, tokenID, secret, pveType, vmid, snapName string) error {
+	baseURL := strings.TrimRight(rawURL, "/")
+	if u, err := url.Parse(baseURL); err == nil {
+		baseURL = u.Scheme + "://" + u.Host
+	}
+
+	client := &http.Client{
+		Timeout:   10 * time.Second,
+		Transport: &http.Transport{TLSClientConfig: p.tlsConfig()},
+	}
+
+	addAuth := func(req *http.Request) {
+		req.Header.Add("Authorization", fmt.Sprintf("PVEAPIToken=%s=%s", tokenID, secret))
+	}
+
+	// Auto-discover node
+	targetNode := configuredNode
+	reqNodes, _ := http.NewRequest("GET", fmt.Sprintf("%s/api2/json/nodes", baseURL), nil)
+	addAuth(reqNodes)
+	if respNodes, err := client.Do(reqNodes); err == nil {
+		defer respNodes.Body.Close()
+		if respNodes.StatusCode == 200 {
+			var nodeList models.PveNodesList
+			if err := json.NewDecoder(respNodes.Body).Decode(&nodeList); err == nil {
+				found := false
+				firstOnline := ""
+				for _, n := range nodeList.Data {
+					if n.Status == "online" {
+						if firstOnline == "" {
+							firstOnline = n.Node
+						}
+						if n.Node == configuredNode {
+							found = true
+							break
+						}
+					}
+				}
+				if !found && firstOnline != "" {
+					targetNode = firstOnline
+				}
+			}
+		}
+	}
+
+	apiURL := fmt.Sprintf("%s/api2/json/nodes/%s/%s/%s/snapshot/%s/rollback", baseURL, targetNode, pveType, vmid, snapName)
+	req, _ := http.NewRequest("POST", apiURL, nil)
+	addAuth(req)
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+// CreateVM creates a new QEMU VM on the Proxmox node.
+func (p *ProxmoxService) CreateVM(rawURL, configuredNode, tokenID, secret string, vmid int, name string, cores int, memory int, diskSize int) error {
+	baseURL := strings.TrimRight(rawURL, "/")
+	if u, err := url.Parse(baseURL); err == nil {
+		baseURL = u.Scheme + "://" + u.Host
+	}
+
+	client := &http.Client{
+		Timeout:   15 * time.Second,
+		Transport: &http.Transport{TLSClientConfig: p.tlsConfig()},
+	}
+
+	addAuth := func(req *http.Request) {
+		req.Header.Add("Authorization", fmt.Sprintf("PVEAPIToken=%s=%s", tokenID, secret))
+	}
+
+	targetNode := configuredNode
+	reqNodes, _ := http.NewRequest("GET", fmt.Sprintf("%s/api2/json/nodes", baseURL), nil)
+	addAuth(reqNodes)
+	if respNodes, err := client.Do(reqNodes); err == nil {
+		defer respNodes.Body.Close()
+		if respNodes.StatusCode == 200 {
+			var nodeList models.PveNodesList
+			if err := json.NewDecoder(respNodes.Body).Decode(&nodeList); err == nil {
+				found := false
+				firstOnline := ""
+				for _, n := range nodeList.Data {
+					if n.Status == "online" {
+						if firstOnline == "" {
+							firstOnline = n.Node
+						}
+						if n.Node == configuredNode {
+							found = true
+							break
+						}
+					}
+				}
+				if !found && firstOnline != "" {
+					targetNode = firstOnline
+				}
+			}
+		}
+	}
+
+	// Build form body
+	form := url.Values{}
+	form.Set("vmid", fmt.Sprintf("%d", vmid))
+	form.Set("name", name)
+	form.Set("cores", fmt.Sprintf("%d", cores))
+	form.Set("memory", fmt.Sprintf("%d", memory))
+	form.Set("scsi0", fmt.Sprintf("local-lvm:%d", diskSize))
+	form.Set("net0", "virtio,bridge=vmbr0")
+	form.Set("ostype", "l26")
+
+	apiURL := fmt.Sprintf("%s/api2/json/nodes/%s/qemu", baseURL, targetNode)
+	req, _ := http.NewRequest("POST", apiURL, strings.NewReader(form.Encode()))
+	addAuth(req)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+	}
+	return nil
+}
+
+// CreateCT creates a new LXC container on the Proxmox node.
+func (p *ProxmoxService) CreateCT(rawURL, configuredNode, tokenID, secret string, vmid int, hostname string, cores int, memory int, diskSize int, template string) error {
+	baseURL := strings.TrimRight(rawURL, "/")
+	if u, err := url.Parse(baseURL); err == nil {
+		baseURL = u.Scheme + "://" + u.Host
+	}
+
+	client := &http.Client{
+		Timeout:   15 * time.Second,
+		Transport: &http.Transport{TLSClientConfig: p.tlsConfig()},
+	}
+
+	addAuth := func(req *http.Request) {
+		req.Header.Add("Authorization", fmt.Sprintf("PVEAPIToken=%s=%s", tokenID, secret))
+	}
+
+	targetNode := configuredNode
+	reqNodes, _ := http.NewRequest("GET", fmt.Sprintf("%s/api2/json/nodes", baseURL), nil)
+	addAuth(reqNodes)
+	if respNodes, err := client.Do(reqNodes); err == nil {
+		defer respNodes.Body.Close()
+		if respNodes.StatusCode == 200 {
+			var nodeList models.PveNodesList
+			if err := json.NewDecoder(respNodes.Body).Decode(&nodeList); err == nil {
+				found := false
+				firstOnline := ""
+				for _, n := range nodeList.Data {
+					if n.Status == "online" {
+						if firstOnline == "" {
+							firstOnline = n.Node
+						}
+						if n.Node == configuredNode {
+							found = true
+							break
+						}
+					}
+				}
+				if !found && firstOnline != "" {
+					targetNode = firstOnline
+				}
+			}
+		}
+	}
+
+	form := url.Values{}
+	form.Set("vmid", fmt.Sprintf("%d", vmid))
+	form.Set("hostname", hostname)
+	form.Set("cores", fmt.Sprintf("%d", cores))
+	form.Set("memory", fmt.Sprintf("%d", memory))
+	form.Set("rootfs", fmt.Sprintf("local-lvm:%d", diskSize))
+	form.Set("net0", "name=eth0,bridge=vmbr0,ip=dhcp")
+	if template != "" {
+		form.Set("ostemplate", template)
+	}
+
+	apiURL := fmt.Sprintf("%s/api2/json/nodes/%s/lxc", baseURL, targetNode)
+	req, _ := http.NewRequest("POST", apiURL, strings.NewReader(form.Encode()))
+	addAuth(req)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+	}
+	return nil
+}
+
 // getGuestIP fetches the IP address of a running VM/CT.
 func (p *ProxmoxService) getGuestIP(client *http.Client, baseURL, node, tokenID, secret, kind string, id int) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

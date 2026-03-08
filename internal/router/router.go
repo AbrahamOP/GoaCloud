@@ -47,6 +47,7 @@ func New(h *handlers.Handler, store *sessions.CookieStore, db *sql.DB) http.Hand
 		})
 
 		r.Get("/", h.HandleDashboard)
+		r.Get("/report", h.HandleReport)
 		r.Get("/add", h.HandleAddApp)
 		r.Post("/add", h.HandleAddApp)
 
@@ -56,6 +57,13 @@ func New(h *handlers.Handler, store *sessions.CookieStore, db *sql.DB) http.Hand
 		r.Get("/api/proxmox/guest", h.HandleProxmoxGuestDetail)
 		r.Get("/api/proxmox/ips", h.HandleProxmoxIPs)
 		r.Post("/api/proxmox/guest/power", h.HandleProxmoxPowerAction)
+		r.Get("/api/proxmox/snapshots", h.HandleProxmoxSnapshots)
+		r.Post("/api/proxmox/snapshots", h.HandleProxmoxSnapshotCreate)
+		r.Delete("/api/proxmox/snapshots", h.HandleProxmoxSnapshotDelete)
+		r.Post("/api/proxmox/snapshots/rollback", h.HandleProxmoxSnapshotRollback)
+		r.Get("/api/proxmox/console", h.HandleProxmoxConsoleURL)
+		r.Post("/api/proxmox/guest/create", h.HandleProxmoxCreateGuest)
+		r.Get("/api/proxmox/metrics", h.HandleMetricsHistory)
 		r.Get("/api/events", h.HandleSSE)
 
 		// Wazuh & SOAR
@@ -66,7 +74,9 @@ func New(h *handlers.Handler, store *sessions.CookieStore, db *sql.DB) http.Hand
 		r.Get("/api/soar/config", h.HandleSoarConfig)
 		r.Post("/api/soar/config", h.HandleSoarConfig)
 		r.Get("/api/wazuh/vulns/{agentID}", h.HandleWazuhVulns)
+		r.Get("/api/wazuh/cve/summary", h.HandleWazuhCVESummary)
 		r.Get("/api/wazuh/agents/refresh", h.HandleWazuhAgentsRefresh)
+		r.Get("/api/wazuh/geo", h.HandleWazuhGeoData)
 
 		// SSH Manager
 		r.Get("/ssh", h.HandleSSHManager)
@@ -102,6 +112,12 @@ func New(h *handlers.Handler, store *sessions.CookieStore, db *sql.DB) http.Hand
 		r.Get("/api/mfa/setup", h.HandleSetupMFA)
 		r.Post("/api/mfa/verify", h.HandleVerifyMFA)
 		r.Post("/api/mfa/disable", h.HandleDisableMFA)
+
+		// Search
+		r.Get("/api/search", h.HandleSearch)
+
+		// Favorites
+		r.Post("/api/apps/pin", h.HandleTogglePin)
 	})
 
 	return r

@@ -95,6 +95,22 @@ func Migrate(db *sql.DB) {
 			host_key TEXT NOT NULL,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
+		`CREATE TABLE IF NOT EXISTS metrics_history (
+			id INT AUTO_INCREMENT PRIMARY KEY,
+			cpu INT NOT NULL,
+			ram INT NOT NULL,
+			storage INT NOT NULL,
+			recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			INDEX idx_recorded_at (recorded_at)
+		)`,
+		`CREATE TABLE IF NOT EXISTS favorites (
+			id INT AUTO_INCREMENT PRIMARY KEY,
+			user_id INT NOT NULL,
+			item_type VARCHAR(20) NOT NULL,
+			item_id VARCHAR(50) NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE KEY uk_fav (user_id, item_type, item_id)
+		)`,
 	}
 
 	for _, stmt := range coreTables {
@@ -114,6 +130,10 @@ func Migrate(db *sql.DB) {
 		"ALTER TABLE users ADD COLUMN mfa_secret TEXT",
 		"ALTER TABLE users ADD COLUMN github_url VARCHAR(500) NOT NULL DEFAULT ''",
 		"ALTER TABLE ssh_keys ADD COLUMN associated_vms TEXT",
+		"ALTER TABLE apps ADD COLUMN health_status VARCHAR(20) NOT NULL DEFAULT 'unknown'",
+		"ALTER TABLE apps ADD COLUMN health_response_ms INT NOT NULL DEFAULT 0",
+		"ALTER TABLE apps ADD COLUMN health_last_check DATETIME NULL",
+		"ALTER TABLE apps ADD COLUMN is_pinned BOOLEAN NOT NULL DEFAULT FALSE",
 	}
 	for _, m := range migrations {
 		if _, err := db.Exec(m); err != nil {

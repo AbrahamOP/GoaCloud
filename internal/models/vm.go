@@ -140,3 +140,23 @@ type PveQemuInterfacesResponse struct {
 		Result []PveNetworkInterface `json:"result"`
 	} `json:"data"`
 }
+
+// Snapshot represents a Proxmox VM/CT snapshot.
+type Snapshot struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	SnapTime    int64  `json:"snaptime"`
+	Parent      string `json:"parent"`
+	Running     bool   `json:"running,omitempty"`
+}
+
+// PveSnapshotList is the response from Proxmox snapshot list endpoint.
+type PveSnapshotList struct {
+	Data []struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		SnapTime    int64  `json:"snaptime"`
+		Parent      string `json:"parent"`
+		Running     int    `json:"running"`
+	} `json:"data"`
+}

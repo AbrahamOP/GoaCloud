@@ -211,6 +211,53 @@
                 </div>
             </div>
 
+            <!-- CVE Dashboard -->
+            <div class="mb-8">
+                <h3 class="text-xl font-semibold text-white mb-4">Tableau de bord CVE</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div class="glass rounded-xl p-4 text-center border-l-4 border-red-500">
+                        <p class="text-3xl font-bold text-red-400" id="cve-critical">-</p>
+                        <p class="text-xs text-gray-500 uppercase mt-1">Critical</p>
+                    </div>
+                    <div class="glass rounded-xl p-4 text-center border-l-4 border-orange-500">
+                        <p class="text-3xl font-bold text-orange-400" id="cve-high">-</p>
+                        <p class="text-xs text-gray-500 uppercase mt-1">High</p>
+                    </div>
+                    <div class="glass rounded-xl p-4 text-center border-l-4 border-yellow-500">
+                        <p class="text-3xl font-bold text-yellow-400" id="cve-medium">-</p>
+                        <p class="text-xs text-gray-500 uppercase mt-1">Medium</p>
+                    </div>
+                    <div class="glass rounded-xl p-4 text-center border-l-4 border-blue-500">
+                        <p class="text-3xl font-bold text-blue-400" id="cve-low">-</p>
+                        <p class="text-xs text-gray-500 uppercase mt-1">Low</p>
+                    </div>
+                </div>
+                <div class="glass rounded-xl p-4">
+                    <h4 class="text-sm font-semibold text-gray-400 uppercase mb-3">Top 5 Agents Vuln&eacute;rables</h4>
+                    <div id="top-agents" class="space-y-2">
+                        <p class="text-gray-600 text-sm">Chargement...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Threat Map -->
+            <div class="mb-8">
+                <h3 class="text-xl font-semibold text-white mb-4">Menaces r&eacute;seau (24h)</h3>
+                <div class="glass rounded-xl overflow-hidden border border-[#2a2839]">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-[#1b1928] text-gray-400 text-xs uppercase border-b border-[#2a2839]">
+                                <th class="p-3 font-semibold">Adresse IP</th>
+                                <th class="p-3 font-semibold">Tentatives</th>
+                                <th class="p-3 font-semibold">S&eacute;v&eacute;rit&eacute;</th>
+                            </tr>
+                        </thead>
+                        <tbody id="threat-list" class="text-sm divide-y divide-[#2a2839]">
+                            <tr><td colspan="3" class="p-4 text-gray-600 text-center">Chargement...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
             <div class="glass rounded-2xl overflow-hidden border border-[#2a2839]">
                 <table class="w-full text-left border-collapse">
@@ -463,7 +510,50 @@
 
 
     <script src="/static/theme.js"></script>
+    <script src="/static/search.js"></script>
     <script>
+        // --- CVE Dashboard ---
+        fetch('/api/wazuh/cve/summary').then(r => r.json()).then(data => {
+            document.getElementById('cve-critical').textContent = data.critical || 0;
+            document.getElementById('cve-high').textContent = data.high || 0;
+            document.getElementById('cve-medium').textContent = data.medium || 0;
+            document.getElementById('cve-low').textContent = data.low || 0;
+            const container = document.getElementById('top-agents');
+            if (data.top_agents && data.top_agents.length) {
+                container.innerHTML = data.top_agents.map(a =>
+                    `<div class="flex items-center justify-between py-1.5 border-b border-[#2a2839] last:border-0">
+                        <span class="text-sm text-white">${a.name}</span>
+                        <div class="flex gap-2 text-xs">
+                            ${a.critical ? '<span class="text-red-400 font-bold">'+a.critical+' C</span>' : ''}
+                            ${a.high ? '<span class="text-orange-400 font-bold">'+a.high+' H</span>' : ''}
+                            <span class="text-gray-500">${a.total} total</span>
+                        </div>
+                    </div>`
+                ).join('');
+            } else {
+                container.innerHTML = '<p class="text-gray-600 text-sm">Aucune vuln\u00e9rabilit\u00e9 d\u00e9tect\u00e9e</p>';
+            }
+        }).catch(() => {});
+
+        // --- Threat Map ---
+        fetch('/api/wazuh/geo').then(r => r.json()).then(data => {
+            const tbody = document.getElementById('threat-list');
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="p-4 text-gray-600 text-center">Aucune menace d\u00e9tect\u00e9e</td></tr>';
+                return;
+            }
+            data.sort((a, b) => b.count - a.count);
+            tbody.innerHTML = data.slice(0, 20).map(d => {
+                const severity = d.count > 50 ? 'Critical' : d.count > 20 ? 'High' : d.count > 5 ? 'Medium' : 'Low';
+                const colors = { Critical: 'text-red-400 bg-red-400/10', High: 'text-orange-400 bg-orange-400/10', Medium: 'text-yellow-400 bg-yellow-400/10', Low: 'text-blue-400 bg-blue-400/10' };
+                return `<tr class="hover:bg-white/5">
+                    <td class="p-3 font-mono text-gray-300">${d.ip}</td>
+                    <td class="p-3 text-white font-bold">${d.count}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded-full text-xs font-medium ${colors[severity]}">${severity}</span></td>
+                </tr>`;
+            }).join('');
+        }).catch(() => {});
+
         // --- Refresh Logic ---
         async function refreshPage() {
             const icon = document.getElementById('refresh-icon');
