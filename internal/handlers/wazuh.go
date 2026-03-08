@@ -3,9 +3,9 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"goacloud/internal/models"
 )
 
@@ -47,12 +47,7 @@ func (h *Handler) HandleWazuh(w http.ResponseWriter, r *http.Request) {
 
 // HandleWazuhVulns returns vulnerability details for a specific agent as JSON.
 func (h *Handler) HandleWazuhVulns(w http.ResponseWriter, r *http.Request) {
-	parts := strings.Split(r.URL.Path, "/")
-	if len(parts) < 5 {
-		http.Error(w, "Invalid URL", http.StatusBadRequest)
-		return
-	}
-	agentID := parts[4]
+	agentID := chi.URLParam(r, "agentID")
 
 	if val, ok := h.VulnCache.Load(agentID); ok {
 		cached := val.(models.CachedVulns)

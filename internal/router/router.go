@@ -40,7 +40,7 @@ func New(h *handlers.Handler, store *sessions.CookieStore, db *sql.DB) http.Hand
 		// Proxmox
 		r.Get("/proxmox", h.HandleProxmox)
 		r.Get("/api/proxmox/stats", h.HandleProxmoxAPI)
-		r.Get("/api/proxmox/guest/", h.HandleProxmoxGuestDetail)
+		r.Get("/api/proxmox/guest", h.HandleProxmoxGuestDetail)
 		r.Get("/api/proxmox/ips", h.HandleProxmoxIPs)
 
 		// Wazuh & SOAR
@@ -50,7 +50,7 @@ func New(h *handlers.Handler, store *sessions.CookieStore, db *sql.DB) http.Hand
 		r.Post("/api/soar/ai/test", h.HandleAITest)
 		r.Get("/api/soar/config", h.HandleSoarConfig)
 		r.Post("/api/soar/config", h.HandleSoarConfig)
-		r.Get("/api/wazuh/vulns/", h.HandleWazuhVulns)
+		r.Get("/api/wazuh/vulns/{agentID}", h.HandleWazuhVulns)
 		r.Get("/api/wazuh/agents/refresh", h.HandleWazuhAgentsRefresh)
 
 		// SSH Manager
