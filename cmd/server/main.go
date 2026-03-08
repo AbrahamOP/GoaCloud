@@ -18,6 +18,7 @@ import (
 	"goacloud/internal/router"
 	"goacloud/internal/server"
 	"goacloud/internal/services"
+	"goacloud/internal/sse"
 	"goacloud/internal/workers"
 )
 
@@ -143,6 +144,9 @@ func main() {
 		AlertPackages: true,
 	}
 
+	// SSE broker
+	sseBroker := sse.NewBroker()
+
 	// Rate limiter
 	rateLimiter := middleware.NewRateLimiter()
 
@@ -163,10 +167,11 @@ func main() {
 		RateLimiter:  rateLimiter,
 		SSHService:   sshService,
 		Proxmox:      proxmoxService,
+		SSEBroker:    sseBroker,
 	}
 
 	// Background workers
-	go workers.StartCacheWorker(db, cfg, proxmoxService, proxmoxCache)
+	go workers.StartCacheWorker(db, cfg, proxmoxService, proxmoxCache, sseBroker)
 	go workers.StartWazuhWorker(wazuhClient, wazuhIndexer, wazuhCache, vulnCache)
 	go workers.StartSoarWorker(db, wazuhClient, wazuhIndexer, aiClient, discordBot, soarConfigState)
 	go workers.StartProxmoxAuthMonitor(cfg, proxmoxService, discordBot)

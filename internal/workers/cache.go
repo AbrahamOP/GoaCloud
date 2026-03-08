@@ -2,28 +2,30 @@ package workers
 
 import (
 	"database/sql"
+	"encoding/json"
 	"log/slog"
 	"time"
 
 	"goacloud/internal/config"
 	"goacloud/internal/models"
 	"goacloud/internal/services"
+	"goacloud/internal/sse"
 )
 
 // StartCacheWorker starts the background worker that updates the VM IP cache and Proxmox stats cache.
-func StartCacheWorker(db *sql.DB, cfg *config.Config, proxmox *services.ProxmoxService, cache *models.ProxmoxCache) {
+func StartCacheWorker(db *sql.DB, cfg *config.Config, proxmox *services.ProxmoxService, cache *models.ProxmoxCache, broker *sse.Broker) {
 	slog.Info("Starting VM Cache Worker...")
-	updateVMCache(db, cfg, proxmox, cache)
+	updateVMCache(db, cfg, proxmox, cache, broker)
 
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
 	for range ticker.C {
-		updateVMCache(db, cfg, proxmox, cache)
+		updateVMCache(db, cfg, proxmox, cache, broker)
 	}
 }
 
-func updateVMCache(db *sql.DB, cfg *config.Config, proxmox *services.ProxmoxService, cache *models.ProxmoxCache) {
+func updateVMCache(db *sql.DB, cfg *config.Config, proxmox *services.ProxmoxService, cache *models.ProxmoxCache, broker *sse.Broker) {
 	if cfg.ProxmoxURL == "" || cfg.ProxmoxTokenID == "" {
 		slog.Info("Worker: Missing Proxmox configuration")
 		return
@@ -52,5 +54,12 @@ func updateVMCache(db *sql.DB, cfg *config.Config, proxmox *services.ProxmoxServ
 			slog.Error("Worker DB Error", "vmid", vm.ID, "error", err)
 		}
 	}
+	// Broadcast to SSE clients
+	if broker != nil {
+		if data, err := json.Marshal(stats); err == nil {
+			broker.Publish(data)
+		}
+	}
+
 	slog.Info("Worker: VM cache updated", "count", len(stats.VMs))
 }

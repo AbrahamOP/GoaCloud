@@ -1,0 +1,167 @@
+/* ========================================
+   GoaCloud — Light Theme Overrides
+   Default is dark. [data-theme="light"] activates light mode.
+   ======================================== */
+
+/* Transition for smooth theme switch */
+body, aside, main, .glass, .glass-panel,
+[class*="bg-[#"], [class*="border-[#"] {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* ---- Body ---- */
+[data-theme="light"] body {
+    background-color: #f4f5f9 !important;
+    color: #374151 !important;
+}
+
+/* ---- Sidebar ---- */
+[data-theme="light"] aside {
+    background-color: #ffffff !important;
+    border-color: #e5e7eb !important;
+}
+[data-theme="light"] aside h1 {
+    color: #111827 !important;
+}
+[data-theme="light"] aside .sidebar-link {
+    color: #6b7280 !important;
+}
+[data-theme="light"] aside .sidebar-link:hover {
+    color: #111827 !important;
+    background: rgba(0,0,0,0.04) !important;
+}
+[data-theme="light"] aside .sidebar-link.active {
+    background: linear-gradient(90deg, rgba(139,92,246,0.1) 0%, transparent 100%) !important;
+    border-left-color: #8b5cf6 !important;
+    color: #111827 !important;
+}
+[data-theme="light"] aside .border-t {
+    border-color: #e5e7eb !important;
+}
+
+/* ---- Glass cards ---- */
+[data-theme="light"] .glass {
+    background: rgba(255,255,255,0.85) !important;
+    backdrop-filter: blur(10px) !important;
+    border-color: #e5e7eb !important;
+}
+
+/* ---- Common background overrides ---- */
+[data-theme="light"] [class*="bg-[#0f0e17]"],
+[data-theme="light"] [class*="bg-[#151421]"],
+[data-theme="light"] [class*="bg-[#1b1928]"] {
+    background-color: #ffffff !important;
+}
+[data-theme="light"] .glass-panel {
+    background-color: #ffffff !important;
+    border-color: #e5e7eb !important;
+}
+
+/* ---- Borders ---- */
+[data-theme="light"] [class*="border-[#2a2839]"] {
+    border-color: #e5e7eb !important;
+}
+[data-theme="light"] [class*="border-[#2f2d40]"] {
+    border-color: #d1d5db !important;
+}
+
+/* ---- Text ---- */
+[data-theme="light"] .text-white {
+    color: #111827 !important;
+}
+[data-theme="light"] .text-gray-300 {
+    color: #4b5563 !important;
+}
+[data-theme="light"] .text-gray-400 {
+    color: #6b7280 !important;
+}
+[data-theme="light"] .text-gray-500 {
+    color: #9ca3af !important;
+}
+
+/* ---- Progress bar tracks ---- */
+[data-theme="light"] [class*="bg-[#2a2839]"] {
+    background-color: #e5e7eb !important;
+}
+
+/* ---- Inputs ---- */
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+    background-color: #f9fafb !important;
+    border-color: #d1d5db !important;
+    color: #111827 !important;
+}
+[data-theme="light"] input::placeholder {
+    color: #9ca3af !important;
+}
+
+/* ---- Tables ---- */
+[data-theme="light"] thead tr {
+    background-color: #f9fafb !important;
+}
+[data-theme="light"] tbody tr:hover {
+    background-color: rgba(0,0,0,0.02) !important;
+}
+
+/* ---- Modal backdrop ---- */
+[data-theme="light"] .bg-black\/60,
+[data-theme="light"] .bg-black\/80,
+[data-theme="light"] .bg-black\/50 {
+    background-color: rgba(0,0,0,0.3) !important;
+}
+
+/* ---- Mobile overlay ---- */
+[data-theme="light"] #mobile-overlay {
+    background-color: rgba(0,0,0,0.2) !important;
+}
+
+/* ---- Gradient text stays the same (looks good in both) ---- */
+
+/* ---- Scrollbar (Webkit) ---- */
+[data-theme="light"] ::-webkit-scrollbar {
+    width: 8px;
+}
+[data-theme="light"] ::-webkit-scrollbar-track {
+    background: #f4f5f9;
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 4px;
+}
+
+/* ---- White-on-white fixes: buttons with bg-white/10, bg-white/5 ---- */
+[data-theme="light"] [class*="bg-white/5"],
+[data-theme="light"] [class*="bg-white/10"],
+[data-theme="light"] [class*="bg-white/20"] {
+    background-color: rgba(0,0,0,0.05) !important;
+}
+[data-theme="light"] [class*="hover\:bg-white/5"]:hover,
+[data-theme="light"] [class*="hover\:bg-white/10"]:hover,
+[data-theme="light"] [class*="hover\:bg-white/20"]:hover {
+    background-color: rgba(0,0,0,0.08) !important;
+}
+
+/* ---- Keep colored badges readable ---- */
+[data-theme="light"] [class*="bg-green-400/10"] { background-color: rgba(74,222,128,0.15) !important; }
+[data-theme="light"] [class*="bg-red-400/10"] { background-color: rgba(248,113,113,0.15) !important; }
+[data-theme="light"] [class*="bg-blue-500/10"] { background-color: rgba(59,130,246,0.15) !important; }
+[data-theme="light"] [class*="bg-yellow-500/10"] { background-color: rgba(234,179,8,0.15) !important; }
+[data-theme="light"] [class*="bg-green-500/10"] { background-color: rgba(34,197,94,0.15) !important; }
+[data-theme="light"] [class*="bg-red-500/10"] { background-color: rgba(239,68,68,0.15) !important; }
+
+/* ---- Dashboard gradient card: keep as-is ---- */
+
+/* ---- Code / mono blocks ---- */
+[data-theme="light"] .font-mono {
+    color: #4b5563 !important;
+}
+
+/* ---- Theme toggle button ---- */
+#theme-toggle {
+    cursor: pointer;
+}
+#theme-toggle .icon-sun { display: none; }
+#theme-toggle .icon-moon { display: block; }
+[data-theme="light"] #theme-toggle .icon-sun { display: block; }
+[data-theme="light"] #theme-toggle .icon-moon { display: none; }

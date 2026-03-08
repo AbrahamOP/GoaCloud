@@ -10,6 +10,7 @@ import (
 	"goacloud/internal/middleware"
 	"goacloud/internal/models"
 	"goacloud/internal/services"
+	"goacloud/internal/sse"
 )
 
 // Handler holds all handler dependencies (replaces global variables).
@@ -29,4 +30,5 @@ type Handler struct {
 	RateLimiter  *middleware.RateLimiter
 	SSHService   *services.SSHService
 	Proxmox      *services.ProxmoxService
+	SSEBroker    *sse.Broker
 }
