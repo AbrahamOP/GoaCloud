@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"io/fs"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
@@ -21,9 +22,15 @@ func New(h *handlers.Handler, store *sessions.CookieStore, db *sql.DB) http.Hand
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(appMiddleware.SecurityHeaders)
 
-	// Static assets (CSS, fonts) — served from embedded FS or disk in dev
-	staticFS, _ := fs.Sub(assets.StaticFS, "static")
-	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
+	// Static assets: serve from disk in dev mode, embedded FS in prod
+	var staticHandler http.Handler
+	if _, err := os.Stat("assets/static"); err == nil {
+		staticHandler = http.FileServer(http.Dir("assets/static"))
+	} else {
+		sub, _ := fs.Sub(assets.StaticFS, "static")
+		staticHandler = http.FileServer(http.FS(sub))
+	}
+	r.Handle("/static/*", http.StripPrefix("/static/", staticHandler))
 
 	// Public routes (no auth required)
 	r.Get("/setup", h.HandleSetup)
