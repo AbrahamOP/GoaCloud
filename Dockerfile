@@ -15,7 +15,6 @@ COPY internal/ ./internal/
 COPY assets/ ./assets/
 # Cache busting
 ARG CACHEBUST=1
-COPY templates/ ./templates/
 COPY playbooks/ ./playbooks/
 
 # Téléchargement des dépendances
@@ -34,7 +33,6 @@ RUN apk --no-cache add ca-certificates tzdata ansible openssh
 
 # Copie du binaire depuis le builder
 COPY --from=builder /app/goacloud .
-COPY templates/ ./templates/
 COPY playbooks/ ./playbooks/
 COPY ansible.cfg ./
 
