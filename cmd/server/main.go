@@ -57,9 +57,9 @@ func main() {
 		},
 	}
 	tmpl := template.New("").Funcs(funcMap)
-	if _, statErr := os.Stat("templates"); statErr == nil {
+	if _, statErr := os.Stat("assets/templates"); statErr == nil {
 		slog.Info("Loading templates from disk (Development Mode)")
-		tmpl, err = tmpl.ParseGlob("templates/*.html")
+		tmpl, err = tmpl.ParseGlob("assets/templates/*.html")
 	} else {
 		slog.Info("Loading embedded templates (Production Mode)")
 		tmpl, err = tmpl.ParseFS(assets.TemplatesFS, "templates/*.html")
