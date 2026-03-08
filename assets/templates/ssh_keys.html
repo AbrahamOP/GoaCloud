@@ -37,7 +37,7 @@
     </style>
 </head>
 
-<body class="bg-[#0f0e17] h-screen flex overflow-hidden selection:bg-fuchsia-500 selection:text-white">
+<body class="bg-[#0f0e17] min-h-screen flex selection:bg-fuchsia-500 selection:text-white">
 
     <!-- Sidebar -->
     <aside id="sidebar"
@@ -159,7 +159,7 @@
     </aside>
 
     <!-- Main Content -->
-    <div class="flex-1 md:ml-64 flex flex-col relative overflow-hidden">
+    <main class="flex-1 md:ml-64 overflow-y-auto bg-[#0f0e17] relative">
         <!-- Top Right Actions (Profile) -->
         <div class="absolute top-6 right-6 z-50 flex items-center gap-4">
             <!-- Desktop Profile Link -->
@@ -175,16 +175,15 @@
         </div>
 
         <!-- Header -->
-        <header
-            class="h-20 border-b border-[#2a2839] flex items-center justify-between px-8 bg-[#0f0e17]/80 backdrop-blur-md z-10">
+        <div class="h-20 border-b border-[#2a2839] flex items-center justify-between px-8 bg-[#0f0e17]/80 backdrop-blur-md z-10">
             <h1
                 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-fuchsia-400 to-violet-400">
                 Gestion Clés SSH
             </h1>
-        </header>
+        </div>
 
-        <!-- Content Scrollable -->
-        <main class="flex-1 overflow-y-auto p-8 relative">
+        <!-- Content -->
+        <div class="max-w-7xl mx-auto px-8 py-10 relative z-10">
 
             <!-- Actions Section -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -325,8 +324,8 @@
                 </div>
             </div>
 
-        </main>
-    </div>
+        </div>
+    </main>
 
     <!-- View Key Modal -->
     <div id="view-modal"
