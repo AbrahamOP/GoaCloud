@@ -52,7 +52,7 @@
 
     <!-- Sidebar -->
     <aside id="sidebar"
-        class="fixed md:relative inset-y-0 left-0 z-50 w-64 bg-[#151421] border-r border-[#2a2839] flex flex-col justify-between transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
+        class="fixed inset-y-0 left-0 z-50 w-64 overflow-y-auto bg-[#151421] border-r border-[#2a2839] flex flex-col justify-between transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
         <div>
             <div class="p-8">
                 <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
@@ -169,7 +169,7 @@
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 overflow-y-auto bg-[#0f0e17] relative">
+    <main class="flex-1 md:ml-64 overflow-y-auto bg-[#0f0e17] relative">
         <!-- Top Right Actions (Profile & Mobile Menu) -->
         <div class="absolute top-6 right-6 z-50 flex items-center gap-4">
             <!-- Desktop Profile Link -->
@@ -248,84 +248,104 @@
             </div>
 
             <!-- Live Widgets -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
                 <!-- Proxmox Status Widget -->
-                <div class="glass rounded-2xl p-5 border border-[#2a2839]">
-                    <div class="flex items-center gap-2 mb-3">
-                        <svg class="w-5 h-5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                        <h4 class="text-sm font-semibold text-white">Proxmox</h4>
-                    </div>
-                    <div class="space-y-2">
-                        <div class="flex justify-between text-xs">
-                            <span class="text-gray-500">CPU</span>
-                            <span class="text-white font-bold" id="w-cpu">-</span>
+                <a href="/proxmox" class="group block bg-[#1b1928] rounded-2xl p-5 border border-[#2a2839] hover:border-orange-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                         </div>
-                        <div class="w-full bg-[#2a2839] h-1 rounded-full overflow-hidden">
-                            <div id="w-cpu-bar" class="bg-gradient-to-r from-fuchsia-500 to-purple-600 h-full rounded-full transition-all" style="width:0%"></div>
-                        </div>
-                        <div class="flex justify-between text-xs">
-                            <span class="text-gray-500">RAM</span>
-                            <span class="text-white font-bold" id="w-ram">-</span>
-                        </div>
-                        <div class="w-full bg-[#2a2839] h-1 rounded-full overflow-hidden">
-                            <div id="w-ram-bar" class="bg-gradient-to-r from-cyan-500 to-blue-600 h-full rounded-full transition-all" style="width:0%"></div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                            <span class="text-[10px] text-gray-500 font-medium" id="w-vm-count">-</span>
                         </div>
                     </div>
-                    <div class="mt-3 flex items-center gap-1.5 text-xs">
-                        <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>
-                        <span class="text-gray-500" id="w-vm-count">- VMs</span>
+                    <h4 class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Proxmox</h4>
+                    <div class="space-y-3">
+                        <div>
+                            <div class="flex justify-between text-xs mb-1.5">
+                                <span class="text-gray-500">CPU</span>
+                                <span class="text-white font-semibold" id="w-cpu">-</span>
+                            </div>
+                            <div class="w-full bg-[#2a2839] h-1.5 rounded-full overflow-hidden">
+                                <div id="w-cpu-bar" class="bg-gradient-to-r from-orange-500 to-amber-500 h-full rounded-full transition-all duration-700" style="width:0%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1.5">
+                                <span class="text-gray-500">RAM</span>
+                                <span class="text-white font-semibold" id="w-ram">-</span>
+                            </div>
+                            <div class="w-full bg-[#2a2839] h-1.5 rounded-full overflow-hidden">
+                                <div id="w-ram-bar" class="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full transition-all duration-700" style="width:0%"></div>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </a>
 
                 <!-- Security Widget -->
-                <div class="glass rounded-2xl p-5 border border-[#2a2839]">
-                    <div class="flex items-center gap-2 mb-3">
-                        <svg class="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                        <h4 class="text-sm font-semibold text-white">Securite</h4>
+                <a href="/wazuh" class="group block bg-[#1b1928] rounded-2xl p-5 border border-[#2a2839] hover:border-red-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-red-500/5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        </div>
                     </div>
+                    <h4 class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Securite</h4>
                     <div class="grid grid-cols-2 gap-2">
-                        <div class="bg-red-500/10 rounded-lg p-2 text-center">
-                            <p class="text-lg font-bold text-red-400" id="w-crit">-</p>
-                            <p class="text-[10px] text-gray-500">Critical</p>
+                        <div class="rounded-xl bg-red-500/5 border border-red-500/10 p-2.5 text-center">
+                            <p class="text-xl font-bold text-red-400" id="w-crit">-</p>
+                            <p class="text-[10px] text-gray-500 mt-0.5">Critical</p>
                         </div>
-                        <div class="bg-orange-500/10 rounded-lg p-2 text-center">
-                            <p class="text-lg font-bold text-orange-400" id="w-high">-</p>
-                            <p class="text-[10px] text-gray-500">High</p>
+                        <div class="rounded-xl bg-orange-500/5 border border-orange-500/10 p-2.5 text-center">
+                            <p class="text-xl font-bold text-orange-400" id="w-high">-</p>
+                            <p class="text-[10px] text-gray-500 mt-0.5">High</p>
                         </div>
                     </div>
-                    <p class="text-xs text-gray-500 mt-2" id="w-total-vulns">- vulnerabilites</p>
-                </div>
+                    <p class="text-[11px] text-gray-500 mt-3" id="w-total-vulns">- vulnerabilites</p>
+                </a>
 
                 <!-- Services Health Widget -->
-                <div class="glass rounded-2xl p-5 border border-[#2a2839]">
-                    <div class="flex items-center gap-2 mb-3">
-                        <svg class="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
-                        <h4 class="text-sm font-semibold text-white">Services</h4>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <div class="text-center">
-                            <p class="text-2xl font-bold text-green-400" id="w-up">-</p>
-                            <p class="text-[10px] text-gray-500">En ligne</p>
-                        </div>
-                        <div class="text-center">
-                            <p class="text-2xl font-bold text-red-400" id="w-down">-</p>
-                            <p class="text-[10px] text-gray-500">Hors ligne</p>
+                <div class="bg-[#1b1928] rounded-2xl p-5 border border-[#2a2839]">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"/></svg>
                         </div>
                     </div>
-                    <p class="text-xs text-gray-500 mt-2" id="w-avg-resp">- ms moy.</p>
+                    <h4 class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Services</h4>
+                    <div class="flex items-end gap-4">
+                        <div>
+                            <p class="text-3xl font-bold text-green-400 leading-none" id="w-up">-</p>
+                            <p class="text-[10px] text-gray-500 mt-1">en ligne</p>
+                        </div>
+                        <div class="pb-0.5">
+                            <p class="text-lg font-bold text-red-400/70 leading-none" id="w-down">-</p>
+                            <p class="text-[10px] text-gray-500 mt-1">hors ligne</p>
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-gray-500 mt-3" id="w-avg-resp">- ms moy.</p>
                 </div>
 
                 <!-- Quick Links Widget -->
-                <div class="glass rounded-2xl p-5 border border-[#2a2839]">
-                    <div class="flex items-center gap-2 mb-3">
-                        <svg class="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                        <h4 class="text-sm font-semibold text-white">Raccourcis</h4>
+                <div class="bg-[#1b1928] rounded-2xl p-5 border border-[#2a2839]">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        </div>
                     </div>
-                    <div class="space-y-1.5">
-                        <a href="/proxmox" class="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition py-1"><span class="w-1.5 h-1.5 rounded-full bg-orange-500"></span>Proxmox</a>
-                        <a href="/wazuh" class="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition py-1"><span class="w-1.5 h-1.5 rounded-full bg-red-400"></span>Wazuh</a>
-                        <a href="/console" class="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition py-1"><span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>Console</a>
-                        <a href="/ansible" class="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition py-1"><span class="w-1.5 h-1.5 rounded-full bg-orange-400"></span>Ansible</a>
+                    <h4 class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Raccourcis</h4>
+                    <div class="space-y-1">
+                        <a href="/proxmox" class="flex items-center gap-2.5 text-sm text-gray-400 hover:text-white transition-colors py-1.5 px-2 rounded-lg hover:bg-white/5 -mx-2">
+                            <span class="w-2 h-2 rounded-full bg-orange-500"></span>Proxmox
+                        </a>
+                        <a href="/wazuh" class="flex items-center gap-2.5 text-sm text-gray-400 hover:text-white transition-colors py-1.5 px-2 rounded-lg hover:bg-white/5 -mx-2">
+                            <span class="w-2 h-2 rounded-full bg-red-400"></span>Wazuh
+                        </a>
+                        <a href="/console" class="flex items-center gap-2.5 text-sm text-gray-400 hover:text-white transition-colors py-1.5 px-2 rounded-lg hover:bg-white/5 -mx-2">
+                            <span class="w-2 h-2 rounded-full bg-green-400"></span>Console
+                        </a>
+                        <a href="/ansible" class="flex items-center gap-2.5 text-sm text-gray-400 hover:text-white transition-colors py-1.5 px-2 rounded-lg hover:bg-white/5 -mx-2">
+                            <span class="w-2 h-2 rounded-full bg-orange-400"></span>Ansible
+                        </a>
                     </div>
                 </div>
             </div>
