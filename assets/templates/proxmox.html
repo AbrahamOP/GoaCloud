@@ -192,10 +192,15 @@
             <!-- Header with Mobile Support -->
             <div class="flex items-center justify-between mb-8">
                 <div>
-                    <h2 class="text-3xl font-bold text-white mb-2">Proxmox <span class="gradient-text">Overview</span>
-                    </h2>
-                    <p class="text-gray-500 text-sm">Statistiques en temps réel de votre HomeLab.</p>
+                    <h2 class="text-3xl font-bold text-white mb-2">Proxmox <span class="gradient-text">Overview</span></h2>
+                    <p class="text-gray-500 text-sm">Statistiques de votre HomeLab — <span id="cache-age">chargement...</span></p>
                 </div>
+                <button id="refresh-btn" onclick="refreshStats()" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-sm text-gray-300 hover:text-white transition">
+                    <svg id="refresh-icon" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Rafraîchir
+                </button>
             </div>
 
             <!-- KPI Cards -->
@@ -423,36 +428,55 @@
     </div>
 
     <script>
-        function updateStats() {
-            fetch('/api/proxmox/stats')
-                .then(response => response.json())
-                .then(data => {
-                    // Update CPU
-                    document.getElementById('cpu-val').textContent = data.CPU + '%';
-                    document.getElementById('cpu-bar').style.width = data.CPU + '%';
+        let lastFetchedAt = null;
 
-                    // Update RAM
-                    document.getElementById('ram-val').textContent = data.RAM + '%';
-                    document.getElementById('ram-detail').textContent = data.RAMUsedStr + ' / ' + data.RAMTotalStr;
-                    document.getElementById('ram-bar').style.width = data.RAM + '%';
-
-                    // Update Storage
-                    document.getElementById('storage-val').textContent = data.Storage + '%';
-                    document.getElementById('storage-bar').style.width = data.Storage + '%';
-
-                    const storageBadge = document.getElementById('storage-badge');
-                    if (data.Storage >= 85) {
-                        storageBadge.innerHTML = '<div class="text-orange-500 text-xs px-2 py-1 rounded font-bold border border-orange-500">Attention</div>';
-                    } else {
-                        storageBadge.innerHTML = '';
-                    }
-
-                })
-                .catch(err => console.error('Error fetching stats:', err));
+        function applyStats(data) {
+            document.getElementById('cpu-val').textContent = data.CPU + '%';
+            document.getElementById('cpu-bar').style.width = data.CPU + '%';
+            document.getElementById('ram-val').textContent = data.RAM + '%';
+            document.getElementById('ram-detail').textContent = data.RAMUsedStr + ' / ' + data.RAMTotalStr;
+            document.getElementById('ram-bar').style.width = data.RAM + '%';
+            document.getElementById('storage-val').textContent = data.Storage + '%';
+            document.getElementById('storage-bar').style.width = data.Storage + '%';
+            const storageBadge = document.getElementById('storage-badge');
+            if (data.Storage >= 85) {
+                storageBadge.innerHTML = '<div class="text-orange-500 text-xs px-2 py-1 rounded font-bold border border-orange-500">Attention</div>';
+            } else {
+                storageBadge.innerHTML = '';
+            }
         }
 
-        updateStats(); // Initial call on page load
-        setInterval(updateStats, 30000); // Refresh every 30s (cache updates every 5min)
+        function updateCacheAge() {
+            if (!lastFetchedAt) return;
+            const secs = Math.round((Date.now() - lastFetchedAt) / 1000);
+            const el = document.getElementById('cache-age');
+            if (secs < 60) el.textContent = 'mis à jour à l\'instant';
+            else el.textContent = 'mis à jour il y a ' + Math.floor(secs / 60) + ' min';
+        }
+
+        function refreshStats() {
+            const icon = document.getElementById('refresh-icon');
+            const btn = document.getElementById('refresh-btn');
+            icon.style.transition = 'transform 0.6s ease';
+            icon.style.transform = 'rotate(360deg)';
+            btn.disabled = true;
+            fetch('/api/proxmox/stats')
+                .then(r => r.json())
+                .then(data => {
+                    applyStats(data);
+                    lastFetchedAt = Date.now();
+                    updateCacheAge();
+                })
+                .catch(err => console.error('Stats fetch error:', err))
+                .finally(() => {
+                    setTimeout(() => { icon.style.transform = ''; btn.disabled = false; }, 700);
+                });
+        }
+
+        // Init: use server-rendered values, no fetch needed
+        lastFetchedAt = Date.now();
+        updateCacheAge();
+        setInterval(updateCacheAge, 30000);
 
         function openGuestModal(type, id) {
             const modal = document.getElementById('guest-modal');
