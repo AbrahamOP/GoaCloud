@@ -1271,11 +1271,17 @@ func handleAddUser(w http.ResponseWriter, r *http.Request) {
         http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
         return
     }
+    if !requireAdmin(w, r) {
+        return
+    }
 
     username := r.FormValue("username")
     password := r.FormValue("password")
     email := r.FormValue("email")
     role := r.FormValue("role")
+    if role != "Admin" && role != "Viewer" {
+        role = "Viewer"
+    }
 
     if username == "" || password == "" {
         http.Error(w, "Username and password required", http.StatusBadRequest)
@@ -1313,6 +1319,9 @@ func handleAddUser(w http.ResponseWriter, r *http.Request) {
 func handleDeleteUser(w http.ResponseWriter, r *http.Request) {
     if r.Method != http.MethodPost {
         http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+    if !requireAdmin(w, r) {
         return
     }
 
@@ -1902,6 +1911,19 @@ func getProxmoxGuestDetail(rawURL, configuredNode, tokenID, secret, pveType, vmi
 }
 
 // AUTH MIDDLEWARE
+// requireAdmin vérifie que l'utilisateur connecté est Admin. Retourne false et envoie 403 si non.
+func requireAdmin(w http.ResponseWriter, r *http.Request) bool {
+    session, _ := store.Get(r, "goacloud-session")
+    username, _ := session.Values["username"].(string)
+    var role string
+    db.QueryRow("SELECT role FROM users WHERE username = ?", username).Scan(&role)
+    if role != "Admin" {
+        http.Error(w, "Accès refusé. Réservé aux administrateurs.", http.StatusForbidden)
+        return false
+    }
+    return true
+}
+
 func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
     return func(w http.ResponseWriter, r *http.Request) {
         // 1. GLOBAL CHECK: Check if system is initialized (users exist)
@@ -2303,6 +2325,9 @@ func handleSSHDeploy(w http.ResponseWriter, r *http.Request) {
         http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
         return
     }
+    if !requireAdmin(w, r) {
+        return
+    }
     
     var req struct {
         VMID      int    `json:"vmid"`
@@ -2365,6 +2390,9 @@ func handleConsolePage(w http.ResponseWriter, r *http.Request) {
 func handleSSHDelete(w http.ResponseWriter, r *http.Request) {
     if r.Method != http.MethodDelete {
         http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+    if !requireAdmin(w, r) {
         return
     }
 
@@ -2442,8 +2470,11 @@ func handleAnsible(w http.ResponseWriter, r *http.Request) {
 
 func handleAnsibleRun(w http.ResponseWriter, r *http.Request) {
     if r.Method != http.MethodPost {
-         http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-         return
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+    if !requireAdmin(w, r) {
+        return
     }
 
     // Parse JSON
@@ -2521,6 +2552,9 @@ func handleAnsibleRun(w http.ResponseWriter, r *http.Request) {
 func handleAnsibleUpload(w http.ResponseWriter, r *http.Request) {
     if r.Method != http.MethodPost {
         http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+    if !requireAdmin(w, r) {
         return
     }
 
@@ -2642,9 +2676,16 @@ func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
         http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
         return
     }
+    if !requireAdmin(w, r) {
+        return
+    }
 
     userID := r.FormValue("user_id")
     role := r.FormValue("role")
+    if role != "Admin" && role != "Viewer" {
+        http.Error(w, "Rôle invalide", http.StatusBadRequest)
+        return
+    }
 
     if userID == "" || role == "" {
         http.Error(w, "User ID and Role are required", http.StatusBadRequest)

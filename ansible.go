@@ -78,7 +78,7 @@ func RunPlaybook(playbookPath string, targetIP string, privateKey string) (io.Re
         playbookPath,
         "--private-key", tmpKeyName,
         "--user", "root",
-        "--ssh-common-args", "-o StrictHostKeyChecking=no",
+        "--ssh-common-args", "-o StrictHostKeyChecking=accept-new",
     )
 
     // Merge stderr into stdout pour tout streamer au client
