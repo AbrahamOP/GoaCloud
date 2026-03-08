@@ -2,11 +2,13 @@ package router
 
 import (
 	"database/sql"
+	"io/fs"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/gorilla/sessions"
+	"goacloud/assets"
 	"goacloud/internal/handlers"
 	appMiddleware "goacloud/internal/middleware"
 )
@@ -18,6 +20,10 @@ func New(h *handlers.Handler, store *sessions.CookieStore, db *sql.DB) http.Hand
 	// Global middleware
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(appMiddleware.SecurityHeaders)
+
+	// Static assets (CSS, fonts) — served from embedded FS or disk in dev
+	staticFS, _ := fs.Sub(assets.StaticFS, "static")
+	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
 
 	// Public routes (no auth required)
 	r.Get("/setup", h.HandleSetup)
