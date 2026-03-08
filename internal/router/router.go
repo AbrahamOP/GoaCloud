@@ -55,6 +55,7 @@ func New(h *handlers.Handler, store *sessions.CookieStore, db *sql.DB) http.Hand
 		r.Get("/api/proxmox/stats", h.HandleProxmoxAPI)
 		r.Get("/api/proxmox/guest", h.HandleProxmoxGuestDetail)
 		r.Get("/api/proxmox/ips", h.HandleProxmoxIPs)
+		r.Post("/api/proxmox/guest/power", h.HandleProxmoxPowerAction)
 
 		// Wazuh & SOAR
 		r.Get("/wazuh", h.HandleWazuh)

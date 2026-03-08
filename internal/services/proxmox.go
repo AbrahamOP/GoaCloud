@@ -345,6 +345,68 @@ type ProxmoxSyslogEntry struct {
 	T string `json:"t"`
 }
 
+// PowerAction sends a power action (start, stop, reboot, shutdown) to a VM/CT.
+func (p *ProxmoxService) PowerAction(rawURL, configuredNode, tokenID, secret, pveType, vmid, action string) error {
+	baseURL := strings.TrimRight(rawURL, "/")
+	if u, err := url.Parse(baseURL); err == nil {
+		baseURL = u.Scheme + "://" + u.Host
+	}
+
+	client := &http.Client{
+		Timeout:   10 * time.Second,
+		Transport: &http.Transport{TLSClientConfig: p.tlsConfig()},
+	}
+
+	addAuth := func(req *http.Request) {
+		req.Header.Add("Authorization", fmt.Sprintf("PVEAPIToken=%s=%s", tokenID, secret))
+	}
+
+	// Auto-discover node
+	targetNode := configuredNode
+	reqNodes, _ := http.NewRequest("GET", fmt.Sprintf("%s/api2/json/nodes", baseURL), nil)
+	addAuth(reqNodes)
+	if respNodes, err := client.Do(reqNodes); err == nil {
+		defer respNodes.Body.Close()
+		if respNodes.StatusCode == 200 {
+			var nodeList models.PveNodesList
+			if err := json.NewDecoder(respNodes.Body).Decode(&nodeList); err == nil {
+				found := false
+				firstOnline := ""
+				for _, n := range nodeList.Data {
+					if n.Status == "online" {
+						if firstOnline == "" {
+							firstOnline = n.Node
+						}
+						if n.Node == configuredNode {
+							found = true
+							break
+						}
+					}
+				}
+				if !found && firstOnline != "" {
+					targetNode = firstOnline
+				}
+			}
+		}
+	}
+
+	apiURL := fmt.Sprintf("%s/api2/json/nodes/%s/%s/%s/status/%s", baseURL, targetNode, pveType, vmid, action)
+	req, _ := http.NewRequest("POST", apiURL, nil)
+	addAuth(req)
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
 // getGuestIP fetches the IP address of a running VM/CT.
 func (p *ProxmoxService) getGuestIP(client *http.Client, baseURL, node, tokenID, secret, kind string, id int) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

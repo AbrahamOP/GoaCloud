@@ -103,6 +103,48 @@ func (h *Handler) HandleProxmoxGuestDetail(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(detail)
 }
 
+// HandleProxmoxPowerAction sends a power command (start/stop/reboot/shutdown) to a VM/CT.
+func (h *Handler) HandleProxmoxPowerAction(w http.ResponseWriter, r *http.Request) {
+	cfg := h.Config
+	guestType := r.URL.Query().Get("type")
+	guestID := r.URL.Query().Get("id")
+	action := r.URL.Query().Get("action")
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if guestType == "" || guestID == "" || action == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Missing type, id or action"})
+		return
+	}
+
+	validActions := map[string]bool{"start": true, "stop": true, "reboot": true, "shutdown": true}
+	if !validActions[action] {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid action"})
+		return
+	}
+
+	pveType := "qemu"
+	if guestType == "CT" {
+		pveType = "lxc"
+	}
+
+	if cfg.ProxmoxURL == "" || cfg.ProxmoxTokenID == "" {
+		json.NewEncoder(w).Encode(map[string]string{"ok": "mock: action simulated"})
+		return
+	}
+
+	if err := h.Proxmox.PowerAction(cfg.ProxmoxURL, cfg.ProxmoxNode, cfg.ProxmoxTokenID, cfg.ProxmoxTokenSecret, pveType, guestID, action); err != nil {
+		slog.Error("Proxmox power action failed", "action", action, "id", guestID, "error", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]string{"ok": "action queued"})
+}
+
 // HandleProxmoxIPs returns a VMID→IP map from the vm_cache table.
 func (h *Handler) HandleProxmoxIPs(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.DB.Query("SELECT vmid, ip_address FROM vm_cache")
