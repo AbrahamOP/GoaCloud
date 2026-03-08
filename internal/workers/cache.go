@@ -6,23 +6,24 @@ import (
 	"time"
 
 	"goacloud/internal/config"
+	"goacloud/internal/models"
 	"goacloud/internal/services"
 )
 
-// StartCacheWorker starts the background worker that updates the VM IP cache.
-func StartCacheWorker(db *sql.DB, cfg *config.Config, proxmox *services.ProxmoxService) {
+// StartCacheWorker starts the background worker that updates the VM IP cache and Proxmox stats cache.
+func StartCacheWorker(db *sql.DB, cfg *config.Config, proxmox *services.ProxmoxService, cache *models.ProxmoxCache) {
 	slog.Info("Starting VM Cache Worker...")
-	updateVMCache(db, cfg, proxmox)
+	updateVMCache(db, cfg, proxmox, cache)
 
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
 	for range ticker.C {
-		updateVMCache(db, cfg, proxmox)
+		updateVMCache(db, cfg, proxmox, cache)
 	}
 }
 
-func updateVMCache(db *sql.DB, cfg *config.Config, proxmox *services.ProxmoxService) {
+func updateVMCache(db *sql.DB, cfg *config.Config, proxmox *services.ProxmoxService, cache *models.ProxmoxCache) {
 	if cfg.ProxmoxURL == "" || cfg.ProxmoxTokenID == "" {
 		slog.Info("Worker: Missing Proxmox configuration")
 		return
@@ -35,6 +36,13 @@ func updateVMCache(db *sql.DB, cfg *config.Config, proxmox *services.ProxmoxServ
 		return
 	}
 
+	// Update in-memory Proxmox stats cache (used by /proxmox page)
+	cache.Mutex.Lock()
+	cache.Stats = stats
+	cache.UpdatedAt = time.Now()
+	cache.Mutex.Unlock()
+
+	// Persist IPs to DB
 	for _, vm := range stats.VMs {
 		if _, err := db.Exec(`
 			INSERT INTO vm_cache (vmid, name, ip_address, vm_type)

@@ -132,6 +132,7 @@ func main() {
 
 	// Shared state
 	wazuhCache := &models.WazuhCache{}
+	proxmoxCache := &models.ProxmoxCache{}
 	vulnCache := &sync.Map{}
 	soarConfigState := &models.SoarConfigState{}
 	soarConfigState.Config = models.SoarConfig{
@@ -156,6 +157,7 @@ func main() {
 		Discord:      discordBot,
 		Config:       cfg,
 		WazuhCache:   wazuhCache,
+		ProxmoxCache: proxmoxCache,
 		VulnCache:    vulnCache,
 		SoarConfig:   soarConfigState,
 		RateLimiter:  rateLimiter,
@@ -164,7 +166,7 @@ func main() {
 	}
 
 	// Background workers
-	go workers.StartCacheWorker(db, cfg, proxmoxService)
+	go workers.StartCacheWorker(db, cfg, proxmoxService, proxmoxCache)
 	go workers.StartWazuhWorker(wazuhClient, wazuhIndexer, wazuhCache, vulnCache)
 	go workers.StartSoarWorker(db, wazuhClient, wazuhIndexer, aiClient, discordBot, soarConfigState)
 	go workers.StartProxmoxAuthMonitor(cfg, proxmoxService, discordBot)

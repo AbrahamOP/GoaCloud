@@ -9,18 +9,27 @@ import (
 	"goacloud/internal/models"
 )
 
-// HandleProxmox renders the Proxmox VM/CT overview page.
+// HandleProxmox renders the Proxmox VM/CT overview page (served from in-memory cache).
 func (h *Handler) HandleProxmox(w http.ResponseWriter, r *http.Request) {
-	cfg := h.Config
 	var stats models.ProxmoxStats
 
-	if cfg.ProxmoxURL != "" && cfg.ProxmoxTokenID != "" {
-		realStats, err := h.Proxmox.GetStats(cfg.ProxmoxURL, cfg.ProxmoxNode, cfg.ProxmoxTokenID, cfg.ProxmoxTokenSecret, true, false)
-		if err != nil {
-			slog.Error("Proxmox API Error", "error", err)
-			stats.VMs = []models.VM{{Name: fmt.Sprintf("Erreur: %v", err), Status: "error"}}
-		} else {
-			stats = realStats
+	if h.Config.ProxmoxURL != "" && h.Config.ProxmoxTokenID != "" {
+		h.ProxmoxCache.Mutex.RLock()
+		stats = h.ProxmoxCache.Stats
+		h.ProxmoxCache.Mutex.RUnlock()
+
+		// Cache vide au premier démarrage — fetch live et peuple le cache
+		if len(stats.VMs) == 0 {
+			realStats, err := h.Proxmox.GetStats(h.Config.ProxmoxURL, h.Config.ProxmoxNode, h.Config.ProxmoxTokenID, h.Config.ProxmoxTokenSecret, true, false)
+			if err != nil {
+				slog.Error("Proxmox API Error", "error", err)
+				stats.VMs = []models.VM{{Name: fmt.Sprintf("Erreur: %v", err), Status: "error"}}
+			} else {
+				stats = realStats
+				h.ProxmoxCache.Mutex.Lock()
+				h.ProxmoxCache.Stats = stats
+				h.ProxmoxCache.Mutex.Unlock()
+			}
 		}
 	} else {
 		stats = mockProxmoxStats()

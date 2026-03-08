@@ -1,5 +1,17 @@
 package models
 
+import (
+	"sync"
+	"time"
+)
+
+// ProxmoxCache holds the last fetched Proxmox stats in memory.
+type ProxmoxCache struct {
+	Stats     ProxmoxStats
+	UpdatedAt time.Time
+	Mutex     sync.RWMutex
+}
+
 // VM represents a virtual machine or container.
 type VM struct {
 	ID     int

@@ -23,6 +23,7 @@ type Handler struct {
 	Discord      *services.DiscordBot
 	Config       *config.Config
 	WazuhCache   *models.WazuhCache
+	ProxmoxCache *models.ProxmoxCache
 	VulnCache    *sync.Map
 	SoarConfig   *models.SoarConfigState
 	RateLimiter  *middleware.RateLimiter
