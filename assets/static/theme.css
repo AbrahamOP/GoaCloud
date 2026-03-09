@@ -55,7 +55,6 @@ body, aside, main, .glass, .glass-panel {
 /* ---- Glass cards ---- */
 [data-theme="light"] .glass {
     background: rgba(255,255,255,0.85) !important;
-    backdrop-filter: blur(10px) !important;
     border-color: #e5e7eb !important;
 }
 
