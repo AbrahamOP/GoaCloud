@@ -278,25 +278,34 @@
         let socket;
 
         window.onload = function () {
-            term = new Terminal({
-                cursorBlink: true,
-                theme: {
-                    background: '#0a0a0f',
-                    foreground: '#f8f8f2',
-                    cursor: '#f8f8f2',
-                    selection: '#44475a88'
-                },
-                fontSize: 14,
-                fontFamily: 'Menlo, Monaco, "Courier New", monospace'
-            });
+            function initTerminal() {
+                term = new Terminal({
+                    cursorBlink: true,
+                    theme: {
+                        background: '#0a0a0f',
+                        foreground: '#f8f8f2',
+                        cursor: '#f8f8f2',
+                        selection: '#44475a88'
+                    },
+                    fontSize: 14,
+                    fontFamily: 'Menlo, Monaco, "Courier New", monospace'
+                });
 
-            fitAddon = new FitAddon.FitAddon();
-            term.loadAddon(fitAddon);
-            term.open(document.getElementById('terminal'));
-            fitAddon.fit();
+                fitAddon = new FitAddon.FitAddon();
+                term.loadAddon(fitAddon);
+                term.open(document.getElementById('terminal'));
+                fitAddon.fit();
 
-            term.write('\x1b[32mBienvenue dans GoaCloud SSH Console\x1b[0m\r\n');
-            term.write('Sélectionnez une VM et une Clé pour commencer.\r\n');
+                term.write('\x1b[32mBienvenue dans GoaCloud SSH Console\x1b[0m\r\n');
+                term.write('Sélectionnez une VM et une Clé pour commencer.\r\n');
+            }
+
+            // Wait for fonts to load before fitting terminal to avoid "W" artifacts
+            if (document.fonts && document.fonts.ready) {
+                document.fonts.ready.then(initTerminal);
+            } else {
+                initTerminal();
+            }
 
             window.addEventListener('resize', () => {
                 if (fitAddon) {
