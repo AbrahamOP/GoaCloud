@@ -1,7 +1,21 @@
 /* ========================================
-   GoaCloud — Light Theme Overrides
-   Default is dark. [data-theme="light"] activates light mode.
+   GoaCloud — Layout & Light Theme Overrides
    ======================================== */
+
+/* ---- Classes missing from Tailwind build ---- */
+@media (min-width: 768px) {
+    .md\:ml-64 {
+        margin-left: 16rem;
+    }
+    .md\:grid-cols-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+@media (min-width: 1024px) {
+    .lg\:grid-cols-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
 
 /* Transition for smooth theme switch */
 body, aside, main, .glass, .glass-panel,
