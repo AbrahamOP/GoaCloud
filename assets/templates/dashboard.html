@@ -310,6 +310,14 @@
                                 <div class="widget-value text-orange-400" id="w-high">-</div>
                                 <div class="widget-label">High</div>
                             </div>
+                            <div class="widget-stat-box" style="background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.2)">
+                                <div class="widget-value text-yellow-400" id="w-med">-</div>
+                                <div class="widget-label">Medium</div>
+                            </div>
+                            <div class="widget-stat-box" style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2)">
+                                <div class="widget-value text-blue-400" id="w-low">-</div>
+                                <div class="widget-label">Low</div>
+                            </div>
                         </div>
                     </div>
                 </a>
@@ -689,6 +697,8 @@
             fetch('/api/wazuh/cve/summary').then(r => r.json()).then(d => {
                 document.getElementById('w-crit').textContent = d.critical || 0;
                 document.getElementById('w-high').textContent = d.high || 0;
+                document.getElementById('w-med').textContent = d.medium || 0;
+                document.getElementById('w-low').textContent = d.low || 0;
                 document.getElementById('w-total-vulns').textContent = (d.total_vulns || 0) + ' vulns';
             }).catch(() => {});
 
