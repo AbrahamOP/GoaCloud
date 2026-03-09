@@ -177,12 +177,9 @@
                 </svg>
             </a>
         </div>
-        <!-- Decoration Gradients -->
-        <div class="absolute top-0 left-0 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl filter pointer-events-none">
-        </div>
-        <div
-            class="absolute bottom-0 right-0 w-96 h-96 bg-cyan-600/10 rounded-full blur-3xl filter pointer-events-none">
-        </div>
+        <!-- Decoration Gradients (no blur for terminal perf) -->
+        <div class="absolute top-0 left-0 w-96 h-96 bg-purple-600/5 rounded-full pointer-events-none"></div>
+        <div class="absolute bottom-0 right-0 w-96 h-96 bg-cyan-600/5 rounded-full pointer-events-none"></div>
 
         <div class="flex-1 flex flex-col p-8 relative z-10 max-w-7xl mx-auto w-full h-full">
             <!-- Header -->
@@ -244,7 +241,7 @@
 
             <!-- Terminal Container -->
             <div
-                class="flex-1 flex flex-col min-h-0 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden relative group">
+                class="flex-1 flex flex-col min-h-0 bg-[#0a0a0f] border border-white/10 rounded-2xl shadow-2xl overflow-hidden relative group">
                 <!-- Mac-style Window Header -->
                 <div class="h-10 bg-white/5 border-b border-white/5 flex items-center px-4 justify-between select-none">
                     <div class="flex space-x-2">
@@ -284,14 +281,13 @@
             term = new Terminal({
                 cursorBlink: true,
                 theme: {
-                    background: '#00000000', // Transparent
+                    background: '#0a0a0f',
                     foreground: '#f8f8f2',
                     cursor: '#f8f8f2',
                     selection: '#44475a88'
                 },
                 fontSize: 14,
-                fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-                allowTransparency: true
+                fontFamily: 'Menlo, Monaco, "Courier New", monospace'
             });
 
             fitAddon = new FitAddon.FitAddon();
