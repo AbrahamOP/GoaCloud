@@ -584,6 +584,9 @@
     <script src="/static/theme.js"></script>
     <script src="/static/search.js"></script>
     <script>
+        // Enable VM status notifications on this page
+        enableVMNotifications();
+
         // SSE: real-time Proxmox stats updates
         onSSE('proxmox_stats', function(data) {
             if (typeof applyStats === 'function') {

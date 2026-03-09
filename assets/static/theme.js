@@ -6,6 +6,12 @@
 (function() {
     const saved = localStorage.getItem('goacloud-theme') || 'dark';
     document.documentElement.setAttribute('data-theme', saved);
+    // Enable CSS transitions only after initial paint to avoid animations on page load
+    requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+            document.documentElement.classList.add('transitions-ready');
+        });
+    });
 })();
 
 function toggleTheme() {
@@ -65,27 +71,23 @@ function sendLocalNotif(title, body) {
     }
 }
 
-// Auto-request on first visit
-if ('Notification' in window && Notification.permission === 'default') {
-    // Defer permission request to avoid being annoying on first load
-    setTimeout(requestNotifPermission, 5000);
-}
-
-// Hook into SSE to trigger notifications for VM status changes
-(function() {
-    let knownVMStatus = {};
-
-    if (typeof onSSE === 'function') {
-        onSSE('proxmox_stats', function(data) {
-            if (!data.VMs) return;
-            data.VMs.forEach(function(vm) {
-                const prev = knownVMStatus[vm.ID];
-                if (prev && prev !== vm.Status) {
-                    const action = vm.Status === 'running' ? 'd\u00e9marr\u00e9e' : 'arr\u00eat\u00e9e';
-                    sendLocalNotif('GoaCloud - VM ' + action, vm.Name + ' (#' + vm.ID + ') est maintenant ' + action);
-                }
-                knownVMStatus[vm.ID] = vm.Status;
-            });
-        });
+// Hook into SSE to trigger notifications for VM status changes.
+// Called explicitly by pages that need SSE (dashboard, proxmox).
+function enableVMNotifications() {
+    if ('Notification' in window && Notification.permission === 'default') {
+        setTimeout(requestNotifPermission, 5000);
     }
-})();
+
+    let knownVMStatus = {};
+    onSSE('proxmox_stats', function(data) {
+        if (!data.VMs) return;
+        data.VMs.forEach(function(vm) {
+            const prev = knownVMStatus[vm.ID];
+            if (prev && prev !== vm.Status) {
+                const action = vm.Status === 'running' ? 'd\u00e9marr\u00e9e' : 'arr\u00eat\u00e9e';
+                sendLocalNotif('GoaCloud - VM ' + action, vm.Name + ' (#' + vm.ID + ') est maintenant ' + action);
+            }
+            knownVMStatus[vm.ID] = vm.Status;
+        });
+    });
+}
