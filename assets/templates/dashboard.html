@@ -247,11 +247,8 @@
                 .widget-bar-track { height: 7px; background: #2a2839; border-radius: 999px; overflow: hidden; }
                 .widget-bar-fill { height: 100%; border-radius: 999px; transition: width 0.7s ease; }
                 .widget-stat-box { border-radius: 12px; padding: 14px 8px; text-align: center; }
-                .widget-link { display: flex; align-items: center; gap: 12px; padding: 8px 12px; margin: 0 -4px; border-radius: 8px; color: #9ca3af; font-size: 14px; text-decoration: none; transition: all 0.15s; }
-                .widget-link:hover { background: rgba(255,255,255,0.05); color: #fff; }
-                .widget-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
             </style>
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+            <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
                 <!-- Proxmox Widget -->
                 <a href="/proxmox" class="widget-card block" style="text-decoration:none">
                     <div class="widget-accent bg-gradient-to-r from-orange-500 to-amber-400"></div>
@@ -349,36 +346,6 @@
                     </div>
                 </div>
 
-                <!-- Quick Links Widget -->
-                <div class="widget-card">
-                    <div class="widget-accent bg-gradient-to-r from-purple-500 to-fuchsia-500"></div>
-                    <div class="widget-body">
-                        <div class="flex items-center gap-3 mb-3">
-                            <div class="widget-icon" style="background:rgba(168,85,247,0.12)">
-                                <svg class="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                            </div>
-                            <div class="widget-title">Raccourcis</div>
-                        </div>
-                        <div>
-                            <a href="/proxmox" class="widget-link">
-                                <span class="widget-dot" style="background:#f97316"></span>
-                                Proxmox
-                            </a>
-                            <a href="/wazuh" class="widget-link">
-                                <span class="widget-dot" style="background:#f87171"></span>
-                                Wazuh
-                            </a>
-                            <a href="/console" class="widget-link">
-                                <span class="widget-dot" style="background:#4ade80"></span>
-                                Console
-                            </a>
-                            <a href="/ansible" class="widget-link">
-                                <span class="widget-dot" style="background:#fb923c"></span>
-                                Ansible
-                            </a>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- Apps Grid -->
