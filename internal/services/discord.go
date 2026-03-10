@@ -30,7 +30,7 @@ func NewDiscordBot(token, channelID, authChannelID, ansibleChannelID string) (*D
 		return nil, fmt.Errorf("error opening connection: %v", err)
 	}
 
-	slog.Info("Discord Bot is now running")
+	slog.Info("Discord Bot is now running", "channel", channelID, "auth_channel", authChannelID, "ansible_channel", ansibleChannelID)
 	return &DiscordBot{
 		session:          session,
 		channelID:        channelID,
