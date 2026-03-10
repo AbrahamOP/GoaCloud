@@ -330,9 +330,98 @@
 
             </div>
 
+            <!-- Scheduled Playbooks -->
+            <div class="glass-panel rounded-2xl shadow-xl overflow-hidden">
+                <div class="px-6 py-4 border-b border-[#2a2839] bg-[#161521]/50 flex justify-between items-center">
+                    <h3 class="font-semibold text-white flex items-center gap-2">
+                        <svg class="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Planifications
+                    </h3>
+                    <button onclick="openScheduleModal()"
+                        class="flex items-center gap-2 text-sm bg-purple-600 hover:bg-purple-500 text-white px-3 py-1.5 rounded-lg transition">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        Planifier
+                    </button>
+                </div>
+                <div id="schedules-container" class="p-4">
+                    <p class="text-center text-gray-600 text-sm py-6">Chargement...</p>
+                </div>
+            </div>
+
         </div>
 
     </main>
+
+    <!-- Schedule Modal -->
+    <div id="schedule-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center">
+        <div class="glass-panel w-full max-w-lg p-6 rounded-2xl shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-bold text-white">Planifier un Playbook</h3>
+                <button onclick="closeScheduleModal()" class="text-gray-400 hover:text-white">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Playbook</label>
+                    <select id="sched-playbook" class="w-full bg-[#1a1926] border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none">
+                        <option value="" disabled selected>Choisir un playbook...</option>
+                        {{range $category, $files := .Playbooks}}{{range $files}}
+                        <option value="{{.}}">{{.}}</option>
+                        {{end}}{{end}}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Cible (VM/Container)</label>
+                    <select id="sched-vm" class="w-full bg-[#1a1926] border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none">
+                        <option value="" disabled selected>Choisir une VM...</option>
+                        {{range .VMs}}
+                        <option value="{{.ID}}">{{.Name}} ({{.ID}})</option>
+                        {{end}}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Clé SSH</label>
+                    <select id="sched-key" class="w-full bg-[#1a1926] border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none">
+                        <option value="" disabled selected>Choisir une clé...</option>
+                        {{range .Keys}}
+                        <option value="{{.ID}}">{{.Name}}</option>
+                        {{end}}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Fréquence</label>
+                    <select id="sched-interval" class="w-full bg-[#1a1926] border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none">
+                        <option value="5">Toutes les 5 minutes</option>
+                        <option value="15">Toutes les 15 minutes</option>
+                        <option value="30">Toutes les 30 minutes</option>
+                        <option value="60" selected>Toutes les heures</option>
+                        <option value="360">Toutes les 6 heures</option>
+                        <option value="720">Toutes les 12 heures</option>
+                        <option value="1440">Tous les jours</option>
+                        <option value="10080">Toutes les semaines</option>
+                    </select>
+                </div>
+                <button onclick="createSchedule()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium py-2 rounded-lg transition-all shadow-lg">
+                    Créer la planification
+                </button>
+                <p id="sched-status" class="text-center text-xs mt-1 h-4"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Output Modal -->
+    <div id="sched-output-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center">
+        <div class="glass-panel w-full max-w-3xl p-6 rounded-2xl shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-white">Dernière sortie</h3>
+                <button onclick="document.getElementById('sched-output-modal').classList.add('hidden')" class="text-gray-400 hover:text-white">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div id="sched-output-content" class="bg-[#0a0a0e] rounded-xl border border-gray-800 p-4 font-mono text-xs overflow-y-auto max-h-96 whitespace-pre-wrap text-gray-300"></div>
+        </div>
+    </div>
 
     <!-- Upload Modal -->
     <div id="upload-modal"
@@ -597,6 +686,140 @@
                 btn.innerHTML = currentTab === 'upload' ? "Uploader" : "Sauvegarder";
             }
         }
+    </script>
+    <script>
+        // Schedule Management
+        function openScheduleModal() { document.getElementById('schedule-modal').classList.remove('hidden'); }
+        function closeScheduleModal() {
+            document.getElementById('schedule-modal').classList.add('hidden');
+            document.getElementById('sched-status').innerText = '';
+        }
+
+        function formatInterval(minutes) {
+            if (minutes < 60) return minutes + ' min';
+            if (minutes < 1440) return (minutes / 60) + 'h';
+            if (minutes < 10080) return (minutes / 1440) + 'j';
+            return (minutes / 10080) + ' sem';
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+        }
+
+        function statusBadge(status) {
+            const colors = {
+                'success': 'bg-green-500/10 text-green-400 border-green-500/20',
+                'error': 'bg-red-500/10 text-red-400 border-red-500/20',
+                'pending': 'bg-gray-500/10 text-gray-400 border-gray-500/20',
+                'running': 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+            };
+            const labels = { 'success': 'OK', 'error': 'Erreur', 'pending': 'En attente', 'running': 'En cours' };
+            const c = colors[status] || colors['pending'];
+            const l = labels[status] || status;
+            return '<span class="text-xs px-2 py-0.5 rounded-full border ' + c + '">' + l + '</span>';
+        }
+
+        function loadSchedules() {
+            fetch('/api/ansible/schedules').then(r => r.json()).then(data => {
+                const container = document.getElementById('schedules-container');
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<p class="text-center text-gray-600 text-sm py-6">Aucune planification configurée</p>';
+                    return;
+                }
+                container.innerHTML = '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-left text-xs text-gray-500 uppercase border-b border-[#2a2839]">' +
+                    '<th class="pb-3 px-2">Playbook</th><th class="pb-3 px-2">Cible</th><th class="pb-3 px-2">Fréquence</th>' +
+                    '<th class="pb-3 px-2">Statut</th><th class="pb-3 px-2">Dernière exec.</th><th class="pb-3 px-2">Prochaine exec.</th>' +
+                    '<th class="pb-3 px-2 text-right">Actions</th></tr></thead><tbody>' +
+                    data.map(s => {
+                        const enabledClass = s.enabled ? 'text-green-400' : 'text-gray-600';
+                        const toggleTitle = s.enabled ? 'Désactiver' : 'Activer';
+                        const toggleIcon = s.enabled
+                            ? '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
+                            : '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+                        const rowOpacity = s.enabled ? '' : ' opacity-50';
+                        return '<tr class="border-b border-[#2a2839]/50 hover:bg-white/5' + rowOpacity + '">' +
+                            '<td class="py-3 px-2 text-white font-medium">' + s.playbook + '</td>' +
+                            '<td class="py-3 px-2 text-gray-400">' + s.vm_name + ' (' + s.vmid + ')</td>' +
+                            '<td class="py-3 px-2 text-gray-400">' + formatInterval(s.interval_minutes) + '</td>' +
+                            '<td class="py-3 px-2">' + statusBadge(s.last_status) + '</td>' +
+                            '<td class="py-3 px-2 text-gray-500">' + formatDate(s.last_run) + '</td>' +
+                            '<td class="py-3 px-2 text-gray-500">' + (s.enabled ? formatDate(s.next_run) : '-') + '</td>' +
+                            '<td class="py-3 px-2 text-right"><div class="flex items-center justify-end gap-1">' +
+                            (s.last_output ? '<button onclick="showOutput(' + s.id + ')" class="p-1.5 rounded hover:bg-white/10 text-gray-400 hover:text-white transition" title="Voir la sortie"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></button>' : '') +
+                            '<button onclick="toggleSchedule(' + s.id + ')" class="p-1.5 rounded hover:bg-white/10 ' + enabledClass + ' transition" title="' + toggleTitle + '">' + toggleIcon + '</button>' +
+                            '<button onclick="deleteSchedule(' + s.id + ')" class="p-1.5 rounded hover:bg-white/10 text-red-400 hover:text-red-300 transition" title="Supprimer"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>' +
+                            '</div></td></tr>';
+                    }).join('') +
+                    '</tbody></table></div>';
+                // Store data for output viewing
+                window._scheduleData = data;
+            }).catch(() => {
+                document.getElementById('schedules-container').innerHTML = '<p class="text-center text-red-400 text-sm py-6">Erreur de chargement</p>';
+            });
+        }
+
+        function showOutput(id) {
+            const s = (window._scheduleData || []).find(x => x.id === id);
+            if (!s || !s.last_output) return;
+            document.getElementById('sched-output-content').textContent = s.last_output;
+            document.getElementById('sched-output-modal').classList.remove('hidden');
+        }
+
+        async function createSchedule() {
+            const status = document.getElementById('sched-status');
+            const playbook = document.getElementById('sched-playbook').value;
+            const vmid = document.getElementById('sched-vm').value;
+            const keyId = document.getElementById('sched-key').value;
+            const interval = document.getElementById('sched-interval').value;
+
+            if (!playbook || !vmid || !keyId) {
+                status.innerText = 'Veuillez remplir tous les champs.';
+                status.className = 'text-center text-xs mt-1 h-4 text-red-400';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/ansible/schedules', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({playbook, vmid: parseInt(vmid), key_id: parseInt(keyId), interval_minutes: parseInt(interval)})
+                });
+                if (res.ok) {
+                    closeScheduleModal();
+                    loadSchedules();
+                } else {
+                    const txt = await res.text();
+                    throw new Error(txt);
+                }
+            } catch (err) {
+                status.innerText = 'Erreur: ' + err.message;
+                status.className = 'text-center text-xs mt-1 h-4 text-red-400';
+            }
+        }
+
+        async function toggleSchedule(id) {
+            await fetch('/api/ansible/schedules/toggle', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({id})
+            });
+            loadSchedules();
+        }
+
+        async function deleteSchedule(id) {
+            if (!confirm('Supprimer cette planification ?')) return;
+            await fetch('/api/ansible/schedules', {
+                method: 'DELETE',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({id})
+            });
+            loadSchedules();
+        }
+
+        // Load schedules on page load
+        loadSchedules();
     </script>
     <script>
         document.querySelectorAll('.sidebar-link').forEach(link => {

@@ -176,6 +176,7 @@ func main() {
 	go workers.StartSoarWorker(db, wazuhClient, wazuhIndexer, aiClient, discordBot, soarConfigState)
 	go workers.StartProxmoxAuthMonitor(cfg, proxmoxService, discordBot)
 	go workers.StartHealthWorker(db)
+	go workers.StartAnsibleScheduler(db, sshService)
 
 	// TLS cert
 	if err := server.EnsureCert(); err != nil {

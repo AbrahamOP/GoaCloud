@@ -94,6 +94,10 @@ func New(h *handlers.Handler, store *sessions.CookieStore, db *sql.DB) http.Hand
 		r.Get("/ansible", h.HandleAnsible)
 		r.Post("/api/ansible/run", h.HandleAnsibleRun)
 		r.Post("/api/ansible/upload", h.HandleAnsibleUpload)
+		r.Get("/api/ansible/schedules", h.HandleAnsibleSchedules)
+		r.Post("/api/ansible/schedules", h.HandleAnsibleSchedules)
+		r.Delete("/api/ansible/schedules", h.HandleAnsibleScheduleDelete)
+		r.Post("/api/ansible/schedules/toggle", h.HandleAnsibleScheduleToggle)
 
 		// User Management
 		r.Get("/users", h.HandleUsers)

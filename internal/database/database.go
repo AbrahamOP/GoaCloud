@@ -111,6 +111,20 @@ func Migrate(db *sql.DB) {
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			UNIQUE KEY uk_fav (user_id, item_type, item_id)
 		)`,
+		`CREATE TABLE IF NOT EXISTS ansible_schedules (
+			id INT AUTO_INCREMENT PRIMARY KEY,
+			playbook VARCHAR(255) NOT NULL,
+			vmid INT NOT NULL,
+			key_id INT NOT NULL,
+			interval_minutes INT NOT NULL,
+			enabled BOOLEAN NOT NULL DEFAULT TRUE,
+			next_run DATETIME NOT NULL,
+			last_run DATETIME NULL,
+			last_status VARCHAR(20) DEFAULT 'pending',
+			last_output TEXT,
+			created_by VARCHAR(50),
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
 	}
 
 	for _, stmt := range coreTables {
