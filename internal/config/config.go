@@ -33,9 +33,10 @@ type Config struct {
 	AIModel    string
 
 	// Discord
-	DiscordBotToken    string
-	DiscordChannelID   string
-	DiscordAuthChannel string
+	DiscordBotToken       string
+	DiscordChannelID      string
+	DiscordAuthChannel    string
+	DiscordAnsibleChannel string
 
 	// Server
 	HTTPPort      string
@@ -68,7 +69,8 @@ func Load() *Config {
 		AIModel:            getEnv("AI_MODEL", ""),
 		DiscordBotToken:    getEnv("DISCORD_BOT_TOKEN", ""),
 		DiscordChannelID:   getEnv("DISCORD_CHANNEL_ID", ""),
-		DiscordAuthChannel: getEnv("DISCORD_AUTH_CHANNEL_ID", ""),
+		DiscordAuthChannel:    getEnv("DISCORD_AUTH_CHANNEL_ID", ""),
+		DiscordAnsibleChannel: getEnv("DISCORD_ANSIBLE_CHANNEL_ID", ""),
 		HTTPPort:           getEnv("PORT", "8080"),
 		HTTPSPort:          getEnv("HTTPS_PORT", "8443"),
 		SessionSecret:      getEnv("SESSION_SECRET", "super-secret-key-change-me"),

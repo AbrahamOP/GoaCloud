@@ -120,7 +120,7 @@ func main() {
 	// Discord
 	var discordBot *services.DiscordBot
 	if cfg.DiscordBotToken != "" && cfg.DiscordChannelID != "" {
-		bot, botErr := services.NewDiscordBot(cfg.DiscordBotToken, cfg.DiscordChannelID, cfg.DiscordAuthChannel)
+		bot, botErr := services.NewDiscordBot(cfg.DiscordBotToken, cfg.DiscordChannelID, cfg.DiscordAuthChannel, cfg.DiscordAnsibleChannel)
 		if botErr != nil {
 			slog.Error("Failed to init Discord Bot", "error", botErr)
 		} else {
@@ -176,7 +176,7 @@ func main() {
 	go workers.StartSoarWorker(db, wazuhClient, wazuhIndexer, aiClient, discordBot, soarConfigState)
 	go workers.StartProxmoxAuthMonitor(cfg, proxmoxService, discordBot)
 	go workers.StartHealthWorker(db)
-	go workers.StartAnsibleScheduler(db, sshService)
+	go workers.StartAnsibleScheduler(db, sshService, discordBot)
 
 	// TLS cert
 	if err := server.EnsureCert(); err != nil {
