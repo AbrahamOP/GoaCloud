@@ -1,90 +1,176 @@
 # GoaCloud
 
-GoaCloud est une interface unifiée "Single Pane of Glass" pour gérer vos infrastructures. Elle centralise la gestion de VMs Proxmox, la sécurité avec Wazuh, l'automatisation Ansible et le monitoring SIEM/SOAR.
+GoaCloud is a self-hosted **Single Pane of Glass** dashboard for managing your homelab infrastructure. It brings together Proxmox VM management, Wazuh SIEM security, Ansible automation, SSH key management, and AI-powered SOAR — all in one place.
 
-## Fonctionnalités
+![Go](https://img.shields.io/badge/Go-1.22-00ADD8?logo=go&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
 
-*   **Dashboard** : Vue d'ensemble de l'état du parc (VMs, Alertes, Agents).
-*   **Proxmox** : Liste des VMs, état, démarrage/arrêt/reboot, console VNC.
-*   **Wazuh (SIEM)** : Visualisation des alertes de sécurité, état des agents, vulnérabilités.
-*   **Ansible (Automation)** :
-    *   Gestion et upload de Playbooks.
-    *   Exécution de playbooks sur des VMs cibles.
-    *   Sélection automatique de la clé SSH appropriée.
-*   **SSH Manager** : Gestion des clés SSH, déploiement sur Proxmox.
-*   **SOAR & IA** : Enrichissement automatique des alertes via IA (Ollama/OpenAI) et notifications Discord.
-*   **Gestion Utilisateurs** : Rôles (Admin/Viewer), Audit Logs.
+## Features
 
-## Prérequis
+- **Dashboard** — Overview of your apps, services health status, and quick access to all modules.
+- **Proxmox Management** — List VMs/CTs, start/stop/reboot, snapshots, console access, resource monitoring (CPU, RAM, Storage).
+- **Wazuh SIEM** — Security alerts, agent status, vulnerability scanning, CVE summary, geo-location data.
+- **SOAR & AI** — Automatic alert enrichment via AI (Ollama/OpenAI), Discord notifications with severity levels.
+- **Ansible Automation** — Upload/write playbooks, execute on target VMs, scheduled executions, output history.
+- **SSH Key Manager** — Generate, import, deploy SSH keys to VMs via Cloud-Init or password auth.
+- **Web Console** — Browser-based SSH terminal to your VMs.
+- **User Management** — Admin/Viewer roles, MFA (TOTP), audit logs.
+- **App Catalog** — Register external apps with health checks and favorites.
 
-*   **Docker** & **Docker Compose**
-*   Un serveur **Proxmox** (avec API Token)
-*   Un serveur **Wazuh** (pour les fonctionnalités de sécurité)
-*   (Optionnel) **Ollama** ou clé OpenAI pour l'enrichissement IA.
+## Prerequisites
+
+- **Docker** & **Docker Compose**
+- A **Proxmox VE** server with an API token
+- (Optional) A **Wazuh** server for security features
+- (Optional) **Ollama** or an OpenAI API key for AI enrichment
+- (Optional) A **Discord** bot for notifications
 
 ## Installation
 
-### 1. Cloner le dépôt
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/AbrahamOP/goacloud.git
 cd goacloud
 ```
 
-### 2. Configuration (.env)
-
-Copiez le fichier d'exemple et remplissez vos identifiants :
+### 2. Configure environment variables
 
 ```bash
 cp .env.example .env
 nano .env
 ```
 
-**Variables essentielles :**
-*   `PROXMOX_*` : URL et Token pour se connecter à votre hyperviseur.
-*   `WAZUH_*` : Accès à l'API Wazuh pour remonter les alertes.
-*   `DISCORD_*` : Pour recevoir les notifications d'alertes critiques.
+Fill in the required values (see [Configuration](#configuration) below).
 
-### 3. Démarrage
-
-Utilisez Docker Compose pour lancer l'application et la base de données MySQL :
+### 3. Start the stack
 
 ```bash
 docker-compose up -d --build
 ```
 
-L'application sera accessible sur `http://localhost:8080` (ou le port configuré).
+The application will be available at `https://localhost:8443`.
 
-### 4. Premier Démarrage (Setup)
+### 4. Initial setup
 
-Au premier lancement, la base de données est vide.
-1.  Accédez à l'application.
-2.  Vous serez redirigé vers la page de **Configuration Initiale (`/setup`)**.
-3.  Créez votre compte **Administrateur**.
-4.  Connectez-vous.
+On first launch, you will be redirected to `/setup` to create your admin account.
 
-## Utilisation
+## Configuration
 
-### Gestion Ansible
-*   Déposez vos playbooks `.yml` dans l'interface ou le dossier `playbooks/`.
-*   Associez vos clés SSH aux VMs dans la section "SSH Keys" (Bouton "Edit").
-*   Lancez un playbook : choisissez le fichier, la VM, et la clé (auto-sélectionnée).
+### Required
 
-### Sécurité (Wazuh & IA)
-*   Les alertes remontent automatiquement.
-*   L'IA enrichit les alertes critiques avec une analyse et des recommandations.
-*   Utilisez le bouton "Test AI" dans la page SOAR pour vérifier la connexion.
+| Variable | Description |
+|----------|-------------|
+| `SESSION_SECRET` | **Strong random secret** for session encryption. Must be changed from default. |
+| `DB_USER` | MySQL username |
+| `DB_PASSWORD` | MySQL password |
+| `DB_ROOT_PASSWORD` | MySQL root password |
+| `DB_NAME` | Database name (default: `goacloud`) |
 
-## Développement
+### Proxmox
 
-*   **Backend** : Go 1.21+
-*   **Frontend** : HTML Templates + Tailwind CSS (CDN)
-*   **Base de données** : MySQL
+| Variable | Description |
+|----------|-------------|
+| `PROXMOX_URL` | Proxmox API URL (e.g. `https://192.168.1.100:8006`) |
+| `PROXMOX_NODE` | Proxmox node name (default: `pve`) |
+| `PROXMOX_TOKEN_ID` | API Token ID (e.g. `user@pam!token-name`) |
+| `PROXMOX_TOKEN_SECRET` | API Token secret |
 
-Pour redémarrer uniquement l'application après une modification Go :
+### Wazuh
+
+| Variable | Description |
+|----------|-------------|
+| `WAZUH_API_URL` | Wazuh Manager API URL (e.g. `https://192.168.1.101:55000`) |
+| `WAZUH_USER` | Wazuh API username (default: `wazuh-wui`) |
+| `WAZUH_PASSWORD` | Wazuh API password |
+| `WAZUH_INDEXER_URL` | Wazuh Indexer URL (e.g. `https://192.168.1.101:9200`) |
+| `WAZUH_INDEXER_USER` | Indexer username (default: `admin`) |
+| `WAZUH_INDEXER_PASSWORD` | Indexer password |
+
+#### Retrieving Wazuh passwords
+
+**Wazuh API password** (user `wazuh-wui`):
+
 ```bash
+cat ~/wazuh.creds
+```
+
+**Wazuh Indexer password** (user `admin`):
+
+```bash
+cat /usr/share/wazuh-dashboard/data/wazuh/config/wazuh.yml
+```
+
+### Discord (Optional)
+
+| Variable | Description |
+|----------|-------------|
+| `DISCORD_BOTTOKEN` | Discord bot token |
+| `DISCORD_CHANNEL_ID` | Default notification channel ID |
+| `DISCORD_AUTH_CHANNEL_ID` | Channel for auth alerts (falls back to default) |
+| `DISCORD_ANSIBLE_CHANNEL_ID` | Channel for Ansible notifications (falls back to default) |
+
+### AI Enrichment (Optional)
+
+| Variable | Description |
+|----------|-------------|
+| `AI_PROVIDER` | `ollama` or `openai` |
+| `AI_URL` | Provider URL (default: `http://host.docker.internal:11434` for Ollama) |
+| `AI_API_KEY` | API key (required for OpenAI) |
+| `AI_MODEL` | Model name (e.g. `mistral`, `phi3:medium`, `gpt-4`) |
+
+### Other
+
+| Variable | Description |
+|----------|-------------|
+| `SKIP_TLS_VERIFY` | Set to `true` if Proxmox/Wazuh use self-signed certificates |
+
+## Usage
+
+### Ansible
+
+1. Upload playbooks via the UI or place `.yml` files in the `playbooks/` directory.
+2. Associate SSH keys to VMs in the SSH Keys section.
+3. Select a playbook, target VM, and SSH key (auto-selected if associated).
+4. Click **Run** or create a scheduled execution.
+
+### Security (Wazuh & SOAR)
+
+- Agents and alerts are fetched automatically from the Wazuh API.
+- Configure alert types in the SOAR page (SSH, Sudo, FIM, Packages).
+- AI enrichment adds analysis and recommendations to Discord alerts.
+
+### SSH Key Management
+
+- Generate ED25519 key pairs directly from the UI.
+- Deploy keys to VMs via Proxmox Cloud-Init or SSH password auth.
+- Keys are encrypted at rest in the database.
+
+## Development
+
+- **Backend**: Go 1.22, chi router, html/template
+- **Frontend**: Tailwind CSS, vanilla JavaScript
+- **Database**: MySQL 8.0
+
+```bash
+# Rebuild only the app container after code changes
 docker-compose up -d --build app
 ```
 
-## Licence
-MIT
+## Tech Stack
+
+| Component | Technology |
+|-----------|-----------|
+| Backend | Go 1.22 |
+| Router | go-chi/chi v5 |
+| Database | MySQL 8.0 |
+| Frontend | Tailwind CSS + Vanilla JS |
+| Auth | bcrypt + TOTP (MFA) + CSRF |
+| Sessions | gorilla/sessions (encrypted cookies) |
+| WebSocket | gorilla/websocket |
+| Container | Docker + Alpine |
+
+## License
+
+MIT — see [LICENSE](LICENSE).
