@@ -18,22 +18,29 @@ func (h *Handler) HandleMetricsHistory(w http.ResponseWriter, r *http.Request) {
 		period = "24h"
 	}
 
-	var interval string
+	var intervalValue int
+	var intervalUnit string
 	switch period {
 	case "1h":
-		interval = "1 HOUR"
+		intervalValue, intervalUnit = 1, "HOUR"
 	case "6h":
-		interval = "6 HOUR"
+		intervalValue, intervalUnit = 6, "HOUR"
 	case "24h":
-		interval = "24 HOUR"
+		intervalValue, intervalUnit = 24, "HOUR"
 	case "7d":
-		interval = "7 DAY"
+		intervalValue, intervalUnit = 7, "DAY"
 	default:
-		interval = "24 HOUR"
+		intervalValue, intervalUnit = 24, "HOUR"
 	}
 
-	rows, err := h.DB.Query(
-		"SELECT cpu, ram, storage, recorded_at FROM metrics_history WHERE recorded_at >= DATE_SUB(NOW(), INTERVAL " + interval + ") ORDER BY recorded_at ASC")
+	var query string
+	switch intervalUnit {
+	case "DAY":
+		query = "SELECT cpu, ram, storage, recorded_at FROM metrics_history WHERE recorded_at >= DATE_SUB(NOW(), INTERVAL ? DAY) ORDER BY recorded_at ASC"
+	default:
+		query = "SELECT cpu, ram, storage, recorded_at FROM metrics_history WHERE recorded_at >= DATE_SUB(NOW(), INTERVAL ? HOUR) ORDER BY recorded_at ASC"
+	}
+	rows, err := h.DB.Query(query, intervalValue)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode([]MetricPoint{})

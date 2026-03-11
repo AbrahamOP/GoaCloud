@@ -15,12 +15,13 @@ import (
 )
 
 // New creates and returns the application router with all routes registered.
-func New(h *handlers.Handler, store *sessions.CookieStore, db *sql.DB) http.Handler {
+func New(h *handlers.Handler, store *sessions.CookieStore, db *sql.DB, cookieSecure bool) http.Handler {
 	r := chi.NewRouter()
 
 	// Global middleware
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(appMiddleware.SecurityHeaders)
+	r.Use(appMiddleware.CSRFProtection(store, cookieSecure))
 
 	// Static assets: serve from disk in dev mode, embedded FS in prod
 	var staticHandler http.Handler

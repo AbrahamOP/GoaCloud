@@ -55,9 +55,13 @@ func updateVMCache(db *sql.DB, cfg *config.Config, proxmox *services.ProxmoxServ
 		}
 	}
 	// Record metrics for history/sparklines
-	db.Exec("INSERT INTO metrics_history (cpu, ram, storage) VALUES (?, ?, ?)", stats.CPU, stats.RAM, stats.Storage)
+	if _, err := db.Exec("INSERT INTO metrics_history (cpu, ram, storage) VALUES (?, ?, ?)", stats.CPU, stats.RAM, stats.Storage); err != nil {
+		slog.Error("Worker: failed to insert metrics", "error", err)
+	}
 	// Prune old entries (keep last 7 days)
-	db.Exec("DELETE FROM metrics_history WHERE recorded_at < DATE_SUB(NOW(), INTERVAL 7 DAY)")
+	if _, err := db.Exec("DELETE FROM metrics_history WHERE recorded_at < DATE_SUB(NOW(), INTERVAL 7 DAY)"); err != nil {
+		slog.Error("Worker: failed to prune old metrics", "error", err)
+	}
 
 	// Broadcast to SSE clients
 	if broker != nil {

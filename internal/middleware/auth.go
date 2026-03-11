@@ -40,7 +40,10 @@ func AdminOnly(store *sessions.CookieStore, db *sql.DB, next http.Handler) http.
 		session, _ := store.Get(r, "goacloud-session")
 		username, _ := session.Values["username"].(string)
 		var role string
-		db.QueryRow("SELECT role FROM users WHERE username = ?", username).Scan(&role)
+		if err := db.QueryRow("SELECT role FROM users WHERE username = ?", username).Scan(&role); err != nil {
+			http.Error(w, "Accès refusé.", http.StatusForbidden)
+			return
+		}
 		if role != "Admin" {
 			http.Error(w, "Accès refusé. Réservé aux administrateurs.", http.StatusForbidden)
 			return
@@ -54,7 +57,10 @@ func RequireAdmin(w http.ResponseWriter, r *http.Request, store *sessions.Cookie
 	session, _ := store.Get(r, "goacloud-session")
 	username, _ := session.Values["username"].(string)
 	var role string
-	db.QueryRow("SELECT role FROM users WHERE username = ?", username).Scan(&role)
+	if err := db.QueryRow("SELECT role FROM users WHERE username = ?", username).Scan(&role); err != nil {
+		http.Error(w, "Accès refusé.", http.StatusForbidden)
+		return false
+	}
 	if role != "Admin" {
 		http.Error(w, "Accès refusé. Réservé aux administrateurs.", http.StatusForbidden)
 		return false

@@ -77,9 +77,9 @@ func executeScheduledPlaybook(db *sql.DB, sshService *services.SSHService, disco
 
 	// Path traversal protection
 	playbookPath := filepath.Join("playbooks", filepath.Clean(playbook))
-	absPlaybooks, _ := filepath.Abs("playbooks")
-	absPath, _ := filepath.Abs(playbookPath)
-	if !strings.HasPrefix(absPath, absPlaybooks+string(filepath.Separator)) {
+	absPlaybooks, err1 := filepath.Abs("playbooks")
+	absPath, err2 := filepath.Abs(playbookPath)
+	if err1 != nil || err2 != nil || !strings.HasPrefix(absPath, absPlaybooks+string(filepath.Separator)) {
 		updateScheduleResult(db, scheduleID, intervalMinutes, "error", "Invalid playbook path")
 		notifyAnsibleExecution(discord, playbook, vmName, vmid, "error", "Invalid playbook path")
 		return

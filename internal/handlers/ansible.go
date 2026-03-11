@@ -34,7 +34,10 @@ func (h *Handler) HandleAnsible(w http.ResponseWriter, r *http.Request) {
 		defer rows.Close()
 		for rows.Next() {
 			var v models.VM
-			rows.Scan(&v.ID, &v.Name, &v.Type)
+			if err := rows.Scan(&v.ID, &v.Name, &v.Type); err != nil {
+				slog.Error("Error scanning VM", "error", err)
+				continue
+			}
 			vms = append(vms, v)
 		}
 	} else {
@@ -85,7 +88,7 @@ func (h *Handler) HandleAnsibleRun(w http.ResponseWriter, r *http.Request) {
 	var targetIP string
 	err := h.DB.QueryRow("SELECT ip_address FROM vm_cache WHERE vmid = ?", req.VMID).Scan(&targetIP)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("VM IP not found (make sure it's running and cached). DB Error: %v", err), http.StatusBadRequest)
+		http.Error(w, "VM IP not found (make sure it's running and cached)", http.StatusBadRequest)
 		return
 	}
 	if targetIP == "" || targetIP == "-" {
@@ -95,15 +98,15 @@ func (h *Handler) HandleAnsibleRun(w http.ResponseWriter, r *http.Request) {
 
 	sshKey, err := h.SSHService.GetSSHKeyByID(req.KeyID)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("SSH Key not found: %v", err), http.StatusBadRequest)
+		http.Error(w, "SSH Key not found", http.StatusBadRequest)
 		return
 	}
 
 	// Path traversal protection
 	playbookPath := filepath.Join("playbooks", filepath.Clean(req.Playbook))
-	absPlaybooks, _ := filepath.Abs("playbooks")
-	absPath, _ := filepath.Abs(playbookPath)
-	if !strings.HasPrefix(absPath, absPlaybooks+string(filepath.Separator)) {
+	absPlaybooks, err1 := filepath.Abs("playbooks")
+	absPath, err2 := filepath.Abs(playbookPath)
+	if err1 != nil || err2 != nil || !strings.HasPrefix(absPath, absPlaybooks+string(filepath.Separator)) {
 		http.Error(w, "Invalid playbook path", http.StatusBadRequest)
 		return
 	}
@@ -178,9 +181,9 @@ func (h *Handler) HandleAnsibleUpload(w http.ResponseWriter, r *http.Request) {
 
 	// Path traversal protection
 	savePath := filepath.Join("playbooks", filepath.Base(filename))
-	absPlaybooks, _ := filepath.Abs("playbooks")
-	absSavePath, _ := filepath.Abs(savePath)
-	if !strings.HasPrefix(absSavePath, absPlaybooks+string(filepath.Separator)) {
+	absPlaybooks, err1 := filepath.Abs("playbooks")
+	absSavePath, err2 := filepath.Abs(savePath)
+	if err1 != nil || err2 != nil || !strings.HasPrefix(absSavePath, absPlaybooks+string(filepath.Separator)) {
 		http.Error(w, "Invalid filename", http.StatusBadRequest)
 		return
 	}

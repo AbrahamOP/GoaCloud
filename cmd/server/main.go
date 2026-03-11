@@ -1,12 +1,16 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
+	"time"
 
 	"github.com/gorilla/sessions"
 	"goacloud/assets"
@@ -33,7 +37,8 @@ func main() {
 		slog.Warn("SKIP_TLS_VERIFY=true — TLS certificate verification disabled")
 	}
 	if cfg.SessionSecret == "super-secret-key-change-me" {
-		slog.Warn("SESSION_SECRET is the default value — set a strong secret in production!")
+		slog.Error("SESSION_SECRET is the default value — refusing to start. Set a strong secret via SESSION_SECRET env var.")
+		os.Exit(1)
 	}
 
 	// Database
@@ -185,12 +190,32 @@ func main() {
 	}
 
 	// Router
-	appRouter := router.New(h, store, db)
+	appRouter := router.New(h, store, db, cfg.CookieSecure)
 
 	// Start server
 	srv := server.New(cfg.HTTPPort, cfg.HTTPSPort, appRouter)
-	if err := srv.Start(); err != nil {
-		slog.Error("HTTPS server error", "error", err)
+
+	// Graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		if err := srv.Start(); err != nil && err != http.ErrServerClosed {
+			slog.Error("HTTPS server error", "error", err)
+			os.Exit(1)
+		}
+	}()
+
+	<-quit
+	slog.Info("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		slog.Error("Server forced to shutdown", "error", err)
 		os.Exit(1)
 	}
+
+	slog.Info("Server stopped gracefully")
 }

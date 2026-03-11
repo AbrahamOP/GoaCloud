@@ -34,7 +34,10 @@ func (h *Handler) HandleUsers(w http.ResponseWriter, r *http.Request) {
 		Users []models.User
 	}{Users: users}
 
-	h.Templates.ExecuteTemplate(w, "users.html", data)
+	if err := h.Templates.ExecuteTemplate(w, "users.html", data); err != nil {
+		slog.Error("Template execution error", "error", err)
+		http.Error(w, "Render error", http.StatusInternalServerError)
+	}
 }
 
 // HandleAddUser creates a new user (Admin only).
@@ -102,10 +105,18 @@ func (h *Handler) HandleDeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var role string
-	h.DB.QueryRow("SELECT role FROM users WHERE id = ?", userID).Scan(&role)
+	if err := h.DB.QueryRow("SELECT role FROM users WHERE id = ?", userID).Scan(&role); err != nil {
+		slog.Error("Error fetching user role", "error", err)
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
 	if role == "Admin" {
 		var adminCount int
-		h.DB.QueryRow("SELECT COUNT(*) FROM users WHERE role = 'Admin'").Scan(&adminCount)
+		if err := h.DB.QueryRow("SELECT COUNT(*) FROM users WHERE role = 'Admin'").Scan(&adminCount); err != nil {
+			slog.Error("Error counting admins", "error", err)
+			http.Error(w, "Database error", http.StatusInternalServerError)
+			return
+		}
 		if adminCount <= 1 {
 			http.Error(w, "Impossible de supprimer le dernier administrateur", http.StatusBadRequest)
 			return

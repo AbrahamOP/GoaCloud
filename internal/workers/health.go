@@ -58,8 +58,10 @@ func runHealthChecks(db *sql.DB) {
 			respMs = int(time.Since(start).Milliseconds())
 		}
 
-		db.Exec("UPDATE apps SET health_status = ?, health_response_ms = ?, health_last_check = NOW() WHERE id = ?",
-			status, respMs, id)
+		if _, err := db.Exec("UPDATE apps SET health_status = ?, health_response_ms = ?, health_last_check = NOW() WHERE id = ?",
+			status, respMs, id); err != nil {
+			slog.Error("Health worker: failed to update status", "id", id, "error", err)
+		}
 	}
 	slog.Debug("Health checks completed")
 }

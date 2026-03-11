@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log/slog"
 	"net/http"
 
 	"goacloud/internal/models"
@@ -26,7 +27,11 @@ func (h *Handler) HandleAuditLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var role string
-	h.DB.QueryRow("SELECT role FROM users WHERE username = ?", username).Scan(&role)
+	if err := h.DB.QueryRow("SELECT role FROM users WHERE username = ?", username).Scan(&role); err != nil {
+		slog.Error("Error fetching user role", "error", err)
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
 	if role != "Admin" {
 		h.renderError(w, "dashboard.html", "Accès refusé. Réservé aux administrateurs.")
 		return
@@ -42,7 +47,10 @@ func (h *Handler) HandleAuditLogs(w http.ResponseWriter, r *http.Request) {
 	var logs []models.AuditLog
 	for rows.Next() {
 		var l models.AuditLog
-		rows.Scan(&l.ID, &l.Username, &l.Action, &l.Details, &l.IPAddress, &l.CreatedAt)
+		if err := rows.Scan(&l.ID, &l.Username, &l.Action, &l.Details, &l.IPAddress, &l.CreatedAt); err != nil {
+			slog.Error("Error scanning audit log", "error", err)
+			continue
+		}
 		logs = append(logs, l)
 	}
 
@@ -51,5 +59,8 @@ func (h *Handler) HandleAuditLogs(w http.ResponseWriter, r *http.Request) {
 		"Role":     role,
 		"Logs":     logs,
 	}
-	h.Templates.ExecuteTemplate(w, "audit_logs.html", data)
+	if err := h.Templates.ExecuteTemplate(w, "audit_logs.html", data); err != nil {
+		slog.Error("Template execution error", "error", err)
+		http.Error(w, "Render error", http.StatusInternalServerError)
+	}
 }

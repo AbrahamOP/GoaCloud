@@ -1,11 +1,13 @@
 package server
 
 import (
+	"context"
 	"crypto/tls"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
+	"time"
 )
 
 // Server wraps the HTTPS server and handles TLS setup and HTTP→HTTPS redirect.
@@ -13,6 +15,9 @@ type Server struct {
 	HTTPPort  string
 	HTTPSPort string
 	Handler   http.Handler
+
+	httpsServer *http.Server
+	httpServer  *http.Server
 }
 
 // New creates a new Server.
@@ -39,14 +44,41 @@ func (s *Server) Start() error {
 
 	slog.Info("HTTPS server starting", "addr", "https://0.0.0.0:"+s.HTTPSPort)
 
-	httpsServer := &http.Server{
-		Addr:         ":" + s.HTTPSPort,
-		Handler:      s.Handler,
-		TLSConfig:    &tls.Config{},
+	s.httpsServer = &http.Server{
+		Addr:    ":" + s.HTTPSPort,
+		Handler: s.Handler,
+		TLSConfig: &tls.Config{
+			MinVersion: tls.VersionTLS12,
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+				tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+			},
+			CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
+		},
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
 
-	return httpsServer.ListenAndServeTLS("server.crt", "server.key")
+	return s.httpsServer.ListenAndServeTLS("server.crt", "server.key")
+}
+
+// Shutdown gracefully shuts down both HTTP and HTTPS servers.
+func (s *Server) Shutdown(ctx context.Context) error {
+	if s.httpServer != nil {
+		if err := s.httpServer.Shutdown(ctx); err != nil {
+			slog.Error("HTTP server shutdown error", "error", err)
+		}
+	}
+	if s.httpsServer != nil {
+		return s.httpsServer.Shutdown(ctx)
+	}
+	return nil
 }
 
 func (s *Server) startHTTPRedirect() {
@@ -60,7 +92,13 @@ func (s *Server) startHTTPRedirect() {
 		target := "https://" + host + ":" + s.HTTPSPort + r.RequestURI
 		http.Redirect(w, r, target, http.StatusMovedPermanently)
 	})
-	if err := http.ListenAndServe(":"+s.HTTPPort, redirectMux); err != nil {
+	s.httpServer = &http.Server{
+		Addr:         ":" + s.HTTPPort,
+		Handler:      redirectMux,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+	}
+	if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		slog.Error("HTTP redirect server error", "error", err)
 	}
 }

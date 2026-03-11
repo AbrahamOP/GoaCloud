@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -74,6 +73,6 @@ func (h *Handler) HandleReport(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.Templates.ExecuteTemplate(w, "report.html", data); err != nil {
 		slog.Error("Report template error", "error", err)
-		http.Error(w, fmt.Sprintf("Render error: %v", err), http.StatusInternalServerError)
+		http.Error(w, "Render error", http.StatusInternalServerError)
 	}
 }

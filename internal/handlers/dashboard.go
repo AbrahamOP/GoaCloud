@@ -22,7 +22,10 @@ func (h *Handler) HandleDashboard(w http.ResponseWriter, r *http.Request) {
 		"Apps":     apps,
 		"Username": username,
 	}
-	h.Templates.ExecuteTemplate(w, "dashboard.html", data)
+	if err := h.Templates.ExecuteTemplate(w, "dashboard.html", data); err != nil {
+		slog.Error("Template execution error", "error", err)
+		http.Error(w, "Render error", http.StatusInternalServerError)
+	}
 }
 
 func (h *Handler) getApps() ([]models.App, error) {
