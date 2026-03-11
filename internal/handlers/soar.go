@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"goacloud/internal/middleware"
 	"goacloud/internal/services"
 )
 
@@ -27,6 +28,7 @@ func (h *Handler) HandleSoar(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleSoarConfig handles GET (read config) and POST (update config).
+// POST requires Admin role.
 func (h *Handler) HandleSoarConfig(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		w.Header().Set("Content-Type", "application/json")
@@ -37,10 +39,14 @@ func (h *Handler) HandleSoarConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == http.MethodPost {
+		if !middleware.RequireAdmin(w, r, h.SessionStore, h.DB) {
+			return
+		}
+
 		h.SoarConfig.Mutex.Lock()
 		if err := json.NewDecoder(r.Body).Decode(&h.SoarConfig.Config); err != nil {
 			h.SoarConfig.Mutex.Unlock()
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
 		h.SoarConfig.Mutex.Unlock()

@@ -80,7 +80,12 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	session, _ := h.SessionStore.Get(r, "goacloud-session")
+	// Regenerate session to prevent session fixation
+	if oldSession, err := h.SessionStore.Get(r, "goacloud-session"); err == nil {
+		oldSession.Options.MaxAge = -1
+		oldSession.Save(r, w)
+	}
+	session, _ := h.SessionStore.New(r, "goacloud-session")
 	session.Values["authenticated"] = true
 	session.Values["username"] = username
 	session.Save(r, w)
@@ -145,7 +150,7 @@ func (h *Handler) HandleSetup(w http.ResponseWriter, r *http.Request) {
 		_, err = h.DB.Exec("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", username, string(hashedPassword), "Admin")
 		if err != nil {
 			slog.Error("Error creating admin user", "error", err)
-			h.Templates.ExecuteTemplate(w, "setup.html", map[string]interface{}{"Error": "Erreur base de données: " + err.Error()})
+			h.Templates.ExecuteTemplate(w, "setup.html", map[string]interface{}{"Error": "Erreur lors de la création du compte"})
 			return
 		}
 

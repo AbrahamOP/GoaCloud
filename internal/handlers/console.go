@@ -5,8 +5,8 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -20,7 +20,11 @@ var upgrader = websocket.Upgrader{
 		if origin == "" {
 			return true
 		}
-		return strings.Contains(origin, r.Host)
+		u, err := url.Parse(origin)
+		if err != nil {
+			return false
+		}
+		return u.Host == r.Host
 	},
 }
 
