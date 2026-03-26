@@ -1,0 +1,64 @@
+name: CI & Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build
+        run: CGO_ENABLED=0 go build -o bin/goacloud ./cmd/server
+
+      - name: Docker build test
+        run: docker build -t goacloud:test .
+
+  deploy:
+    name: Deploy to Portainer
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Trigger Portainer webhook
+        run: |
+          curl -sk -X POST "${{ secrets.PORTAINER_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{}'
+          echo "Deploy triggered on Portainer"
+
+      - name: Notify Discord
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            COLOR=3066993
+            STATUS="Deploiement lance"
+            ICON="rocket"
+          else
+            COLOR=15158332
+            STATUS="Deploiement echoue"
+            ICON="x"
+          fi
+          curl -s -H "Content-Type: application/json" -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" -d "{
+            \"embeds\": [{
+              \"title\": \"GoaCloud - $STATUS\",
+              \"description\": \"**Commit:** \`${GITHUB_SHA::7}\`\n**Auteur:** ${{ github.actor }}\n**Message:** ${{ github.event.head_commit.message }}\",
+              \"color\": $COLOR,
+              \"footer\": {\"text\": \"GitHub Actions\"}
+            }]
+          }"
