@@ -1,0 +1,62 @@
+services:
+  app:
+    build: .
+    container_name: goacloud_app_dev
+    ports:
+      - "8444:8443"
+      - "8083:8080"
+    environment:
+      - DB_HOST=db-dev:3306
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASSWORD}
+      - PORT=8080
+      - SESSION_SECRET=${SESSION_SECRET}
+      - PROXMOX_URL=${PROXMOX_URL}
+      - PROXMOX_NODE=${PROXMOX_NODE:-pve}
+      - PROXMOX_TOKEN_ID=${PROXMOX_TOKEN_ID}
+      - PROXMOX_TOKEN_SECRET=${PROXMOX_TOKEN_SECRET}
+      - SKIP_TLS_VERIFY=${SKIP_TLS_VERIFY:-false}
+      - WAZUH_API_URL=${WAZUH_API_URL}
+      - WAZUH_USER=${WAZUH_USER}
+      - WAZUH_PASSWORD=${WAZUH_PASSWORD}
+      - WAZUH_INDEXER_URL=${WAZUH_INDEXER_URL}
+      - WAZUH_INDEXER_USER=${WAZUH_INDEXER_USER}
+      - WAZUH_INDEXER_PASSWORD=${WAZUH_INDEXER_PASSWORD}
+      - DISCORD_BOT_TOKEN=${DISCORD_BOTTOKEN}
+      - DISCORD_CHANNEL_ID=${DISCORD_CHANNEL_ID}
+      - DISCORD_AUTH_CHANNEL_ID=${DISCORD_AUTH_CHANNEL_ID}
+      - DISCORD_ANSIBLE_CHANNEL_ID=${DISCORD_ANSIBLE_CHANNEL_ID}
+      - AI_PROVIDER=${AI_PROVIDER:-ollama}
+      - AI_URL=${AI_URL:-http://host.docker.internal:11434}
+      - AI_MODEL=${AI_MODEL:-qwen2.5:3b}
+    depends_on:
+      - db-dev
+    restart: unless-stopped
+    volumes:
+      - ./soar_config.json:/app/soar_config.json
+      - ansible_playbooks_dev:/app/playbooks
+    networks:
+      - goacloud-dev
+
+  db-dev:
+    image: mysql:8.0
+    container_name: goacloud_db_dev
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - mysql_data_dev:/var/lib/mysql
+      - ./schema.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    networks:
+      - goacloud-dev
+
+volumes:
+  mysql_data_dev:
+  ansible_playbooks_dev:
+
+networks:
+  goacloud-dev:
+    driver: bridge
