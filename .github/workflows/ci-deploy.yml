@@ -32,11 +32,10 @@ jobs:
     runs-on: self-hosted
     if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     steps:
-      - name: Trigger Portainer redeploy (DEV)
+      - name: Trigger Portainer (DEV)
         run: |
-          curl -sk -X POST "${{ secrets.PORTAINER_WEBHOOK_URL }}" \
+          curl -sk -X POST "${{ secrets.PORTAINER_WEBHOOK_URL_DEV }}" \
             -H "Content-Type: application/json" -d '{}'
-          echo "DEV deploy triggered"
 
       - name: Notify Discord
         env:
@@ -48,27 +47,54 @@ jobs:
           curl -sf -H "Content-Type: application/json" -X POST "$DISCORD_WEBHOOK" -d "{
             \"embeds\": [{
               \"title\": \"GoaCloud DEV - Deploy OK\",
-              \"description\": \"**Commit:** \`$SHORT\`\\n**Auteur:** ${{ github.actor }}\\n**Message:** $SAFE_MSG\",
+              \"description\": \"**Commit:** \`$SHORT\`\\n**Auteur:** ${{ github.actor }}\\n**Message:** $SAFE_MSG\\n\\n:globe_with_meridians: https://devdash.goacloud.fr\",
               \"color\": 3447003,
-              \"footer\": {\"text\": \"Branche dev - Self-hosted runner\"}
+              \"footer\": {\"text\": \"Branche dev | Self-hosted runner\"}
+            }]
+          }"
+
+  deploy-prod:
+    name: Deploy PROD
+    needs: build
+    runs-on: self-hosted
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Trigger Portainer (PROD)
+        run: |
+          curl -sk -X POST "${{ secrets.PORTAINER_WEBHOOK_URL_PROD }}" \
+            -H "Content-Type: application/json" -d '{}'
+
+      - name: Notify Discord
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          SAFE_MSG=$(echo "$COMMIT_MSG" | head -1 | tr -d '"\\' | cut -c1-100)
+          SHORT="${GITHUB_SHA:0:7}"
+          curl -sf -H "Content-Type: application/json" -X POST "$DISCORD_WEBHOOK" -d "{
+            \"embeds\": [{
+              \"title\": \"GoaCloud PROD - Deploy OK\",
+              \"description\": \"**Commit:** \`$SHORT\`\\n**Auteur:** ${{ github.actor }}\\n**Message:** $SAFE_MSG\\n\\n:globe_with_meridians: https://dash.goacloud.fr\",
+              \"color\": 3066993,
+              \"footer\": {\"text\": \"Branche main | Self-hosted runner\"}
             }]
           }"
 
   notify-pr:
-    name: PR Ready
+    name: PR Check
     needs: build
     runs-on: self-hosted
     if: github.event_name == 'pull_request'
     steps:
-      - name: Notify Discord PR
+      - name: Notify Discord
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           curl -sf -H "Content-Type: application/json" -X POST "$DISCORD_WEBHOOK" -d "{
             \"embeds\": [{
-              \"title\": \"GoaCloud - PR #${{ github.event.pull_request.number }} Build OK\",
-              \"description\": \"**PR:** ${{ github.event.pull_request.title }}\\n**Auteur:** ${{ github.actor }}\\n\\nTests pass\u00e9s, pr\u00eat \u00e0 merge dans main.\",
+              \"title\": \"GoaCloud - PR #${{ github.event.pull_request.number }} prete\",
+              \"description\": \"**PR:** ${{ github.event.pull_request.title }}\\n**Auteur:** ${{ github.actor }}\\n\\nBuild OK, pret a merge dans main (PROD).\",
               \"color\": 15844367,
-              \"footer\": {\"text\": \"Pull Request vers main\"}
+              \"footer\": {\"text\": \"Pull Request dev -> main\"}
             }]
           }"
