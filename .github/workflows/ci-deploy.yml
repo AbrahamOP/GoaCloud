@@ -37,6 +37,7 @@ jobs:
           docker stop goacloud_app_dev goacloud_db_dev 2>/dev/null || true
           docker rm -f goacloud_app_dev goacloud_db_dev 2>/dev/null || true
           docker volume rm goacloud-dev_mysql_data_dev goacloud-dev_ansible_playbooks_dev 2>/dev/null || true
+          docker rmi goacloud-dev-app 2>/dev/null || true
 
       - name: Trigger Portainer (DEV)
         run: |
