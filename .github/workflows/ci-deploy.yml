@@ -32,6 +32,12 @@ jobs:
     runs-on: self-hosted
     if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     steps:
+      - name: Reset DEV containers and volumes
+        run: |
+          docker stop goacloud_app_dev goacloud_db_dev 2>/dev/null || true
+          docker rm -f goacloud_app_dev goacloud_db_dev 2>/dev/null || true
+          docker volume rm goacloud-dev_mysql_data_dev goacloud-dev_ansible_playbooks_dev 2>/dev/null || true
+
       - name: Trigger Portainer (DEV)
         run: |
           curl -sk -X POST "${{ secrets.PORTAINER_WEBHOOK_URL_DEV }}" \
