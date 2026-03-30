@@ -173,22 +173,29 @@ jobs:
 
           BODY=$(printf "## What's Changed\n\n${CHANGELOG}**Full Changelog**: https://github.com/${REPO}/compare/${LATEST_TAG}...${NEW_TAG}")
 
-          # Create tag and release
+          # Create tag and push
           git tag "$NEW_TAG"
           git push origin "$NEW_TAG"
-          gh release create "$NEW_TAG" \
-            --title "$NEW_TAG" \
-            --notes "$BODY" \
-            --latest
+
+          # Escape body for JSON (handle newlines and quotes)
+          BODY_ESCAPED=$(echo "$BODY" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read())[1:-1])")
+
+          # Create GitHub Release via API (no gh/jq needed on runner)
+          curl -sf -X POST \
+            -H "Authorization: token ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${REPO}/releases" \
+            -d "{\"tag_name\":\"${NEW_TAG}\",\"name\":\"${NEW_TAG}\",\"body\":\"${BODY_ESCAPED}\",\"draft\":false,\"prerelease\":false,\"make_latest\":\"true\"}"
 
           echo "Release $NEW_TAG created successfully"
 
           # Notify Discord
+          RELEASE_URL="https://github.com/${REPO}/releases/tag/${NEW_TAG}"
           if [ -n "$DISCORD_WEBHOOK" ]; then
             curl -sf -H "Content-Type: application/json" -X POST "$DISCORD_WEBHOOK" -d "{
               \"embeds\": [{
                 \"title\": \"GoaCloud $NEW_TAG Released\",
-                \"description\": \"Nouvelle release deployee en production.\\n\\n:link: https://github.com/${REPO}/releases/tag/${NEW_TAG}\",
+                \"description\": \"Nouvelle release deployee en production.\\n\\n:link: ${RELEASE_URL}\",
                 \"color\": 5763719,
                 \"footer\": {\"text\": \"Auto-release | main\"}
               }]
