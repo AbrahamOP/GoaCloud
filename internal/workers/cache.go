@@ -1,6 +1,7 @@
 package workers
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"log/slog"
@@ -13,15 +14,21 @@ import (
 )
 
 // StartCacheWorker starts the background worker that updates the VM IP cache and Proxmox stats cache.
-func StartCacheWorker(db *sql.DB, cfg *config.Config, proxmox *services.ProxmoxService, cache *models.ProxmoxCache, broker *sse.Broker) {
+func StartCacheWorker(ctx context.Context, db *sql.DB, cfg *config.Config, proxmox *services.ProxmoxService, cache *models.ProxmoxCache, broker *sse.Broker) {
 	slog.Info("Starting VM Cache Worker...")
 	updateVMCache(db, cfg, proxmox, cache, broker)
 
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		updateVMCache(db, cfg, proxmox, cache, broker)
+	for {
+		select {
+		case <-ctx.Done():
+			slog.Info("Cache Worker stopped")
+			return
+		case <-ticker.C:
+			updateVMCache(db, cfg, proxmox, cache, broker)
+		}
 	}
 }
 

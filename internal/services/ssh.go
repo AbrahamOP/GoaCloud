@@ -95,6 +95,16 @@ func (s *SSHService) DecryptSSHKey(encrypted string) (string, error) {
 	return string(plaintext), nil
 }
 
+// EncryptData encrypts arbitrary data using AES-256-GCM (same key as SSH keys).
+func (s *SSHService) EncryptData(plaintext string) (string, error) {
+	return s.EncryptSSHKey(plaintext)
+}
+
+// DecryptData decrypts AES-256-GCM encrypted data. Returns error if data is not encrypted.
+func (s *SSHService) DecryptData(encrypted string) (string, error) {
+	return s.DecryptSSHKey(encrypted)
+}
+
 // GenerateRSAKey creates a 4096-bit RSA key pair.
 func GenerateRSAKey(name string) (*models.SSHKey, error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
@@ -160,6 +170,9 @@ func (s *SSHService) GetSSHKeys() ([]models.SSHKey, error) {
 			return nil, err
 		}
 		keys = append(keys, k)
+	}
+	if err := rows.Err(); err != nil {
+		return keys, err
 	}
 	return keys, nil
 }

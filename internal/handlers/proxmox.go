@@ -167,6 +167,9 @@ func (h *Handler) HandleProxmoxIPs(w http.ResponseWriter, r *http.Request) {
 			ipMap[fmt.Sprintf("%d", vmid)] = ip
 		}
 	}
+	if err := rows.Err(); err != nil {
+		slog.Error("Error iterating vm_cache", "error", err)
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(ipMap)

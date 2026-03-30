@@ -1,6 +1,7 @@
 package workers
 
 import (
+	"context"
 	"crypto/tls"
 	"database/sql"
 	"log/slog"
@@ -8,13 +9,19 @@ import (
 	"time"
 )
 
-func StartHealthWorker(db *sql.DB) {
+func StartHealthWorker(ctx context.Context, db *sql.DB) {
 	slog.Info("Starting Health Check Worker...")
 	runHealthChecks(db)
 	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()
-	for range ticker.C {
-		runHealthChecks(db)
+	for {
+		select {
+		case <-ctx.Done():
+			slog.Info("Health Worker stopped")
+			return
+		case <-ticker.C:
+			runHealthChecks(db)
+		}
 	}
 }
 
@@ -62,6 +69,9 @@ func runHealthChecks(db *sql.DB) {
 			status, respMs, id); err != nil {
 			slog.Error("Health worker: failed to update status", "id", id, "error", err)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		slog.Error("Health worker: row iteration error", "error", err)
 	}
 	slog.Debug("Health checks completed")
 }

@@ -35,7 +35,16 @@ func Connect(cfg *config.Config) (*sql.DB, error) {
 		slog.Info("Waiting for database...", "attempt", i+1)
 		time.Sleep(1 * time.Second)
 	}
-	return db, err
+	if err != nil {
+		return nil, err
+	}
+
+	// Configure connection pool
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(5 * time.Minute)
+
+	return db, nil
 }
 
 // Migrate runs auto-migrations to ensure all required tables and columns exist.

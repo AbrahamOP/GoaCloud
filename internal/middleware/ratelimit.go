@@ -2,9 +2,39 @@ package middleware
 
 import (
 	"fmt"
+	"net"
+	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
+
+// RealIP extracts the client IP from X-Forwarded-For or X-Real-IP headers,
+// falling back to r.RemoteAddr. Only trusts the first IP in X-Forwarded-For
+// (set by the nearest trusted proxy like Traefik).
+func RealIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		// X-Forwarded-For: client, proxy1, proxy2 — take the first (leftmost)
+		if idx := strings.IndexByte(xff, ','); idx != -1 {
+			xff = xff[:idx]
+		}
+		ip := strings.TrimSpace(xff)
+		if net.ParseIP(ip) != nil {
+			return ip
+		}
+	}
+	if xri := r.Header.Get("X-Real-IP"); xri != "" {
+		ip := strings.TrimSpace(xri)
+		if net.ParseIP(ip) != nil {
+			return ip
+		}
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
+}
 
 // RateLimiter provides per-IP rate limiting for login attempts.
 type RateLimiter struct {

@@ -1,6 +1,7 @@
 package workers
 
 import (
+	"context"
 	"log/slog"
 	"sync"
 	"time"
@@ -11,6 +12,7 @@ import (
 
 // StartWazuhWorker starts the background worker that refreshes the Wazuh agent cache.
 func StartWazuhWorker(
+	ctx context.Context,
 	wazuhClient *services.WazuhClient,
 	wazuhIndexer *services.WazuhIndexerClient,
 	wazuhCache *models.WazuhCache,
@@ -22,8 +24,14 @@ func StartWazuhWorker(
 	ticker := time.NewTicker(2 * time.Minute)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		UpdateWazuhCache(wazuhClient, wazuhIndexer, wazuhCache, vulnCache)
+	for {
+		select {
+		case <-ctx.Done():
+			slog.Info("Wazuh Worker stopped")
+			return
+		case <-ticker.C:
+			UpdateWazuhCache(wazuhClient, wazuhIndexer, wazuhCache, vulnCache)
+		}
 	}
 }
 

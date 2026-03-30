@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
-	"net"
 	"net/http"
 	"strings"
 
 	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/bcrypt"
+	"goacloud/internal/middleware"
 	"goacloud/internal/services"
 )
 
@@ -31,7 +31,7 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clientIP, _, _ := net.SplitHostPort(r.RemoteAddr)
+	clientIP := middleware.RealIP(r)
 	if h.RateLimiter.IsBlocked(clientIP) {
 		http.Error(w, "Trop de tentatives de connexion. Réessayez dans 15 minutes.", http.StatusTooManyRequests)
 		return
@@ -71,7 +71,12 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			h.Templates.ExecuteTemplate(w, "login.html", data)
 			return
 		}
-		valid := totp.Validate(mfaCode, mfaSecret.String)
+		// Decrypt MFA secret (supports both encrypted and legacy plaintext)
+		secret := mfaSecret.String
+		if decrypted, err := h.SSHService.DecryptData(secret); err == nil {
+			secret = decrypted
+		}
+		valid := totp.Validate(mfaCode, secret)
 		if !valid {
 			n, blocked := h.RateLimiter.RecordFailure(clientIP)
 			go h.notifyLoginFailure(clientIP, username, "Code MFA invalide", n, blocked)

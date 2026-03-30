@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
@@ -50,6 +51,11 @@ func ListPlaybooks(dir string) (map[string][]string, error) {
 // RunPlaybook executes an ansible-playbook command and returns a streaming reader.
 // The caller MUST call the returned cleanup function after consuming all output.
 func RunPlaybook(playbookPath string, targetIP string, privateKey string) (io.ReadCloser, func(), error) {
+	// Validate IP to prevent command injection via inventory parameter
+	if ip := net.ParseIP(targetIP); ip == nil {
+		return nil, nil, fmt.Errorf("invalid target IP address: %s", targetIP)
+	}
+
 	tmpKey, err := os.CreateTemp("", "ansible-key-*")
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create temp key: %v", err)

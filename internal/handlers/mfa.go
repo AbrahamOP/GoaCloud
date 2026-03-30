@@ -88,7 +88,15 @@ func (h *Handler) HandleVerifyMFA(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err = h.DB.Exec("UPDATE users SET mfa_enabled = TRUE, mfa_secret = ? WHERE username = ?", req.Secret, username); err != nil {
+	// Encrypt MFA secret before storing in DB
+	encryptedSecret, err := h.SSHService.EncryptData(req.Secret)
+	if err != nil {
+		slog.Error("MFA Encrypt Error", "error", err)
+		http.Error(w, "Encryption error", http.StatusInternalServerError)
+		return
+	}
+
+	if _, err = h.DB.Exec("UPDATE users SET mfa_enabled = TRUE, mfa_secret = ? WHERE username = ?", encryptedSecret, username); err != nil {
 		slog.Error("MFA DB Update Error", "error", err)
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return

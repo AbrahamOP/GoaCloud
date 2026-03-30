@@ -1,6 +1,7 @@
 package workers
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -11,20 +12,30 @@ import (
 )
 
 // StartProxmoxAuthMonitor starts the background worker that monitors Proxmox authentication events.
-func StartProxmoxAuthMonitor(cfg *config.Config, proxmox *services.ProxmoxService, discord *services.DiscordBot) {
+func StartProxmoxAuthMonitor(ctx context.Context, cfg *config.Config, proxmox *services.ProxmoxService, discord *services.DiscordBot) {
 	if cfg.ProxmoxURL == "" {
 		return
 	}
 
-	time.Sleep(20 * time.Second)
+	select {
+	case <-ctx.Done():
+		return
+	case <-time.After(20 * time.Second):
+	}
 	slog.Info("Starting Proxmox Auth Monitor...")
 
 	lastN := proxmoxSyslogGetLastN(cfg, proxmox)
 
 	ticker := time.NewTicker(2 * time.Minute)
 	defer ticker.Stop()
-	for range ticker.C {
-		lastN = checkProxmoxAuthEvents(cfg, proxmox, discord, lastN)
+	for {
+		select {
+		case <-ctx.Done():
+			slog.Info("Proxmox Auth Monitor stopped")
+			return
+		case <-ticker.C:
+			lastN = checkProxmoxAuthEvents(cfg, proxmox, discord, lastN)
+		}
 	}
 }
 

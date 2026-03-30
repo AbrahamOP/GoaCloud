@@ -111,6 +111,9 @@ func (h *Handler) listSchedules(w http.ResponseWriter, r *http.Request) {
 		s.LastRun = lastRun
 		schedules = append(schedules, s)
 	}
+	if err := rows.Err(); err != nil {
+		slog.Error("Error iterating schedules", "error", err)
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(schedules)

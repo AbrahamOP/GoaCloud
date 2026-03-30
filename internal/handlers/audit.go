@@ -53,6 +53,9 @@ func (h *Handler) HandleAuditLogs(w http.ResponseWriter, r *http.Request) {
 		}
 		logs = append(logs, l)
 	}
+	if err := rows.Err(); err != nil {
+		slog.Error("Error iterating audit logs", "error", err)
+	}
 
 	data := map[string]interface{}{
 		"Username": username,

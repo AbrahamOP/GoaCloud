@@ -120,6 +120,7 @@ func (h *Handler) HandleSSHWebSocket(w http.ResponseWriter, r *http.Request) {
 	session, err := client.NewSession()
 	if err != nil {
 		ws.WriteMessage(websocket.TextMessage, []byte("Error: New Session Failed"))
+		client.Close()
 		return
 	}
 	defer session.Close()
@@ -134,9 +135,21 @@ func (h *Handler) HandleSSHWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stdin, _ := session.StdinPipe()
-	stdout, _ := session.StdoutPipe()
-	stderr, _ := session.StderrPipe()
+	stdin, err := session.StdinPipe()
+	if err != nil {
+		ws.WriteMessage(websocket.TextMessage, []byte("Error: Stdin Pipe Failed"))
+		return
+	}
+	stdout, err := session.StdoutPipe()
+	if err != nil {
+		ws.WriteMessage(websocket.TextMessage, []byte("Error: Stdout Pipe Failed"))
+		return
+	}
+	stderr, err := session.StderrPipe()
+	if err != nil {
+		ws.WriteMessage(websocket.TextMessage, []byte("Error: Stderr Pipe Failed"))
+		return
+	}
 
 	go func() { io.Copy(wsWriter{ws}, stdout) }()
 	go func() { io.Copy(wsWriter{ws}, stderr) }()
@@ -146,11 +159,16 @@ func (h *Handler) HandleSSHWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Set inactivity timeout (30 min) — reset on each message
+	const idleTimeout = 30 * time.Minute
+	ws.SetReadDeadline(time.Now().Add(idleTimeout))
+
 	for {
 		_, msg, err := ws.ReadMessage()
 		if err != nil {
 			break
 		}
+		ws.SetReadDeadline(time.Now().Add(idleTimeout))
 
 		sMsg := string(msg)
 		if len(sMsg) > 7 && sMsg[:7] == "RESIZE:" {

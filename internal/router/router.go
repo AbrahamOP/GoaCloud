@@ -121,8 +121,10 @@ func New(h *handlers.Handler, store *sessions.CookieStore, db *sql.DB, cookieSec
 		// Search
 		r.Get("/api/search", h.HandleSearch)
 
-		// Favorites
+		// Apps management
 		r.Post("/api/apps/pin", h.HandleTogglePin)
+		r.Post("/api/apps/update", h.HandleUpdateApp)
+		r.Delete("/api/apps/delete", h.HandleDeleteApp)
 	})
 
 	return r

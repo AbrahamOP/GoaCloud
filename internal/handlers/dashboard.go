@@ -51,5 +51,8 @@ func (h *Handler) getApps() ([]models.App, error) {
 		}
 		apps = append(apps, a)
 	}
+	if err := rows.Err(); err != nil {
+		return apps, err
+	}
 	return apps, nil
 }

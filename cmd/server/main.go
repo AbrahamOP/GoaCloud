@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -59,7 +60,10 @@ func main() {
 			if err != nil {
 				return "", err
 			}
-			return template.JS(a), nil
+			// Escape </script> and <!-- to prevent injection in <script> blocks
+			s := strings.ReplaceAll(string(a), "</", `<\/`)
+			s = strings.ReplaceAll(s, "<!--", `<\!--`)
+			return template.JS(s), nil
 		},
 	}
 	tmpl := template.New("").Funcs(funcMap)
@@ -175,13 +179,36 @@ func main() {
 		SSEBroker:    sseBroker,
 	}
 
-	// Background workers
-	go workers.StartCacheWorker(db, cfg, proxmoxService, proxmoxCache, sseBroker)
-	go workers.StartWazuhWorker(wazuhClient, wazuhIndexer, wazuhCache, vulnCache)
-	go workers.StartSoarWorker(db, wazuhClient, wazuhIndexer, aiClient, discordBot, soarConfigState)
-	go workers.StartProxmoxAuthMonitor(cfg, proxmoxService, discordBot)
-	go workers.StartHealthWorker(db)
-	go workers.StartAnsibleScheduler(db, sshService, discordBot)
+	// Background workers with context for graceful shutdown
+	workerCtx, workerCancel := context.WithCancel(context.Background())
+	var wg sync.WaitGroup
+
+	startWorker := func(name string, fn func(context.Context)) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			fn(workerCtx)
+		}()
+	}
+
+	startWorker("cache", func(ctx context.Context) {
+		workers.StartCacheWorker(ctx, db, cfg, proxmoxService, proxmoxCache, sseBroker)
+	})
+	startWorker("wazuh", func(ctx context.Context) {
+		workers.StartWazuhWorker(ctx, wazuhClient, wazuhIndexer, wazuhCache, vulnCache)
+	})
+	startWorker("soar", func(ctx context.Context) {
+		workers.StartSoarWorker(ctx, db, wazuhClient, wazuhIndexer, aiClient, discordBot, soarConfigState)
+	})
+	startWorker("proxmox-auth", func(ctx context.Context) {
+		workers.StartProxmoxAuthMonitor(ctx, cfg, proxmoxService, discordBot)
+	})
+	startWorker("health", func(ctx context.Context) {
+		workers.StartHealthWorker(ctx, db)
+	})
+	startWorker("ansible", func(ctx context.Context) {
+		workers.StartAnsibleScheduler(ctx, db, sshService, discordBot)
+	})
 
 	// TLS cert
 	if err := server.EnsureCert(); err != nil {
@@ -209,12 +236,28 @@ func main() {
 	<-quit
 	slog.Info("Shutting down server...")
 
+	// Stop all background workers
+	workerCancel()
+	workerDone := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(workerDone)
+	}()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
 		slog.Error("Server forced to shutdown", "error", err)
 		os.Exit(1)
+	}
+
+	// Wait for workers to finish (with timeout)
+	select {
+	case <-workerDone:
+		slog.Info("All workers stopped")
+	case <-ctx.Done():
+		slog.Warn("Timeout waiting for workers to stop")
 	}
 
 	slog.Info("Server stopped gracefully")
