@@ -30,6 +30,24 @@ func AuthMiddleware(store *sessions.CookieStore, db *sql.DB, next http.Handler) 
 			return
 		}
 
+		// Revalidate user still exists in DB with current role
+		username, _ := session.Values["username"].(string)
+		if username == "" {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
+		var dbRole string
+		if err := db.QueryRow("SELECT role FROM users WHERE username = ?", username).Scan(&dbRole); err != nil {
+			// User was deleted or DB error — invalidate session
+			session.Values["authenticated"] = false
+			session.Save(r, w)
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
+		// Keep session role in sync with DB
+		session.Values["role"] = dbRole
+		session.Save(r, w)
+
 		next.ServeHTTP(w, r)
 	})
 }

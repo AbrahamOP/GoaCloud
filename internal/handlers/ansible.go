@@ -40,6 +40,9 @@ func (h *Handler) HandleAnsible(w http.ResponseWriter, r *http.Request) {
 			}
 			vms = append(vms, v)
 		}
+		if err := rows.Err(); err != nil {
+			slog.Error("Error iterating VMs", "error", err)
+		}
 	} else {
 		slog.Error("Error fetching VMCache for Ansible", "error", err)
 	}

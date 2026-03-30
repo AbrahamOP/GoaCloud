@@ -70,5 +70,8 @@ func runHealthChecks(db *sql.DB) {
 			slog.Error("Health worker: failed to update status", "id", id, "error", err)
 		}
 	}
+	if err := rows.Err(); err != nil {
+		slog.Error("Health worker: row iteration error", "error", err)
+	}
 	slog.Debug("Health checks completed")
 }

@@ -55,6 +55,7 @@ func (h *Handler) HandleMetricsHistory(w http.ResponseWriter, r *http.Request) {
 			points = append(points, p)
 		}
 	}
+	_ = rows.Err()
 	if points == nil {
 		points = []MetricPoint{}
 	}

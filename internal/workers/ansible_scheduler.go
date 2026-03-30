@@ -55,6 +55,9 @@ func runDueSchedules(db *sql.DB, sshService *services.SSHService, discord *servi
 		}
 		jobs = append(jobs, j)
 	}
+	if err := rows.Err(); err != nil {
+		slog.Error("Ansible scheduler: row iteration error", "error", err)
+	}
 
 	for _, j := range jobs {
 		go executeScheduledPlaybook(db, sshService, discord, j.ID, j.Playbook, j.VMID, j.KeyID, j.IntervalMinutes)

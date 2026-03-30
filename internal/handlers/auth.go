@@ -71,7 +71,12 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			h.Templates.ExecuteTemplate(w, "login.html", data)
 			return
 		}
-		valid := totp.Validate(mfaCode, mfaSecret.String)
+		// Decrypt MFA secret (supports both encrypted and legacy plaintext)
+		secret := mfaSecret.String
+		if decrypted, err := h.SSHService.DecryptData(secret); err == nil {
+			secret = decrypted
+		}
+		valid := totp.Validate(mfaCode, secret)
 		if !valid {
 			n, blocked := h.RateLimiter.RecordFailure(clientIP)
 			go h.notifyLoginFailure(clientIP, username, "Code MFA invalide", n, blocked)

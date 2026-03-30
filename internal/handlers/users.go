@@ -29,6 +29,9 @@ func (h *Handler) HandleUsers(w http.ResponseWriter, r *http.Request) {
 		}
 		users = append(users, u)
 	}
+	if err := rows.Err(); err != nil {
+		slog.Error("Error iterating users", "error", err)
+	}
 
 	data := struct {
 		Users []models.User

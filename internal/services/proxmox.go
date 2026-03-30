@@ -186,6 +186,7 @@ func (p *ProxmoxService) GetStats(rawURL, configuredNode, tokenID, secret string
 						ipMap[vmid] = ip
 					}
 				}
+				_ = rows.Err()
 				for i := range stats.VMs {
 					if val, ok := ipMap[stats.VMs[i].ID]; ok {
 						stats.VMs[i].IP = val
