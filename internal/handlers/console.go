@@ -159,11 +159,16 @@ func (h *Handler) HandleSSHWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Set inactivity timeout (30 min) — reset on each message
+	const idleTimeout = 30 * time.Minute
+	ws.SetReadDeadline(time.Now().Add(idleTimeout))
+
 	for {
 		_, msg, err := ws.ReadMessage()
 		if err != nil {
 			break
 		}
+		ws.SetReadDeadline(time.Now().Add(idleTimeout))
 
 		sMsg := string(msg)
 		if len(sMsg) > 7 && sMsg[:7] == "RESIZE:" {
