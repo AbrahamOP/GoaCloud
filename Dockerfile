@@ -24,20 +24,32 @@ RUN go mod download
 RUN CGO_ENABLED=0 GOOS=linux go build -o goacloud ./cmd/server
 
 # Final Stage
-FROM alpine:latest
+FROM alpine:3.21
 
 WORKDIR /app
 
 # Ajout des certificats CA, timezone, ansible et client ssh
 RUN apk --no-cache add ca-certificates tzdata ansible openssh
 
+# Create non-root user
+RUN addgroup -g 1000 goacloud && adduser -D -u 1000 -G goacloud goacloud
+
 # Copie du binaire depuis le builder
 COPY --from=builder /app/goacloud .
 COPY playbooks/ ./playbooks/
 COPY ansible.cfg ./
 
+# Ensure app user owns the working directory
+RUN chown -R goacloud:goacloud /app
+
+USER goacloud
+
 # Exposition du port
 EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget -qO /dev/null https://localhost:8443/login --no-check-certificate || exit 1
 
 # Commande de démarrage
 CMD ["./goacloud"]

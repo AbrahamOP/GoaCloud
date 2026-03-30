@@ -2,6 +2,7 @@ package workers
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"fmt"
 	"io"
@@ -14,12 +15,18 @@ import (
 )
 
 // StartAnsibleScheduler checks for due ansible schedules every 60 seconds and executes them.
-func StartAnsibleScheduler(db *sql.DB, sshService *services.SSHService, discord *services.DiscordBot) {
+func StartAnsibleScheduler(ctx context.Context, db *sql.DB, sshService *services.SSHService, discord *services.DiscordBot) {
 	slog.Info("Starting Ansible Scheduler Worker...")
 	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()
-	for range ticker.C {
-		runDueSchedules(db, sshService, discord)
+	for {
+		select {
+		case <-ctx.Done():
+			slog.Info("Ansible Scheduler stopped")
+			return
+		case <-ticker.C:
+			runDueSchedules(db, sshService, discord)
+		}
 	}
 }
 

@@ -14,6 +14,7 @@ import (
 
 // StartSoarWorker starts the background worker that checks SOAR events and sends alerts.
 func StartSoarWorker(
+	ctx context.Context,
 	db *sql.DB,
 	wazuhClient *services.WazuhClient,
 	wazuhIndexer *services.WazuhIndexerClient,
@@ -40,29 +41,40 @@ func StartSoarWorker(
 	}
 
 	// Start dedup cleaner
-	go StartAlertDedupCleaner(alertDedup)
+	go StartAlertDedupCleaner(ctx, alertDedup)
 
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		loadSoarConfig(db, soarConfig)
-		checkSoarEvents(wazuhClient, wazuhIndexer, aiClient, discord, soarConfig, agentStatus, alertDedup)
+	for {
+		select {
+		case <-ctx.Done():
+			slog.Info("SOAR Worker stopped")
+			return
+		case <-ticker.C:
+			loadSoarConfig(db, soarConfig)
+			checkSoarEvents(wazuhClient, wazuhIndexer, aiClient, discord, soarConfig, agentStatus, alertDedup)
+		}
 	}
 }
 
 // StartAlertDedupCleaner periodically removes old alert dedup entries to prevent memory leaks.
-func StartAlertDedupCleaner(alertDedup *sync.Map) {
+func StartAlertDedupCleaner(ctx context.Context, alertDedup *sync.Map) {
 	ticker := time.NewTicker(1 * time.Hour)
 	defer ticker.Stop()
-	for range ticker.C {
-		cutoff := time.Now().Add(-2 * time.Hour)
-		alertDedup.Range(func(k, v interface{}) bool {
-			if t, ok := v.(time.Time); ok && t.Before(cutoff) {
-				alertDedup.Delete(k)
-			}
-			return true
-		})
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			cutoff := time.Now().Add(-2 * time.Hour)
+			alertDedup.Range(func(k, v interface{}) bool {
+				if t, ok := v.(time.Time); ok && t.Before(cutoff) {
+					alertDedup.Delete(k)
+				}
+				return true
+			})
+		}
 	}
 }
 
