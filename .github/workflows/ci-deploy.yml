@@ -88,6 +88,113 @@ jobs:
             }]
           }"
 
+  release:
+    name: Auto Release
+    needs: deploy-prod
+    runs-on: self-hosted
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version bump and create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -e
+
+          # Get latest tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Latest tag: $LATEST_TAG"
+
+          # Parse current version
+          VERSION="${LATEST_TAG#v}"
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+          PATCH=$(echo "$VERSION" | cut -d. -f3)
+
+          # Analyze commits since last tag
+          COMMITS=$(git log "${LATEST_TAG}..HEAD" --pretty=format:"%s" 2>/dev/null || git log --pretty=format:"%s")
+
+          HAS_BREAKING=false
+          HAS_FEAT=false
+          HAS_FIX=false
+
+          while IFS= read -r msg; do
+            if echo "$msg" | grep -qi "BREAKING CHANGE\|^.*!:"; then
+              HAS_BREAKING=true
+            elif echo "$msg" | grep -q "^feat"; then
+              HAS_FEAT=true
+            elif echo "$msg" | grep -q "^fix"; then
+              HAS_FIX=true
+            fi
+          done <<< "$COMMITS"
+
+          # Determine bump
+          if [ "$HAS_BREAKING" = true ]; then
+            MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0
+          elif [ "$HAS_FEAT" = true ]; then
+            MINOR=$((MINOR + 1)); PATCH=0
+          elif [ "$HAS_FIX" = true ]; then
+            PATCH=$((PATCH + 1))
+          else
+            PATCH=$((PATCH + 1))
+          fi
+
+          NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "New version: $NEW_TAG"
+
+          # Skip if tag already exists
+          if git rev-parse "$NEW_TAG" >/dev/null 2>&1; then
+            echo "Tag $NEW_TAG already exists, skipping release"
+            exit 0
+          fi
+
+          # Build changelog grouped by type
+          CHANGELOG=""
+          FEATS=$(git log "${LATEST_TAG}..HEAD" --pretty=format:"- %s (%h)" --grep="^feat" 2>/dev/null || true)
+          FIXES=$(git log "${LATEST_TAG}..HEAD" --pretty=format:"- %s (%h)" --grep="^fix" 2>/dev/null || true)
+          OTHERS=$(git log "${LATEST_TAG}..HEAD" --pretty=format:"%s" 2>/dev/null | grep -v "^feat\|^fix" | sed 's/^/- /' || true)
+
+          if [ -n "$FEATS" ]; then
+            CHANGELOG="${CHANGELOG}### Features\n${FEATS}\n\n"
+          fi
+          if [ -n "$FIXES" ]; then
+            CHANGELOG="${CHANGELOG}### Bug Fixes\n${FIXES}\n\n"
+          fi
+          if [ -n "$OTHERS" ]; then
+            CHANGELOG="${CHANGELOG}### Other Changes\n${OTHERS}\n\n"
+          fi
+
+          BODY=$(printf "## What's Changed\n\n${CHANGELOG}**Full Changelog**: https://github.com/${REPO}/compare/${LATEST_TAG}...${NEW_TAG}")
+
+          # Create tag and release
+          git tag "$NEW_TAG"
+          git push origin "$NEW_TAG"
+          gh release create "$NEW_TAG" \
+            --title "$NEW_TAG" \
+            --notes "$BODY" \
+            --latest
+
+          echo "Release $NEW_TAG created successfully"
+
+          # Notify Discord
+          if [ -n "$DISCORD_WEBHOOK" ]; then
+            curl -sf -H "Content-Type: application/json" -X POST "$DISCORD_WEBHOOK" -d "{
+              \"embeds\": [{
+                \"title\": \"GoaCloud $NEW_TAG Released\",
+                \"description\": \"Nouvelle release deployee en production.\\n\\n:link: https://github.com/${REPO}/releases/tag/${NEW_TAG}\",
+                \"color\": 5763719,
+                \"footer\": {\"text\": \"Auto-release | main\"}
+              }]
+            }" || true
+          fi
+
   notify-pr:
     name: PR Check
     needs: build
