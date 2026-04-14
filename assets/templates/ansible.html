@@ -2,189 +2,28 @@
 <html lang="fr">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {{template "head-common" .}}
     <title>GoaCloud - Ansible</title>
-    <link rel="icon" type="image/png" href="https://img.icons8.com/dusk/64/server.png">
-    <link rel="stylesheet" href="/static/tailwind.min.css">
-    <link rel="stylesheet" href="/static/theme.css">
-    <link rel="preconnect" href="https://img.icons8.com">
     <style>
         body {
             font-family: 'Outfit', sans-serif;
-            background-color: #0f0e17;
-            color: #d1d5db;
-        }
-
-        .glass-panel {
-            background: #1b1928;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .gradient-text {
-            background: linear-gradient(to right, #ff8a00, #e52e71);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .sidebar-link.active {
-            background: linear-gradient(90deg, rgba(229, 46, 113, 0.15) 0%, rgba(0, 0, 0, 0) 100%);
-            border-left: 3px solid #e52e71;
-            color: #fff;
         }
     </style>
 </head>
 
-<body class="min-h-screen flex">
+<body class="min-h-screen flex bg-surface text-on-surface">
 
-    <!-- Mobile Overlay -->
-    <div id="mobile-overlay"
-        class="fixed inset-0 bg-black/50 z-40 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
+    {{template "mobile-overlay" .}}
 
-    <!-- Sidebar -->
-    <aside id="sidebar"
-        class="fixed inset-y-0 left-0 z-50 w-64 overflow-y-auto bg-[#151421] border-r border-[#2a2839] flex flex-col justify-between transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
-        <div>
-            <div class="p-8">
-                <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-                    <div class="w-3 h-3 rounded-full bg-gradient-to-r from-pink-500 to-orange-500"></div>
-                    GoaCloud
-                </h1>
-            </div>
-
-            <nav class="mt-4 px-4 space-y-2">
-                <p class="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Menu</p>
-                <a href="/"
-                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:bg-white/5 hover:text-white text-gray-400 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                    </svg>
-                    Applications
-                </a>
-                <a href="/proxmox"
-                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:bg-white/5 hover:text-white text-gray-400 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-3 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                    Proxmox
-                </a>
-                <a href="/wazuh"
-                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-3 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                    Sécurité (Wazuh)
-                </a>
-                <a href="/soar"
-                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:bg-white/5 hover:text-white text-gray-400 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-3 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    SOAR
-                </a>
-                <a href="/ssh"
-                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:bg-white/5 hover:text-white text-gray-400 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-3 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z">
-                        </path>
-                    </svg>
-                    Clés SSH
-                </a>
-                <a href="/ansible"
-                    class="sidebar-link active flex items-center px-4 py-3 text-sm font-medium rounded-r-lg transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-3 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
-                        </path>
-                    </svg>
-                    Ansible
-                </a>
-                <a href="/console"
-                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
-                        </path>
-                    </svg>
-                    Console Web
-                </a>
-
-
-            </nav>
-        </div>
-
-        <div class="p-4 border-t border-[#2a2839] flex items-center justify-around">
-            <button id="theme-toggle" onclick="toggleTheme()" title="Changer le thème"
-                class="block p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors duration-200">
-                <svg class="icon-moon w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
-                </svg>
-                <svg class="icon-sun w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-                </svg>
-            </button>
-            <a id="sidebar-github-link" href="/profile" title="Mon profil"
-                class="block p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors duration-200">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-            </a>
-
-
-
-            <a href="/users" title="Administration"
-                class="block p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors duration-200">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-            </a>
-            <form action="/logout" method="POST">
-                <button type="submit" title="Déconnexion"
-                    class="block p-2 text-red-400 hover:text-red-300 rounded-lg hover:bg-red-500/10 transition-colors duration-200">
-                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
-                        </path>
-                    </svg>
-                </button>
-            </form>
-        </div>
-    </aside>
+    {{template "sidebar" .}}
 
     <!-- Main Content -->
-    <main class="flex-1 md:ml-64 overflow-y-auto bg-[#0f0e17] relative">
-        <!-- Top Right Actions (Profile & Mobile Menu) -->
-        <div class="absolute top-6 right-6 z-50 flex items-center gap-4">
-            <a href="/profile"
-                class="hidden md:flex items-center justify-center p-2 rounded-lg bg-[#1b1928] hover:bg-white/5 text-cyan-400 hover:text-cyan-300 transition-colors border border-[#2a2839]"
-                title="Mon Profil">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-            </a>
-            <!-- Mobile Menu Button -->
-            <button id="mobile-menu-btn"
-                class="md:hidden bg-[#1b1928] text-gray-400 p-2 rounded-lg border border-[#2a2839]">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-            </button>
-        </div>
+    <main class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
+        {{template "top-actions" .}}
 
         <!-- Header -->
-        <div class="h-20 border-b border-[#2a2839] flex items-center justify-between px-8 bg-[#0f0e17] z-10">
-            <h1 class="text-2xl font-bold gradient-text">
+        <div class="h-20 border-b border-outline-variant flex items-center justify-between px-8 bg-surface z-10">
+            <h1 class="text-2xl font-bold text-primary">
                 Gestion Ansible
             </h1>
         </div>
@@ -196,14 +35,14 @@
 
                 <!-- PLAYBOOKS LIST (Left) -->
                 <div
-                    class="glass-panel rounded-2xl p-0 shadow-xl relative overflow-hidden flex flex-col h-full lg:col-span-1">
-                    <div class="px-6 py-4 border-b border-[#2a2839] bg-[#161521]/50 flex justify-between items-center">
-                        <h3 class="font-semibold text-white">📚 Playbooks</h3>
+                    class="bg-surface-container border border-outline-variant rounded-xl p-0 shadow-xl relative overflow-hidden flex flex-col h-full lg:col-span-1">
+                    <div class="px-6 py-4 border-b border-outline-variant bg-surface-container-low/50 flex justify-between items-center">
+                        <h3 class="font-semibold text-on-surface">📚 Playbooks</h3>
                         <div class="flex items-center gap-2">
-                            <span class="text-xs bg-[#2a2839] text-gray-400 px-2 py-1 rounded-full">{{len .Playbooks}}
+                            <span class="text-xs bg-outline-variant text-on-surface-variant px-2 py-1 rounded-full">{{len .Playbooks}}
                                 found</span>
                             <button onclick="openUploadModal()"
-                                class="text-gray-400 hover:text-white p-1 rounded hover:bg-white/10 transition"
+                                class="text-on-surface-variant hover:text-on-surface p-1 rounded hover:bg-surface-container-highest transition"
                                 title="Ajouter un Playbook">
                                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -214,18 +53,18 @@
                     </div>
                     <div class="overflow-y-auto flex-1 p-4 space-y-6">
                         {{if not .Playbooks}}
-                        <div class="text-center p-8 text-gray-500 text-sm">
+                        <div class="text-center p-8 text-on-surface-variant text-sm">
                             No playbooks found in <code>playbooks/</code>
                         </div>
                         {{else}}
                         {{range $category, $files := .Playbooks}}
                         <div class="space-y-2">
                             <h4
-                                class="text-xs font-bold text-gray-500 uppercase tracking-widest px-1 mb-2 border-b border-gray-700/50 pb-1">
+                                class="text-xs font-bold text-on-surface-variant uppercase tracking-widest px-1 mb-2 border-b border-outline-variant pb-1">
                                 {{$category}}</h4>
                             <div class="grid grid-cols-1 gap-2">
                                 {{range $files}}
-                                <div class="group flex items-center justify-between p-3 rounded-lg bg-[#2a2839]/20 hover:bg-[#2a2839]/80 border border-transparent hover:border-orange-500/30 cursor-pointer transition-all duration-200"
+                                <div class="group flex items-center justify-between p-3 rounded-lg bg-outline-variant/20 hover:bg-outline-variant/80 border border-transparent hover:border-orange-500/30 cursor-pointer transition-all duration-200"
                                     onclick="selectPlaybook('{{.}}')">
                                     <div class="flex items-center gap-3">
                                         <span
@@ -237,11 +76,11 @@
                                         </span>
                                         <div class="flex flex-col">
                                             <span
-                                                class="text-sm font-medium text-gray-300 group-hover:text-white truncate max-w-[180px]"
+                                                class="text-sm font-medium text-on-surface group-hover:text-on-surface truncate max-w-[180px]"
                                                 title="{{.}}">{{.}}</span>
                                         </div>
                                     </div>
-                                    <svg class="w-4 h-4 text-gray-600 group-hover:text-orange-400 transform group-hover:translate-x-1 transition-transform"
+                                    <svg class="w-4 h-4 text-on-surface-variant group-hover:text-orange-400 transform group-hover:translate-x-1 transition-transform"
                                         fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M9 5l7 7-7 7" />
@@ -257,9 +96,9 @@
 
                 <!-- EXECUTION PANEL (Right) -->
                 <div
-                    class="glass-panel rounded-2xl p-6 shadow-xl relative overflow-hidden flex flex-col h-full lg:col-span-2">
+                    class="bg-surface-container border border-outline-variant rounded-xl p-6 shadow-xl relative overflow-hidden flex flex-col h-full lg:col-span-2">
                     <div class="mb-4">
-                        <h3 class="text-lg font-semibold text-white mb-1 flex items-center">
+                        <h3 class="text-lg font-semibold text-on-surface mb-1 flex items-center">
                             <svg class="w-5 h-5 mr-2 text-orange-400" fill="none" stroke="currentColor"
                                 viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -270,21 +109,21 @@
                             </svg>
                             Exécuter Playbook
                         </h3>
-                        <p class="text-sm text-gray-500">Sélectionnez une cible et lancez l'automatisation.</p>
+                        <p class="text-sm text-on-surface-variant">Sélectionnez une cible et lancez l'automatisation.</p>
                     </div>
 
                     <!-- Controls -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label class="block text-xs font-medium text-gray-500 mb-1">Playbook</label>
+                            <label class="block text-xs font-medium text-on-surface-variant mb-1">Playbook</label>
                             <input type="text" id="selected-playbook" readonly
-                                class="w-full bg-[#1a1926] border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none"
+                                class="w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary"
                                 placeholder="Aucun sélectionné...">
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-gray-500 mb-1">Cible (VM/Container)</label>
+                            <label class="block text-xs font-medium text-on-surface-variant mb-1">Cible (VM/Container)</label>
                             <select id="target-vm" onchange="autoSelectSSHKey()"
-                                class="w-full bg-[#1a1926] border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none">
+                                class="w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
                                 <option value="" disabled selected>Choisir une VM...</option>
                                 {{range .VMs}}
                                 <option value="{{.ID}}" data-name="{{.Name}}">{{.Name}} ({{.ID}})</option>
@@ -292,10 +131,10 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-gray-500 mb-1">Clé SSH
+                            <label class="block text-xs font-medium text-on-surface-variant mb-1">Clé SSH
                                 (Authentification)</label>
                             <select id="ssh-key"
-                                class="w-full bg-[#1a1926] border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none">
+                                class="w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
                                 <option value="" disabled selected>Choisir une Clé...</option>
                                 {{range .Keys}}
                                 <option value="{{.ID}}" data-name="{{.Name}}" data-associated-vms="{{.AssociatedVMs}}">
@@ -305,25 +144,25 @@
                         </div>
                         <div class="flex items-end">
                             <button onclick="runPlaybook()"
-                                class="w-full bg-gradient-to-r from-orange-600 to-pink-600 hover:from-orange-500 hover:to-pink-500 text-white font-medium py-2 px-4 rounded transition-all shadow-lg hover:scale-105 h-[38px]">
+                                class="w-full bg-primary text-on-primary font-medium py-2 px-4 rounded-full transition-all h-[38px]">
                                 ▶ Lancer
                             </button>
                         </div>
                     </div>
 
                     <!-- Terminal Output -->
-                    <div class="flex-1 bg-[#0a0a0e] rounded-xl border border-gray-800 p-4 font-mono text-xs overflow-y-auto relative"
+                    <div class="flex-1 bg-surface-container-lowest rounded-xl border border-outline-variant p-4 font-mono text-xs overflow-y-auto relative"
                         id="terminal-container">
                         <div class="absolute top-2 right-2 flex gap-2">
-                            <button onclick="clearTerminal()" class="text-gray-600 hover:text-white" title="Effacer">
+                            <button onclick="clearTerminal()" class="text-on-surface-variant hover:text-on-surface" title="Effacer">
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                             </button>
                         </div>
-                        <div id="terminal-output" class="whitespace-pre-wrap text-gray-300">
-                            <span class="text-gray-600">En attente de commande...</span>
+                        <div id="terminal-output" class="whitespace-pre-wrap text-on-surface">
+                            <span class="text-on-surface-variant">En attente de commande...</span>
                         </div>
                     </div>
                 </div>
@@ -331,20 +170,20 @@
             </div>
 
             <!-- Scheduled Playbooks -->
-            <div class="glass-panel rounded-2xl shadow-xl overflow-hidden">
-                <div class="px-6 py-4 border-b border-[#2a2839] bg-[#161521]/50 flex justify-between items-center">
-                    <h3 class="font-semibold text-white flex items-center gap-2">
+            <div class="bg-surface-container border border-outline-variant rounded-xl shadow-xl overflow-hidden">
+                <div class="px-6 py-4 border-b border-outline-variant bg-surface-container-low/50 flex justify-between items-center">
+                    <h3 class="font-semibold text-on-surface flex items-center gap-2">
                         <svg class="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         Planifications
                     </h3>
                     <button onclick="openScheduleModal()"
-                        class="flex items-center gap-2 text-sm bg-purple-600 hover:bg-purple-500 text-white px-3 py-1.5 rounded-lg transition">
+                        class="flex items-center gap-2 text-sm bg-primary text-on-primary px-3 py-1.5 rounded-full transition">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                         Planifier
                     </button>
                 </div>
                 <div id="schedules-container" class="p-4">
-                    <p class="text-center text-gray-600 text-sm py-6">Chargement...</p>
+                    <p class="text-center text-on-surface-variant text-sm py-6">Chargement...</p>
                 </div>
             </div>
 
@@ -353,18 +192,18 @@
     </main>
 
     <!-- Schedule Modal -->
-    <div id="schedule-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center">
-        <div class="glass-panel w-full max-w-lg p-6 rounded-2xl shadow-2xl">
+    <div id="schedule-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+        <div class="bg-surface-container border border-outline-variant w-full max-w-lg p-6 rounded-xl shadow-2xl">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-lg font-bold text-white">Planifier un Playbook</h3>
-                <button onclick="closeScheduleModal()" class="text-gray-400 hover:text-white">
+                <h3 class="text-lg font-bold text-on-surface">Planifier un Playbook</h3>
+                <button onclick="closeScheduleModal()" class="text-on-surface-variant hover:text-on-surface">
                     <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
             <div class="space-y-4">
                 <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1">Playbook</label>
-                    <select id="sched-playbook" class="w-full bg-[#1a1926] border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none">
+                    <label class="block text-xs font-medium text-on-surface-variant mb-1">Playbook</label>
+                    <select id="sched-playbook" class="w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
                         <option value="" disabled selected>Choisir un playbook...</option>
                         {{range $category, $files := .Playbooks}}{{range $files}}
                         <option value="{{.}}">{{.}}</option>
@@ -372,8 +211,8 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1">Cible (VM/Container)</label>
-                    <select id="sched-vm" class="w-full bg-[#1a1926] border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none">
+                    <label class="block text-xs font-medium text-on-surface-variant mb-1">Cible (VM/Container)</label>
+                    <select id="sched-vm" class="w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
                         <option value="" disabled selected>Choisir une VM...</option>
                         {{range .VMs}}
                         <option value="{{.ID}}">{{.Name}} ({{.ID}})</option>
@@ -381,8 +220,8 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1">Clé SSH</label>
-                    <select id="sched-key" class="w-full bg-[#1a1926] border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none">
+                    <label class="block text-xs font-medium text-on-surface-variant mb-1">Clé SSH</label>
+                    <select id="sched-key" class="w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
                         <option value="" disabled selected>Choisir une clé...</option>
                         {{range .Keys}}
                         <option value="{{.ID}}">{{.Name}}</option>
@@ -390,8 +229,8 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1">Fréquence</label>
-                    <select id="sched-interval" class="w-full bg-[#1a1926] border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none">
+                    <label class="block text-xs font-medium text-on-surface-variant mb-1">Fréquence</label>
+                    <select id="sched-interval" class="w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
                         <option value="5">Toutes les 5 minutes</option>
                         <option value="15">Toutes les 15 minutes</option>
                         <option value="30">Toutes les 30 minutes</option>
@@ -402,7 +241,7 @@
                         <option value="10080">Toutes les semaines</option>
                     </select>
                 </div>
-                <button onclick="createSchedule()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium py-2 rounded-lg transition-all shadow-lg">
+                <button onclick="createSchedule()" class="w-full bg-primary text-on-primary font-medium py-2 rounded-full transition-all shadow-lg">
                     Créer la planification
                 </button>
                 <p id="sched-status" class="text-center text-xs mt-1 h-4"></p>
@@ -411,25 +250,25 @@
     </div>
 
     <!-- Schedule Output Modal -->
-    <div id="sched-output-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center">
-        <div class="glass-panel w-full max-w-3xl p-6 rounded-2xl shadow-2xl">
+    <div id="sched-output-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+        <div class="bg-surface-container border border-outline-variant w-full max-w-3xl p-6 rounded-xl shadow-2xl">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-white">Dernière sortie</h3>
-                <button onclick="document.getElementById('sched-output-modal').classList.add('hidden')" class="text-gray-400 hover:text-white">
+                <h3 class="text-lg font-bold text-on-surface">Dernière sortie</h3>
+                <button onclick="document.getElementById('sched-output-modal').classList.add('hidden')" class="text-on-surface-variant hover:text-on-surface">
                     <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
-            <div id="sched-output-content" class="bg-[#0a0a0e] rounded-xl border border-gray-800 p-4 font-mono text-xs overflow-y-auto max-h-96 whitespace-pre-wrap text-gray-300"></div>
+            <div id="sched-output-content" class="bg-surface-container-lowest rounded-xl border border-outline-variant p-4 font-mono text-xs overflow-y-auto max-h-96 whitespace-pre-wrap text-on-surface"></div>
         </div>
     </div>
 
     <!-- Upload Modal -->
     <div id="upload-modal"
-        class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center">
-        <div class="glass-panel w-full max-w-4xl p-6 rounded-2xl shadow-2xl transform transition-all scale-100">
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+        <div class="bg-surface-container border border-outline-variant w-full max-w-4xl p-6 rounded-xl shadow-2xl transform transition-all scale-100">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-lg font-bold text-white">Ajouter un Playbook</h3>
-                <button onclick="closeUploadModal()" class="text-gray-400 hover:text-white">
+                <h3 class="text-lg font-bold text-on-surface">Ajouter un Playbook</h3>
+                <button onclick="closeUploadModal()" class="text-on-surface-variant hover:text-on-surface">
                     <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M6 18L18 6M6 6l12 12" />
@@ -438,11 +277,11 @@
             </div>
 
             <!-- Tabs -->
-            <div class="flex border-b border-gray-700 mb-4">
+            <div class="flex border-b border-outline-variant mb-4">
                 <button onclick="switchTab('upload')" id="tab-upload"
-                    class="flex-1 py-2 text-sm font-medium text-white border-b-2 border-orange-500 focus:outline-none">Uploader</button>
+                    class="flex-1 py-2 text-sm font-medium text-on-surface border-b-2 border-primary focus:outline-none">Uploader</button>
                 <button onclick="switchTab('write')" id="tab-write"
-                    class="flex-1 py-2 text-sm font-medium text-gray-400 border-b-2 border-transparent hover:text-white focus:outline-none">Écrire</button>
+                    class="flex-1 py-2 text-sm font-medium text-on-surface-variant border-b-2 border-transparent hover:text-on-surface focus:outline-none">Écrire</button>
             </div>
 
             <div class="space-y-4">
@@ -453,22 +292,22 @@
 
                 <!-- Upload Mode -->
                 <div id="mode-upload" class="block">
-                    <label class="block text-sm font-medium text-gray-400 mb-2">Fichier YAML (.yml)</label>
+                    <label class="block text-sm font-medium text-on-surface-variant mb-2">Fichier YAML (.yml)</label>
                     <input type="file" id="playbook-file" accept=".yml,.yaml"
-                        class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-500/10 file:text-violet-400 hover:file:bg-violet-500/20 cursor-pointer bg-[#1a1926] rounded-lg border border-gray-700 p-2 focus:outline-none">
+                        class="w-full text-sm text-on-surface-variant file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer bg-transparent rounded-lg border border-outline p-2 focus:outline-none">
                 </div>
 
                 <!-- Write Mode -->
                 <div id="mode-write" class="hidden space-y-3">
                     <div>
-                        <label class="block text-xs font-medium text-gray-400 mb-1">Nom du fichier (.yml)</label>
+                        <label class="block text-xs font-medium text-on-surface-variant mb-1">Nom du fichier (.yml)</label>
                         <input type="text" id="playbook-filename" placeholder="exemple_install.yml"
-                            class="w-full bg-[#1a1926] border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none">
+                            class="w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-400 mb-1">Contenu Playbook</label>
+                        <label class="block text-xs font-medium text-on-surface-variant mb-1">Contenu Playbook</label>
                         <textarea id="playbook-content" rows="20"
-                            class="w-full bg-[#1a1926] border border-gray-700 rounded px-3 py-2 text-xs font-mono text-green-400 focus:outline-none leading-relaxed"
+                            class="w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-xs font-mono text-green-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary leading-relaxed"
                             placeholder="---
 - hosts: all
   tasks:
@@ -479,7 +318,7 @@
                 </div>
 
                 <button onclick="uploadPlaybook()" id="upload-btn"
-                    class="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-medium py-2 rounded-lg transition-all shadow-lg mt-2">
+                    class="w-full bg-primary text-on-primary font-medium py-2 rounded-full transition-all shadow-lg mt-2">
                     Sauvegarder
                 </button>
                 <p id="upload-status" class="text-center text-xs mt-2 h-4"></p>
@@ -508,7 +347,7 @@
                 if (!vmName) return;
 
                 // Reset selection first (optional, improves clarity)
-                // keySelect.selectedIndex = 0; 
+                // keySelect.selectedIndex = 0;
 
                 // Iterate keys to find best match
                 for (let i = 0; i < keySelect.options.length; i++) {
@@ -611,18 +450,18 @@
             if (tab === 'upload') {
                 document.getElementById('mode-upload').classList.remove('hidden');
                 document.getElementById('mode-write').classList.add('hidden');
-                document.getElementById('tab-upload').classList.add('border-orange-500', 'text-white');
-                document.getElementById('tab-upload').classList.remove('border-transparent', 'text-gray-400');
-                document.getElementById('tab-write').classList.remove('border-orange-500', 'text-white');
-                document.getElementById('tab-write').classList.add('border-transparent', 'text-gray-400');
+                document.getElementById('tab-upload').classList.add('border-primary', 'text-on-surface');
+                document.getElementById('tab-upload').classList.remove('border-transparent', 'text-on-surface-variant');
+                document.getElementById('tab-write').classList.remove('border-primary', 'text-on-surface');
+                document.getElementById('tab-write').classList.add('border-transparent', 'text-on-surface-variant');
                 document.getElementById('upload-btn').innerText = "Uploader";
             } else {
                 document.getElementById('mode-upload').classList.add('hidden');
                 document.getElementById('mode-write').classList.remove('hidden');
-                document.getElementById('tab-write').classList.add('border-orange-500', 'text-white');
-                document.getElementById('tab-write').classList.remove('border-transparent', 'text-gray-400');
-                document.getElementById('tab-upload').classList.remove('border-orange-500', 'text-white');
-                document.getElementById('tab-upload').classList.add('border-transparent', 'text-gray-400');
+                document.getElementById('tab-write').classList.add('border-primary', 'text-on-surface');
+                document.getElementById('tab-write').classList.remove('border-transparent', 'text-on-surface-variant');
+                document.getElementById('tab-upload').classList.remove('border-primary', 'text-on-surface');
+                document.getElementById('tab-upload').classList.add('border-transparent', 'text-on-surface-variant');
                 document.getElementById('upload-btn').innerText = "Sauvegarder";
             }
         }
@@ -712,8 +551,8 @@
         function statusBadge(status) {
             const colors = {
                 'success': 'bg-green-500/10 text-green-400 border-green-500/20',
-                'error': 'bg-red-500/10 text-red-400 border-red-500/20',
-                'pending': 'bg-gray-500/10 text-gray-400 border-gray-500/20',
+                'error': 'bg-error-container text-error border-error/20',
+                'pending': 'bg-surface-container-high text-on-surface-variant border-outline-variant',
                 'running': 'bg-blue-500/10 text-blue-400 border-blue-500/20'
             };
             const labels = { 'success': 'OK', 'error': 'Erreur', 'pending': 'En attente', 'running': 'En cours' };
@@ -726,38 +565,38 @@
             fetch('/api/ansible/schedules').then(r => r.json()).then(data => {
                 const container = document.getElementById('schedules-container');
                 if (!data || data.length === 0) {
-                    container.innerHTML = '<p class="text-center text-gray-600 text-sm py-6">Aucune planification configurée</p>';
+                    container.innerHTML = '<p class="text-center text-on-surface-variant text-sm py-6">Aucune planification configurée</p>';
                     return;
                 }
-                container.innerHTML = '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-left text-xs text-gray-500 uppercase border-b border-[#2a2839]">' +
+                container.innerHTML = '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-left text-xs text-on-surface-variant uppercase border-b border-outline-variant">' +
                     '<th class="pb-3 px-2">Playbook</th><th class="pb-3 px-2">Cible</th><th class="pb-3 px-2">Fréquence</th>' +
                     '<th class="pb-3 px-2">Statut</th><th class="pb-3 px-2">Dernière exec.</th><th class="pb-3 px-2">Prochaine exec.</th>' +
                     '<th class="pb-3 px-2 text-right">Actions</th></tr></thead><tbody>' +
                     data.map(s => {
-                        const enabledClass = s.enabled ? 'text-green-400' : 'text-gray-600';
+                        const enabledClass = s.enabled ? 'text-green-400' : 'text-on-surface-variant';
                         const toggleTitle = s.enabled ? 'Désactiver' : 'Activer';
                         const toggleIcon = s.enabled
                             ? '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
                             : '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
                         const rowOpacity = s.enabled ? '' : ' opacity-50';
-                        return '<tr class="border-b border-[#2a2839]/50 hover:bg-white/5' + rowOpacity + '">' +
-                            '<td class="py-3 px-2 text-white font-medium">' + s.playbook + '</td>' +
-                            '<td class="py-3 px-2 text-gray-400">' + s.vm_name + ' (' + s.vmid + ')</td>' +
-                            '<td class="py-3 px-2 text-gray-400">' + formatInterval(s.interval_minutes) + '</td>' +
+                        return '<tr class="border-b border-outline-variant/50 hover:bg-surface-container-high' + rowOpacity + '">' +
+                            '<td class="py-3 px-2 text-on-surface font-medium">' + s.playbook + '</td>' +
+                            '<td class="py-3 px-2 text-on-surface-variant">' + s.vm_name + ' (' + s.vmid + ')</td>' +
+                            '<td class="py-3 px-2 text-on-surface-variant">' + formatInterval(s.interval_minutes) + '</td>' +
                             '<td class="py-3 px-2">' + statusBadge(s.last_status) + '</td>' +
-                            '<td class="py-3 px-2 text-gray-500">' + formatDate(s.last_run) + '</td>' +
-                            '<td class="py-3 px-2 text-gray-500">' + (s.enabled ? formatDate(s.next_run) : '-') + '</td>' +
+                            '<td class="py-3 px-2 text-on-surface-variant">' + formatDate(s.last_run) + '</td>' +
+                            '<td class="py-3 px-2 text-on-surface-variant">' + (s.enabled ? formatDate(s.next_run) : '-') + '</td>' +
                             '<td class="py-3 px-2 text-right"><div class="flex items-center justify-end gap-1">' +
-                            (s.last_output ? '<button onclick="showOutput(' + s.id + ')" class="p-1.5 rounded hover:bg-white/10 text-gray-400 hover:text-white transition" title="Voir la sortie"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></button>' : '') +
-                            '<button onclick="toggleSchedule(' + s.id + ')" class="p-1.5 rounded hover:bg-white/10 ' + enabledClass + ' transition" title="' + toggleTitle + '">' + toggleIcon + '</button>' +
-                            '<button onclick="deleteSchedule(' + s.id + ')" class="p-1.5 rounded hover:bg-white/10 text-red-400 hover:text-red-300 transition" title="Supprimer"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>' +
+                            (s.last_output ? '<button onclick="showOutput(' + s.id + ')" class="p-1.5 rounded hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface transition" title="Voir la sortie"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></button>' : '') +
+                            '<button onclick="toggleSchedule(' + s.id + ')" class="p-1.5 rounded hover:bg-surface-container-highest ' + enabledClass + ' transition" title="' + toggleTitle + '">' + toggleIcon + '</button>' +
+                            '<button onclick="deleteSchedule(' + s.id + ')" class="p-1.5 rounded hover:bg-surface-container-highest text-error hover:text-on-error-container transition" title="Supprimer"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>' +
                             '</div></td></tr>';
                     }).join('') +
                     '</tbody></table></div>';
                 // Store data for output viewing
                 window._scheduleData = data;
             }).catch(() => {
-                document.getElementById('schedules-container').innerHTML = '<p class="text-center text-red-400 text-sm py-6">Erreur de chargement</p>';
+                document.getElementById('schedules-container').innerHTML = '<p class="text-center text-error text-sm py-6">Erreur de chargement</p>';
             });
         }
 
@@ -822,39 +661,7 @@
         // Load schedules on page load
         loadSchedules();
     </script>
-    <script>
-        document.querySelectorAll('.sidebar-link').forEach(link => {
-            if (link.getAttribute('href') === window.location.pathname) {
-                link.classList.add('active');
-            }
-        });
-        fetch('/api/me').then(r => r.json()).then(data => {
-            if (data.github_url) {
-                const link = document.getElementById('sidebar-github-link');
-                if (link) {
-                    link.href = data.github_url;
-                    link.target = '_blank';
-                    link.title = 'Mon profil GitHub';
-                }
-            }
-        }).catch(() => {});
-
-        // Mobile Menu Logic
-        (function() {
-            const btn = document.getElementById('mobile-menu-btn');
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('mobile-overlay');
-            if (btn && sidebar && overlay) {
-                function toggleMenu() {
-                    const isClosed = sidebar.classList.contains('-translate-x-full');
-                    if (isClosed) { sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden'); }
-                    else { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden'); }
-                }
-                btn.addEventListener('click', toggleMenu);
-                overlay.addEventListener('click', toggleMenu);
-            }
-        })();
-    </script>
+    {{template "sidebar-js" .}}
 </body>
 
 </html>

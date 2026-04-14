@@ -2,6 +2,152 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   MD3 Design Tokens — GoaCloud
+   ============================================ */
+
+/* ---- Dark theme (default) ---- */
+:root,
+[data-theme="dark"] {
+  --md-color-primary:               #D0BCFF;
+  --md-color-on-primary:            #381E72;
+  --md-color-primary-container:     #4F378B;
+  --md-color-on-primary-container:  #EADDFF;
+
+  --md-color-secondary:             #CCC2DC;
+  --md-color-on-secondary:          #332D41;
+  --md-color-secondary-container:   #4A4458;
+  --md-color-on-secondary-container:#E8DEF8;
+
+  --md-color-tertiary:              #EFB8C8;
+  --md-color-on-tertiary:           #492532;
+  --md-color-tertiary-container:    #633B48;
+  --md-color-on-tertiary-container: #FFD8E4;
+
+  --md-color-error:                 #F2B8B5;
+  --md-color-on-error:              #601410;
+  --md-color-error-container:       #8C1D18;
+  --md-color-on-error-container:    #F9DEDC;
+
+  --md-color-surface:               #141218;
+  --md-color-on-surface:            #E6E0E9;
+  --md-color-on-surface-variant:    #CAC4D0;
+
+  --md-color-surface-container-lowest:  #0F0D13;
+  --md-color-surface-container-low:     #1D1B20;
+  --md-color-surface-container:         #211F26;
+  --md-color-surface-container-high:    #2B2930;
+  --md-color-surface-container-highest: #36343B;
+
+  --md-color-outline:               #938F99;
+  --md-color-outline-variant:       #49454F;
+
+  --md-color-inverse-surface:       #E6E0E9;
+  --md-color-inverse-on-surface:    #322F35;
+  --md-color-inverse-primary:       #6750A4;
+
+  --md-color-surface-tint:          #D0BCFF;
+  --md-color-scrim:                 #000000;
+
+  /* Status semantic colors */
+  --md-color-success:               #81C784;
+  --md-color-on-success:            #0A3D0C;
+  --md-color-success-container:     #1B5E20;
+  --md-color-warning:               #FFD54F;
+  --md-color-on-warning:            #3E2723;
+  --md-color-warning-container:     #F57F17;
+  --md-color-info:                  #64B5F6;
+  --md-color-on-info:               #0D2137;
+  --md-color-info-container:        #1565C0;
+}
+
+/* ---- Light theme ---- */
+[data-theme="light"] {
+  --md-color-primary:               #6750A4;
+  --md-color-on-primary:            #FFFFFF;
+  --md-color-primary-container:     #EADDFF;
+  --md-color-on-primary-container:  #21005D;
+
+  --md-color-secondary:             #625B71;
+  --md-color-on-secondary:          #FFFFFF;
+  --md-color-secondary-container:   #E8DEF8;
+  --md-color-on-secondary-container:#1D192B;
+
+  --md-color-tertiary:              #7D5260;
+  --md-color-on-tertiary:           #FFFFFF;
+  --md-color-tertiary-container:    #FFD8E4;
+  --md-color-on-tertiary-container: #31111D;
+
+  --md-color-error:                 #B3261E;
+  --md-color-on-error:              #FFFFFF;
+  --md-color-error-container:       #F9DEDC;
+  --md-color-on-error-container:    #410E0B;
+
+  --md-color-surface:               #FEF7FF;
+  --md-color-on-surface:            #1D1B20;
+  --md-color-on-surface-variant:    #49454F;
+
+  --md-color-surface-container-lowest:  #FFFFFF;
+  --md-color-surface-container-low:     #F7F2FA;
+  --md-color-surface-container:         #F3EDF7;
+  --md-color-surface-container-high:    #ECE6F0;
+  --md-color-surface-container-highest: #E6E0E9;
+
+  --md-color-outline:               #79747E;
+  --md-color-outline-variant:       #CAC4D0;
+
+  --md-color-inverse-surface:       #322F35;
+  --md-color-inverse-on-surface:    #F5EFF7;
+  --md-color-inverse-primary:       #D0BCFF;
+
+  --md-color-surface-tint:          #6750A4;
+  --md-color-scrim:                 #000000;
+
+  --md-color-success:               #2E7D32;
+  --md-color-on-success:            #FFFFFF;
+  --md-color-success-container:     #C8E6C9;
+  --md-color-warning:               #F57F17;
+  --md-color-on-warning:            #FFFFFF;
+  --md-color-warning-container:     #FFF9C4;
+  --md-color-info:                  #1565C0;
+  --md-color-on-info:               #FFFFFF;
+  --md-color-info-container:        #BBDEFB;
+}
+
+/* ---- MD3 component styles ---- */
+@layer components {
+  .glass {
+    background-color: var(--md-color-surface-container);
+    border: 1px solid var(--md-color-outline-variant);
+  }
+  .glass-panel {
+    background-color: var(--md-color-surface-container-high);
+    border: 1px solid var(--md-color-outline-variant);
+  }
+  .gradient-text {
+    background: linear-gradient(to right, var(--md-color-primary), var(--md-color-tertiary));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .sidebar-link {
+    border-radius: 9999px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+  .sidebar-link.active {
+    background-color: var(--md-color-secondary-container);
+    color: var(--md-color-on-secondary-container);
+  }
+  .sidebar-link:hover:not(.active) {
+    background-color: color-mix(in srgb, var(--md-color-on-surface) 8%, transparent);
+  }
+  .health-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .health-up { background: var(--md-color-success); box-shadow: 0 0 6px var(--md-color-success); animation: pulse-health 2s ease-in-out infinite; }
+  .health-down { background: var(--md-color-error); box-shadow: 0 0 6px var(--md-color-error); }
+  .health-unknown { background: var(--md-color-outline); }
+  @keyframes pulse-health { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+}
+
 /* Self-hosted Outfit variable font */
 @font-face {
   font-family: 'Outfit';

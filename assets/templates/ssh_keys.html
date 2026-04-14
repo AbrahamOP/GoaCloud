@@ -2,190 +2,29 @@
 <html lang="fr">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {{template "head-common" .}}
     <title>GoaCloud - Clés SSH</title>
-    <link rel="icon" type="image/png" href="https://img.icons8.com/dusk/64/server.png">
-    <link rel="stylesheet" href="/static/tailwind.min.css">
-    <link rel="stylesheet" href="/static/theme.css">
-    <link rel="preconnect" href="https://img.icons8.com">
     <style>
         body {
             font-family: 'Outfit', sans-serif;
-            background-color: #0f0e17;
-            color: #d1d5db;
-        }
-
-        .glass-panel {
-            background: #1b1928;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .gradient-text {
-            background: linear-gradient(to right, #a78bfa, #8b5cf6, #7c3aed);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .sidebar-link.active {
-            background: linear-gradient(90deg, rgba(139, 92, 246, 0.15) 0%, rgba(0, 0, 0, 0) 100%);
-            border-left: 3px solid #8b5cf6;
-            color: #fff;
         }
     </style>
 </head>
 
-<body class="min-h-screen flex">
+<body class="min-h-screen flex bg-surface text-on-surface">
 
-    <!-- Mobile Overlay -->
-    <div id="mobile-overlay"
-        class="fixed inset-0 bg-black/50 z-40 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
+    {{template "mobile-overlay" .}}
 
-    <!-- Sidebar -->
-    <aside id="sidebar"
-        class="fixed inset-y-0 left-0 z-50 w-64 overflow-y-auto bg-[#151421] border-r border-[#2a2839] flex flex-col justify-between transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
-        <div>
-            <div class="p-8">
-                <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-                    <div class="w-3 h-3 rounded-full bg-gradient-to-r from-fuchsia-500 to-cyan-500"></div>
-                    GoaCloud
-                </h1>
-            </div>
-
-            <nav class="mt-4 px-4 space-y-2">
-                <p class="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Menu</p>
-                <a href="/"
-                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                    </svg>
-                    Applications
-                </a>
-                <a href="/proxmox"
-                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-3 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                    Proxmox
-                </a>
-                <a href="/wazuh"
-                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-3 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                    Sécurité (Wazuh)
-                </a>
-                <a href="/soar"
-                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-3 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    SOAR
-                </a>
-                <a href="/ssh"
-                    class="sidebar-link active flex items-center px-4 py-3 text-sm font-medium rounded-r-lg transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-3 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z">
-                        </path>
-                    </svg>
-                    Clés SSH
-                </a>
-                <a href="/ansible"
-                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:bg-white/5 hover:text-white text-gray-400 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-3 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
-                        </path>
-                    </svg>
-                    Ansible
-                </a>
-                <a href="/console"
-                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
-                        </path>
-                    </svg>
-                    Console Web
-                </a>
-
-
-            </nav>
-        </div>
-
-        <div class="p-4 border-t border-[#2a2839] flex items-center justify-around">
-            <button id="theme-toggle" onclick="toggleTheme()" title="Changer le thème"
-                class="block p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors duration-200">
-                <svg class="icon-moon w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
-                </svg>
-                <svg class="icon-sun w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-                </svg>
-            </button>
-            <a id="sidebar-github-link" href="/profile" title="Mon profil"
-                class="block p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors duration-200">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-            </a>
-
-
-
-            <a href="/users" title="Administration"
-                class="block p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors duration-200">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-            </a>
-            <form action="/logout" method="POST">
-                <button type="submit" title="Déconnexion"
-                    class="block p-2 text-red-400 hover:text-red-300 rounded-lg hover:bg-red-500/10 transition-colors duration-200">
-                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
-                        </path>
-                    </svg>
-                </button>
-            </form>
-        </div>
-    </aside>
+    {{template "sidebar" .}}
 
     <!-- Main Content -->
-    <main class="flex-1 md:ml-64 overflow-y-auto bg-[#0f0e17] relative">
-        <!-- Top Right Actions (Profile & Mobile Menu) -->
-        <div class="absolute top-6 right-6 z-50 flex items-center gap-4">
-            <a href="/profile"
-                class="hidden md:flex items-center justify-center p-2 rounded-lg bg-[#1b1928] hover:bg-white/5 text-cyan-400 hover:text-cyan-300 transition-colors border border-[#2a2839]"
-                title="Mon Profil">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-            </a>
-            <!-- Mobile Menu Button -->
-            <button id="mobile-menu-btn"
-                class="md:hidden bg-[#1b1928] text-gray-400 p-2 rounded-lg border border-[#2a2839]">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-            </button>
-        </div>
+    <main class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
+        {{template "top-actions" .}}
 
         <!-- Header -->
-        <div class="h-20 border-b border-[#2a2839] flex items-center justify-between px-8 bg-[#0f0e17] z-10">
+        <div class="h-20 border-b border-outline-variant flex items-center justify-between px-8 bg-surface z-10">
             <h1
-                class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-fuchsia-400 to-violet-400">
+                class="text-2xl font-bold text-primary">
                 Gestion Clés SSH
             </h1>
         </div>
@@ -196,51 +35,51 @@
             <!-- Actions Section -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                 <!-- Generate Key Card -->
-                <div class="glass-panel rounded-2xl p-6 shadow-xl relative overflow-hidden group">
+                <div class="bg-surface-container border border-outline-variant rounded-xl p-6 shadow-xl relative overflow-hidden group">
                     <div
-                        class="absolute top-0 right-0 w-32 h-32 bg-fuchsia-500/10 rounded-full -mr-16 -mt-16 transition group-hover:bg-fuchsia-500/20">
+                        class="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full -mr-16 -mt-16 transition group-hover:bg-primary/20">
                     </div>
 
-                    <h3 class="text-lg font-semibold text-white mb-2 flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-fuchsia-400" fill="none" stroke="currentColor"
+                    <h3 class="text-lg font-semibold text-on-surface mb-2 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor"
                             viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
                             </path>
                         </svg>
                         Générer Nouvelle Clé
                     </h3>
-                    <p class="text-sm text-gray-400 mb-4">Créez une paire de clés RSA 4096-bit sécurisée.</p>
+                    <p class="text-sm text-on-surface-variant mb-4">Créez une paire de clés RSA 4096-bit sécurisée.</p>
 
                     <form id="gen-form" action="/ssh" method="POST" class="space-y-3">
                         <input type="hidden" name="action" value="generate">
                         <input type="text" name="name" placeholder="Nom de la clé (ex: Serv-Prod)" required
-                            class="w-full bg-[#1a1926] border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-fuchsia-500 transition">
+                            class="w-full bg-transparent border border-outline rounded-xs px-4 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition">
                         <button type="submit"
-                            class="w-full py-2 bg-gradient-to-r from-fuchsia-600 to-violet-600 hover:from-fuchsia-500 hover:to-violet-500 text-white rounded-lg text-sm font-medium shadow-lg shadow-fuchsia-500/20 transition-all transform hover:-translate-y-0.5">
+                            class="w-full py-2 bg-primary text-on-primary rounded-full text-sm font-medium transition-all transform hover:-translate-y-0.5">
                             Générer & Sauvegarder
                         </button>
                     </form>
                 </div>
 
                 <!-- Manual Install Card -->
-                <div class="glass-panel rounded-2xl p-6 shadow-xl relative overflow-hidden group lg:col-span-2">
+                <div class="bg-surface-container border border-outline-variant rounded-xl p-6 shadow-xl relative overflow-hidden group lg:col-span-2">
                     <div
-                        class="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full -mr-16 -mt-16 transition group-hover:bg-cyan-500/20">
+                        class="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full -mr-16 -mt-16 transition group-hover:bg-primary/20">
                     </div>
 
-                    <h3 class="text-lg font-semibold text-white mb-2 flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <h3 class="text-lg font-semibold text-on-surface mb-2 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
                             </path>
                         </svg>
                         Installation Manuelle
                     </h3>
-                    <p class="text-sm text-gray-400 mb-4">Générez la commande à copier-coller dans votre VM/LXC.</p>
+                    <p class="text-sm text-on-surface-variant mb-4">Générez la commande à copier-coller dans votre VM/LXC.</p>
 
                     <div class="space-y-3">
                         <select id="key-select-manual" onchange="updateManualCommand()"
-                            class="w-full bg-[#1a1926] border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-cyan-500 text-gray-300">
+                            class="w-full bg-transparent border border-outline rounded-xs px-4 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary text-on-surface">
                             <option value="" disabled selected>Choisir une Clé...</option>
                             {{range .Keys}}
                             <option value="{{.ID}}" data-key="{{.PublicKey}}">{{.Name}} ({{.KeyType}})</option>
@@ -249,13 +88,13 @@
 
                         <div class="relative group">
                             <div
-                                class="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg blur opacity-20 group-hover:opacity-40 transition duration-1000">
+                                class="absolute -inset-0.5 bg-gradient-to-r from-primary to-primary/60 rounded-lg blur opacity-20 group-hover:opacity-40 transition duration-1000">
                             </div>
-                            <div class="relative bg-[#0F0E17] rounded-lg p-3 border border-gray-800">
+                            <div class="relative bg-surface rounded-lg p-3 border border-outline-variant">
                                 <code id="manual-command-display"
                                     class="block text-green-400 font-mono text-xs break-all whitespace-pre-wrap select-all min-h-[3rem] flex items-center">Veuillez sélectionner une clé ci-dessus...</code>
                                 <button onclick="copyManualCommand(this)"
-                                    class="absolute top-2 right-2 p-1.5 bg-gray-800/50 hover:bg-gray-700 rounded text-gray-400 hover:text-white transition">
+                                    class="absolute top-2 right-2 p-1.5 bg-surface-container-high hover:bg-surface-container-highest rounded text-on-surface-variant hover:text-on-surface transition">
                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -268,14 +107,14 @@
             </div>
 
             <!-- Keys List -->
-            <div class="glass-panel rounded-2xl overflow-hidden">
-                <div class="px-6 py-4 border-b border-[#2a2839] flex justify-between items-center bg-[#161521]/50">
-                    <h3 class="font-semibold text-white">Clés Existantes</h3>
-                    <span class="text-xs bg-[#2a2839] text-gray-400 px-2 py-1 rounded-full">{{len .Keys}} Clés</span>
+            <div class="bg-surface-container border border-outline-variant rounded-xl overflow-hidden">
+                <div class="px-6 py-4 border-b border-outline-variant flex justify-between items-center bg-surface-container-low/50">
+                    <h3 class="font-semibold text-on-surface">Clés Existantes</h3>
+                    <span class="text-xs bg-outline-variant text-on-surface-variant px-2 py-1 rounded-full">{{len .Keys}} Clés</span>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm text-gray-400">
-                        <thead class="bg-[#1a1926] text-xs uppercase font-medium text-gray-500">
+                    <table class="w-full text-left text-sm text-on-surface-variant">
+                        <thead class="bg-surface-container-low text-xs uppercase font-medium text-on-surface-variant">
                             <tr>
                                 <th class="px-6 py-3">Nom</th>
                                 <th class="px-6 py-3">Type</th>
@@ -285,10 +124,10 @@
                                 <th class="px-6 py-3 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-[#2a2839]">
+                        <tbody class="divide-y divide-outline-variant">
                             {{range .Keys}}
-                            <tr class="hover:bg-[#2a2839]/30 transition group">
-                                <td class="px-6 py-4 font-medium text-white key-name">{{.Name}}</td>
+                            <tr class="hover:bg-outline-variant/30 transition group">
+                                <td class="px-6 py-4 font-medium text-on-surface key-name">{{.Name}}</td>
                                 <td class="px-6 py-4"><span
                                         class="bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded text-xs border border-blue-500/20">{{.KeyType}}</span>
                                 </td>
@@ -300,7 +139,7 @@
                                         </div>
                                         <button
                                             onclick="openEditUsageModal('{{.ID}}', '{{.Name}}', '{{.AssociatedVMs}}')"
-                                            class="text-gray-600 hover:text-violet-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            class="text-on-surface-variant hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
                                             title="Modifier l'association">
                                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -309,22 +148,22 @@
                                         </button>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 font-mono text-xs text-gray-500">{{.Fingerprint}}</td>
+                                <td class="px-6 py-4 font-mono text-xs text-on-surface-variant">{{.Fingerprint}}</td>
                                 <td class="px-6 py-4">{{.CreatedAt.Format "02/01/2006 15:04"}}</td>
                                 <td class="px-6 py-4 text-right space-x-2">
                                     <button data-name="{{.Name}}" data-key="{{.PublicKey}}"
                                         onclick="openViewModal(this.dataset.name, this.dataset.key)"
-                                        class="text-gray-500 hover:text-white transition"
+                                        class="text-on-surface-variant hover:text-on-surface transition"
                                         title="Voir Publique">👁️</button>
                                     <button data-id="{{.ID}}" data-name="{{.Name}}"
                                         onclick="openDeleteModal(this.dataset.id, this.dataset.name)"
-                                        class="text-gray-600 hover:text-red-400 transition"
+                                        class="text-on-surface-variant hover:text-error transition"
                                         title="Supprimer">🗑️</button>
                                 </td>
                             </tr>
                             {{else}}
                             <tr>
-                                <td colspan="6" class="px-6 py-8 text-center text-gray-600">Aucune clé SSH générée.</td>
+                                <td colspan="6" class="px-6 py-8 text-center text-on-surface-variant">Aucune clé SSH générée.</td>
                             </tr>
                             {{end}}
                         </tbody>
@@ -337,15 +176,15 @@
 
     <!-- View Key Modal -->
     <div id="view-modal"
-        class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden flex items-center justify-center">
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center">
         <div
-            class="glass-panel w-full max-w-2xl p-6 rounded-2xl shadow-2xl transform transition-all scale-100 border border-violet-500/20">
+            class="bg-surface-container border border-outline-variant w-full max-w-2xl p-6 rounded-xl shadow-2xl transform transition-all scale-100">
             <div class="flex justify-between items-center mb-6">
                 <div>
-                    <h3 class="text-lg font-bold text-white">Clé Publique</h3>
-                    <p class="text-xs text-gray-500 font-mono mt-1" id="view-modal-key-name">Nom de la clé</p>
+                    <h3 class="text-lg font-bold text-on-surface">Clé Publique</h3>
+                    <p class="text-xs text-on-surface-variant font-mono mt-1" id="view-modal-key-name">Nom de la clé</p>
                 </div>
-                <button onclick="closeViewModal()" class="text-gray-400 hover:text-white transition">
+                <button onclick="closeViewModal()" class="text-on-surface-variant hover:text-on-surface transition">
                     <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M6 18L18 6M6 6l12 12" />
@@ -355,10 +194,10 @@
 
             <div class="relative group">
                 <textarea id="view-modal-content" readonly
-                    class="w-full h-48 bg-[#1a1926] border border-gray-700 rounded-lg p-4 text-xs font-mono text-gray-300 focus:outline-none focus:border-violet-500 transition resize-none selection:bg-violet-500/30"></textarea>
+                    class="w-full h-48 bg-transparent border border-outline rounded-xs p-4 text-xs font-mono text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition resize-none selection:bg-primary/30"></textarea>
 
                 <button onclick="copyToClipboard(document.getElementById('view-modal-content').value, this)"
-                    class="absolute top-2 right-2 px-3 py-1.5 bg-violet-500/20 hover:bg-violet-500/40 border border-violet-500/50 text-violet-200 hover:text-white text-xs font-medium rounded-lg transition-all shadow-lg backdrop-blur-md">
+                    class="absolute top-2 right-2 px-3 py-1.5 bg-primary/20 hover:bg-primary/40 border border-primary/50 text-on-surface hover:text-on-surface text-xs font-medium rounded-lg transition-all shadow-lg">
                     Copier
                 </button>
             </div>
@@ -367,12 +206,12 @@
 
     <!-- Deploy Key Modal -->
     <div id="deploy-modal"
-        class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden flex items-center justify-center">
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center">
         <div
-            class="glass-panel w-full max-w-md p-6 rounded-2xl shadow-2xl transform transition-all scale-100 border border-violet-500/20">
+            class="bg-surface-container border border-outline-variant w-full max-w-md p-6 rounded-xl shadow-2xl transform transition-all scale-100">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-lg font-bold text-white" id="deploy-modal-title">Déployer la clé</h3>
-                <button onclick="closeDeployModal()" class="text-gray-400 hover:text-white transition">
+                <h3 class="text-lg font-bold text-on-surface" id="deploy-modal-title">Déployer la clé</h3>
+                <button onclick="closeDeployModal()" class="text-on-surface-variant hover:text-on-surface transition">
                     <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M6 18L18 6M6 6l12 12" />
@@ -383,14 +222,14 @@
             <!-- Target Selection -->
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-400 mb-2">Choisir une machine cible</label>
+                    <label class="block text-sm font-medium text-on-surface-variant mb-2">Choisir une machine cible</label>
                     <div class="relative">
                         <select id="deploy-target"
-                            class="w-full bg-[#13111c] border border-gray-700 rounded-lg px-4 py-3 text-white appearance-none focus:outline-none focus:border-violet-500 transition-colors">
+                            class="w-full bg-transparent border border-outline rounded-xs px-4 py-3 text-on-surface appearance-none focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition-colors">
                             <option value="" disabled selected>Sélectionner une VM/CT...</option>
                         </select>
                         <div
-                            class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-500">
+                            class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-on-surface-variant">
                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M19 9l-7 7-7-7" />
@@ -401,40 +240,40 @@
 
                 <!-- Deployment Method -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-400 mb-2">Méthode de déploiement</label>
-                    <div class="flex items-center gap-4 bg-[#13111c] p-1 rounded-lg border border-gray-700">
+                    <label class="block text-sm font-medium text-on-surface-variant mb-2">Méthode de déploiement</label>
+                    <div class="flex items-center gap-4 bg-surface-container-lowest p-1 rounded-lg border border-outline-variant">
                         <button onclick="setDeployMethod('cloudinit')" id="btn-method-cloudinit"
-                            class="flex-1 py-2 text-xs font-medium rounded transition-all bg-violet-600 text-white">
+                            class="flex-1 py-2 text-xs font-medium rounded transition-all bg-primary text-on-primary">
                             Cloud-Init / API
                         </button>
                         <button onclick="setDeployMethod('password')" id="btn-method-password"
-                            class="flex-1 py-2 text-xs font-medium rounded transition-all text-gray-400 hover:text-white">
+                            class="flex-1 py-2 text-xs font-medium rounded transition-all text-on-surface-variant hover:text-on-surface">
                             Mot de passe Root
                         </button>
                     </div>
-                    <p id="desc-method-cloudinit" class="text-xs text-gray-500 mt-2">
+                    <p id="desc-method-cloudinit" class="text-xs text-on-surface-variant mt-2">
                         Utilise l'API Proxmox. Nécessite un redémarrage ou une VM compatible Cloud-Init.
                     </p>
-                    <p id="desc-method-password" class="text-xs text-gray-500 mt-2 hidden">
+                    <p id="desc-method-password" class="text-xs text-on-surface-variant mt-2 hidden">
                         Connexion SSH directe avec mot de passe pour installer la clé. Nécessite l'accès SSH activé.
                     </p>
                 </div>
 
                 <!-- Password Input (Hidden by default) -->
                 <div id="deploy-password-container" class="hidden">
-                    <label class="block text-sm font-medium text-gray-400 mb-2">Mot de passe Root (SSH)</label>
+                    <label class="block text-sm font-medium text-on-surface-variant mb-2">Mot de passe Root (SSH)</label>
                     <input type="password" id="deploy-password" placeholder="Le mot de passe de la VM..."
-                        class="w-full bg-[#13111c] border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-violet-500 transition-colors">
+                        class="w-full bg-transparent border border-outline rounded-xs px-4 py-3 text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition-colors">
                 </div>
 
                 <div id="deploy-error"
-                    class="hidden p-3 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-sm"></div>
+                    class="hidden p-3 bg-error-container border border-error/20 rounded text-error text-sm"></div>
 
                 <div class="flex justify-end gap-3 mt-6">
                     <button onclick="closeDeployModal()"
-                        class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors">Annuler</button>
+                        class="px-4 py-2 rounded-full border border-outline text-on-surface-variant hover:bg-surface-container-highest transition-colors">Annuler</button>
                     <button id="btn-confirm-deploy" onclick="confirmDeploy()"
-                        class="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white transition-colors flex items-center gap-2">
+                        class="px-4 py-2 rounded-full bg-primary text-on-primary transition-colors flex items-center gap-2">
                         <span>Déployer</span>
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -448,12 +287,12 @@
 
     <!-- Edit Usage Modal -->
     <div id="edit-usage-modal"
-        class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden flex items-center justify-center">
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center">
         <div
-            class="glass-panel w-full max-w-lg p-6 rounded-2xl shadow-2xl transform transition-all scale-100 border border-violet-500/20">
-            <h3 class="text-lg font-bold text-white mb-4">Modifier l'utilisation</h3>
-            <p class="text-sm text-gray-400 mb-4">Sélectionnez les machines qui utilisent cette clé (<span
-                    id="edit-usage-key-name" class="font-bold text-white"></span>).</p>
+            class="bg-surface-container border border-outline-variant w-full max-w-lg p-6 rounded-xl shadow-2xl transform transition-all scale-100">
+            <h3 class="text-lg font-bold text-on-surface mb-4">Modifier l'utilisation</h3>
+            <p class="text-sm text-on-surface-variant mb-4">Sélectionnez les machines qui utilisent cette clé (<span
+                    id="edit-usage-key-name" class="font-bold text-on-surface"></span>).</p>
 
             <form action="/ssh" method="POST" id="edit-usage-form">
                 <input type="hidden" name="action" value="update_usage">
@@ -461,11 +300,11 @@
                 <input type="hidden" name="vms" id="edit-usage-vms">
 
                 <div class="mb-6 relative">
-                    <label class="block text-sm font-medium text-gray-400 mb-2">Machines associées</label>
+                    <label class="block text-sm font-medium text-on-surface-variant mb-2">Machines associées</label>
                     <button type="button" onclick="toggleVMDropdown()" id="vm-dropdown-btn"
-                        class="w-full bg-[#1a1926] border border-gray-700 rounded-lg px-4 py-3 text-left text-sm text-gray-300 focus:outline-none focus:border-violet-500 transition flex justify-between items-center">
+                        class="w-full bg-transparent border border-outline rounded-xs px-4 py-3 text-left text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition flex justify-between items-center">
                         <span id="vm-dropdown-label">Sélectionner des VMs...</span>
-                        <svg class="w-4 h-4 text-gray-500 transition-transform" id="vm-dropdown-arrow" fill="none"
+                        <svg class="w-4 h-4 text-on-surface-variant transition-transform" id="vm-dropdown-arrow" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
@@ -473,18 +312,18 @@
 
                     <!-- Dropdown Menu -->
                     <div id="vm-dropdown-menu"
-                        class="hidden absolute z-50 w-full mt-2 bg-[#232136] border border-gray-700 rounded-xl shadow-xl max-h-60 overflow-y-auto p-2 space-y-1">
+                        class="hidden absolute z-50 w-full mt-2 bg-surface-container-high border border-outline-variant rounded-xl shadow-xl max-h-60 overflow-y-auto p-2 space-y-1">
                         <!-- Checkboxes injected by JS -->
-                        <p id="no-vms-msg" class="text-xs text-gray-500 text-center py-2 hidden">Aucune VM disponible
+                        <p id="no-vms-msg" class="text-xs text-on-surface-variant text-center py-2 hidden">Aucune VM disponible
                         </p>
                     </div>
                 </div>
 
                 <div class="flex justify-end gap-3">
                     <button type="button" onclick="closeEditUsageModal()"
-                        class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors">Annuler</button>
+                        class="px-4 py-2 rounded-full border border-outline text-on-surface-variant hover:bg-surface-container-highest transition-colors">Annuler</button>
                     <button type="submit"
-                        class="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white transition-colors">Sauvegarder</button>
+                        class="px-4 py-2 rounded-full bg-primary text-on-primary transition-colors">Sauvegarder</button>
                 </div>
             </form>
         </div>
@@ -492,20 +331,20 @@
 
     <!-- Delete Key Modal -->
     <div id="delete-modal"
-        class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden flex items-center justify-center">
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center">
         <div
-            class="glass-panel w-full max-w-md p-6 rounded-2xl shadow-2xl transform transition-all scale-100 border border-red-500/20">
-            <h3 class="text-xl font-bold text-white mb-4">Supprimer la clé ?</h3>
-            <p class="text-gray-400 mb-6">
+            class="bg-surface-container border border-outline-variant w-full max-w-md p-6 rounded-xl shadow-2xl transform transition-all scale-100 border-error/20">
+            <h3 class="text-xl font-bold text-on-surface mb-4">Supprimer la clé ?</h3>
+            <p class="text-on-surface-variant mb-6">
                 Êtes-vous sûr de vouloir supprimer la clé <span id="delete-modal-key-name"
-                    class="font-mono text-white font-bold"></span> ?
-                <br><span class="text-xs text-red-400">Cette action est irréversible.</span>
+                    class="font-mono text-on-surface font-bold"></span> ?
+                <br><span class="text-xs text-error">Cette action est irréversible.</span>
             </p>
             <div class="flex justify-end gap-3">
                 <button onclick="closeDeleteModal()"
-                    class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors">Annuler</button>
+                    class="px-4 py-2 rounded-full border border-outline text-on-surface-variant hover:bg-surface-container-highest transition-colors">Annuler</button>
                 <button id="confirm-delete-btn" onclick="confirmDelete()"
-                    class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors">
+                    class="px-4 py-2 rounded-full bg-error text-on-error transition-colors">
                     Supprimer
                 </button>
             </div>
@@ -536,7 +375,7 @@
             } else {
                 vmListData.forEach(vm => {
                     const div = document.createElement('div');
-                    div.className = "flex items-center p-2 rounded-lg hover:bg-white/5 cursor-pointer transition-colors";
+                    div.className = "flex items-center p-2 rounded-lg hover:bg-surface-container-high cursor-pointer transition-colors";
                     div.onclick = (e) => {
                         if (e.target.type !== 'checkbox') {
                             const cb = div.querySelector('input[type="checkbox"]');
@@ -546,8 +385,8 @@
                     };
 
                     div.innerHTML = `
-                        <input type="checkbox" id="vm-${vm.ID}" value="${vm.Name}" onchange="updateDropdownLabel()" class="w-4 h-4 text-violet-600 bg-gray-700 border-gray-600 rounded focus:ring-violet-500 focus:ring-2 cursor-pointer">
-                        <label for="vm-${vm.ID}" class="ml-3 w-full text-sm font-medium text-gray-300 cursor-pointer select-none">${vm.Name}</label>
+                        <input type="checkbox" id="vm-${vm.ID}" value="${vm.Name}" onchange="updateDropdownLabel()" class="w-4 h-4 text-primary bg-surface-container border-outline-variant rounded focus:ring-primary focus:ring-2 cursor-pointer">
+                        <label for="vm-${vm.ID}" class="ml-3 w-full text-sm font-medium text-on-surface cursor-pointer select-none">${vm.Name}</label>
                      `;
                     container.appendChild(div);
                 });
@@ -592,8 +431,8 @@
 
             if (checkboxes.length === 0) {
                 label.innerText = "Sélectionner des VMs...";
-                label.classList.add('text-gray-400');
-                label.classList.remove('text-white');
+                label.classList.add('text-on-surface-variant');
+                label.classList.remove('text-on-surface');
             } else {
                 const names = Array.from(checkboxes).map(cb => cb.value);
                 if (names.length <= 2) {
@@ -601,8 +440,8 @@
                 } else {
                     label.innerText = `${names.length} machines sélectionnées`;
                 }
-                label.classList.remove('text-gray-400');
-                label.classList.add('text-white');
+                label.classList.remove('text-on-surface-variant');
+                label.classList.add('text-on-surface');
             }
         }
 
@@ -630,7 +469,7 @@
                         </span>`
                     ).join('');
                 } else {
-                    cell.innerHTML = `<span class="text-xs text-gray-600 italic">Non détecté</span>`;
+                    cell.innerHTML = `<span class="text-xs text-on-surface-variant italic">Non détecté</span>`;
                 }
             });
         }
@@ -671,11 +510,11 @@
             if (pubKey) {
                 const cmd = `mkdir -p ~/.ssh && echo "${pubKey}" >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys`;
                 display.innerText = cmd;
-                display.classList.remove('text-gray-500');
+                display.classList.remove('text-on-surface-variant');
                 display.classList.add('text-green-400');
             } else {
                 display.innerText = "Veuillez sélectionner une clé ci-dessus...";
-                display.classList.add('text-gray-500');
+                display.classList.add('text-on-surface-variant');
                 display.classList.remove('text-green-400');
             }
         }
@@ -869,39 +708,7 @@
             }
         }
     </script>
-    <script>
-        document.querySelectorAll('.sidebar-link').forEach(link => {
-            if (link.getAttribute('href') === window.location.pathname) {
-                link.classList.add('active');
-            }
-        });
-        fetch('/api/me').then(r => r.json()).then(data => {
-            if (data.github_url) {
-                const link = document.getElementById('sidebar-github-link');
-                if (link) {
-                    link.href = data.github_url;
-                    link.target = '_blank';
-                    link.title = 'Mon profil GitHub';
-                }
-            }
-        }).catch(() => {});
-
-        // Mobile Menu Logic
-        (function() {
-            const btn = document.getElementById('mobile-menu-btn');
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('mobile-overlay');
-            if (btn && sidebar && overlay) {
-                function toggleMenu() {
-                    const isClosed = sidebar.classList.contains('-translate-x-full');
-                    if (isClosed) { sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden'); }
-                    else { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden'); }
-                }
-                btn.addEventListener('click', toggleMenu);
-                overlay.addEventListener('click', toggleMenu);
-            }
-        })();
-    </script>
+    {{template "sidebar-js" .}}
 </body>
 
 </html>

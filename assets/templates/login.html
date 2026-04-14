@@ -2,13 +2,8 @@
 <html lang="fr">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {{template "head-common"}}
     <title>Connexion - GoaCloud</title>
-    <link rel="icon" type="image/png" href="https://img.icons8.com/dusk/64/server.png">
-    <link rel="stylesheet" href="/static/tailwind.min.css">
-    <link rel="stylesheet" href="/static/theme.css">
-    <link rel="preconnect" href="https://img.icons8.com">
     <style>
         body {
             font-family: 'Outfit', sans-serif;
@@ -16,23 +11,19 @@
     </style>
 </head>
 
-<body class="bg-[#0f0e17] min-h-screen flex items-center justify-center relative overflow-hidden">
-
-    <!-- Background Elements -->
-    <div class="absolute top-0 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[100px]"></div>
-    <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-600/20 rounded-full blur-[100px]"></div>
+<body class="bg-surface min-h-screen flex items-center justify-center relative overflow-hidden">
 
     <div
-        class="bg-[#1b1928] p-10 rounded-3xl shadow-2xl w-full max-w-md border border-[#2a2839] relative z-10 backdrop-blur-sm bg-opacity-90">
+        class="bg-surface-container p-10 rounded-xl shadow-lg w-full max-w-md border border-outline-variant relative z-10">
         <div class="text-center mb-10">
             <h1
-                class="text-4xl font-bold mb-2 bg-gradient-to-r from-fuchsia-500 to-cyan-500 bg-clip-text text-transparent inline-block">
+                class="text-4xl font-bold mb-2 gradient-text inline-block">
                 GoaCloud</h1>
-            <p class="text-gray-500 text-sm">Bon retour, veuillez vous connecter à votre compte.</p>
+            <p class="text-on-surface-variant text-sm">Bon retour, veuillez vous connecter à votre compte.</p>
         </div>
 
         {{if .Error}}
-        <div class="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl mb-6 text-sm text-center">
+        <div class="bg-error-container text-error border border-error-container px-4 py-3 rounded-xl mb-6 text-sm text-center">
             {{.Error}}
         </div>
         {{end}}
@@ -41,12 +32,12 @@
             {{if .MFARequired}}
             <div class="space-y-2 animate-fade-in">
                 <label for="mfa_code"
-                    class="block text-xs font-semibold text-cyan-400 uppercase tracking-widest pl-1">Code
+                    class="block text-xs font-semibold text-primary uppercase tracking-widest pl-1">Code
                     Authenticator</label>
                 <input type="text" id="mfa_code" name="mfa_code" autofocus autocomplete="off"
-                    class="w-full bg-[#151421] border border-cyan-500/50 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition placeholder-gray-600 text-center tracking-[0.5em] text-xl font-mono"
+                    class="w-full bg-transparent border border-primary rounded-xs px-4 py-3 text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition placeholder-on-surface-variant text-center tracking-[0.5em] text-xl font-mono"
                     placeholder="000000">
-                <p class="text-xs text-gray-500 text-center pt-2">Veuillez entrer le code à 6 chiffres de votre
+                <p class="text-xs text-on-surface-variant text-center pt-2">Veuillez entrer le code à 6 chiffres de votre
                     application.</p>
 
                 <!-- Hidden fields to maintain state -->
@@ -56,24 +47,24 @@
             {{else}}
             <div class="space-y-2">
                 <label for="username"
-                    class="block text-xs font-semibold text-gray-400 uppercase tracking-widest pl-1">Utilisateur</label>
+                    class="block text-xs font-semibold text-on-surface-variant uppercase tracking-widest pl-1">Utilisateur</label>
                 <input type="text" id="username" name="username" required value="{{.Username}}"
-                    class="w-full bg-[#151421] border border-[#2a2839] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 transition placeholder-gray-600"
+                    class="w-full bg-transparent border border-outline rounded-xs px-4 py-3 text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition placeholder-on-surface-variant"
                     placeholder="Votre nom d'utilisateur">
             </div>
 
             <div class="space-y-2">
                 <label for="password"
-                    class="block text-xs font-semibold text-gray-400 uppercase tracking-widest pl-1">Mot de
+                    class="block text-xs font-semibold text-on-surface-variant uppercase tracking-widest pl-1">Mot de
                     passe</label>
                 <input type="password" id="password" name="password" required
-                    class="w-full bg-[#151421] border border-[#2a2839] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 transition placeholder-gray-600"
+                    class="w-full bg-transparent border border-outline rounded-xs px-4 py-3 text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition placeholder-on-surface-variant"
                     placeholder="••••••••">
             </div>
             {{end}}
 
             <button type="submit"
-                class="w-full bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white font-bold py-3 px-4 rounded-xl transition duration-300 shadow-lg shadow-purple-900/40 transform hover:scale-[1.02]">
+                class="w-full bg-primary text-on-primary font-bold py-3 px-4 rounded-full transition duration-200 hover:shadow-md">
                 Connexion
             </button>
         </form>

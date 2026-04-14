@@ -2,213 +2,46 @@
 <html lang="fr">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {{template "head-common"}}
     <title>GoaCloud - Proxmox</title>
-    <link rel="icon" type="image/png" href="https://img.icons8.com/dusk/64/server.png">
-    <link rel="stylesheet" href="/static/tailwind.min.css">
-    <link rel="stylesheet" href="/static/theme.css">
-    <link rel="preconnect" href="https://img.icons8.com">
     <style>
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: #0f0e17;
-            color: #d1d5db;
-        }
-
-        .glass {
-            background: #1b1928;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .gradient-text {
-            background: linear-gradient(to right, #c084fc, #6366f1, #38bdf8);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .sidebar-link.active {
-            background: linear-gradient(90deg, rgba(192, 132, 252, 0.15) 0%, rgba(0, 0, 0, 0) 100%);
-            border-left: 3px solid #c084fc;
-            color: #fff;
-        }
-
+        body { font-family: 'Outfit', sans-serif; }
         .gauge-circle {
             transition: stroke-dashoffset 1s ease-in-out;
         }
     </style>
 </head>
 
-<body class="min-h-screen flex">
+<body class="min-h-screen flex bg-surface text-on-surface">
 
-    <!-- Mobile Overlay -->
-    <div id="mobile-overlay"
-        class="fixed inset-0 bg-black/50 z-40 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
-
-    <!-- Sidebar -->
-    <aside id="sidebar"
-        class="fixed inset-y-0 left-0 z-50 w-64 overflow-y-auto bg-[#151421] border-r border-[#2a2839] flex flex-col justify-between transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
-        <div>
-            <div class="p-8">
-                <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-                    <span
-                        class="inline-block w-3 h-3 rounded-full bg-gradient-to-r from-fuchsia-500 to-cyan-500"></span>
-                    GoaCloud
-                </h1>
-            </div>
-
-            <nav class="mt-4 px-4 space-y-2">
-                <p class="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Menu</p>
-                <a href="/"
-                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                    </svg>
-                    Applications
-                </a>
-                <a href="/proxmox"
-                    class="sidebar-link active flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-3 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                    Proxmox
-                </a>
-                <a href="/wazuh"
-                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-3 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                    Sécurité (Wazuh)
-                </a>
-                <a href="/soar"
-                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-3 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    SOAR
-                </a>
-                <a href="/ssh"
-                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:text-white text-gray-400 hover:bg-white/5 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-3 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z">
-                        </path>
-                    </svg>
-                    Clés SSH
-                </a>
-                <a href="/ansible"
-                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:bg-white/5 hover:text-white text-gray-400 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-3 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
-                        </path>
-                    </svg>
-                    Ansible
-                </a>
-
-
-                <a href="/console"
-                    class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-r-lg hover:bg-white/5 hover:text-white text-gray-400 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
-                        </path>
-                    </svg>
-                    Console Web
-                </a>
-
-
-            </nav>
-        </div>
-
-        <div class="p-4 border-t border-[#2a2839] flex items-center justify-around">
-            <button id="theme-toggle" onclick="toggleTheme()" title="Changer le thème"
-                class="block p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors duration-200">
-                <svg class="icon-moon w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
-                </svg>
-                <svg class="icon-sun w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-                </svg>
-            </button>
-            <a id="sidebar-github-link" href="/profile" title="Mon profil"
-                class="block p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors duration-200">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-            </a>
-
-            <a href="/users" title="Administration"
-                class="block p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors duration-200">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-            </a>
-
-            <form action="/logout" method="POST">
-                <button type="submit" title="Déconnexion"
-                    class="block p-2 text-red-400 hover:text-red-300 rounded-lg hover:bg-red-500/10 transition-colors duration-200">
-                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                </button>
-            </form>
-        </div>
-    </aside>
+    {{template "mobile-overlay"}}
+    {{template "sidebar"}}
 
     <!-- Main Content -->
-    <main class="flex-1 md:ml-64 overflow-y-auto bg-[#0f0e17] relative">
-        <!-- Top Right Actions (Profile & Mobile Menu) -->
-        <div class="absolute top-6 right-6 z-50 flex items-center gap-4">
-            <a href="/profile"
-                class="hidden md:flex items-center justify-center p-2 rounded-lg bg-[#1b1928] hover:bg-white/5 text-cyan-400 hover:text-cyan-300 transition-colors border border-[#2a2839]"
-                title="Mon Profil">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-            </a>
-            <!-- Mobile Menu Button -->
-            <button id="mobile-menu-btn"
-                class="md:hidden bg-[#1b1928] text-gray-400 p-2 rounded-lg border border-[#2a2839]">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-            </button>
-        </div>
-
+    <main class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
+        {{template "top-actions"}}
 
         <div class="px-8 py-10 relative z-10">
             <!-- Header with Mobile Support -->
             <div class="flex items-center justify-between mb-8">
                 <div>
-                    <h2 class="text-3xl font-bold text-white mb-2">Proxmox <span class="gradient-text">Overview</span></h2>
-                    <p class="text-gray-500 text-sm">Statistiques de votre HomeLab — <span id="cache-age">chargement...</span></p>
+                    <h2 class="text-3xl font-bold text-on-surface mb-2">Proxmox <span class="gradient-text">Overview</span></h2>
+                    <p class="text-on-surface-variant text-sm">Statistiques de votre HomeLab — <span id="cache-age">chargement...</span></p>
                 </div>
                 <div class="flex items-center gap-3" style="margin-right:52px">
-                    <select id="metrics-period" onchange="loadMetrics()" class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-gray-300 focus:outline-none">
+                    <select id="metrics-period" onchange="loadMetrics()" class="px-3 py-2 rounded-lg bg-surface-container-high border border-outline-variant text-sm text-on-surface focus:outline-none">
                         <option value="1h">1 heure</option>
                         <option value="6h">6 heures</option>
                         <option value="24h" selected>24 heures</option>
                         <option value="7d">7 jours</option>
                     </select>
-                    <button id="refresh-btn" onclick="refreshStats()" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-sm text-gray-300 hover:text-white transition">
+                    <button id="refresh-btn" onclick="refreshStats()" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant text-sm text-on-surface hover:text-on-surface transition">
                         <svg id="refresh-icon" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                         Rafraîchir
                     </button>
-                    <button onclick="openCreateModal()" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-fuchsia-500/10 hover:bg-fuchsia-500/20 border border-fuchsia-500/30 text-sm text-fuchsia-400 hover:text-fuchsia-300 transition">
+                    <button onclick="openCreateModal()" class="flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-on-primary text-sm hover:opacity-90 transition">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
@@ -220,39 +53,39 @@
             <!-- KPI Cards -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <!-- CPU Usage -->
-                <div class="glass rounded-2xl p-6 relative overflow-hidden">
-                    <h3 class="text-gray-400 text-sm font-medium uppercase mb-4">CPU Usage</h3>
+                <div class="rounded-xl p-6 relative overflow-hidden bg-surface-container border border-outline-variant">
+                    <h3 class="text-on-surface-variant text-sm font-medium uppercase mb-4">CPU Usage</h3>
                     <div class="flex items-end justify-between">
-                        <div class="text-4xl font-bold text-white" id="cpu-val">{{.CPU}}%</div>
-                        <div class="text-xs text-green-400 bg-green-400/10 px-2 py-1 rounded">+2% this hour</div>
+                        <div class="text-4xl font-bold text-on-surface" id="cpu-val">{{.CPU}}%</div>
+                        <div class="text-xs text-green-400 bg-success-container px-2 py-1 rounded">+2% this hour</div>
                     </div>
                     <!-- Mock Progress Bar -->
-                    <div class="w-full bg-[#2a2839] h-2 rounded-full mt-4 overflow-hidden">
-                        <div id="cpu-bar" class="bg-gradient-to-r from-fuchsia-500 to-purple-600 h-full rounded-full"
+                    <div class="w-full bg-outline-variant h-2 rounded-full mt-4 overflow-hidden">
+                        <div id="cpu-bar" class="bg-primary h-full rounded-full"
                             style="--percent: {{.CPU}}%; width: var(--percent);"></div>
                     </div>
                     <div class="mt-3 h-12 w-full" id="spark-cpu"></div>
                 </div>
 
                 <!-- RAM Usage -->
-                <div class="glass rounded-2xl p-6 relative overflow-hidden">
-                    <h3 class="text-gray-400 text-sm font-medium uppercase mb-4">Memory Usage</h3>
+                <div class="rounded-xl p-6 relative overflow-hidden bg-surface-container border border-outline-variant">
+                    <h3 class="text-on-surface-variant text-sm font-medium uppercase mb-4">Memory Usage</h3>
                     <div class="flex items-end justify-between">
-                        <div class="text-4xl font-bold text-white" id="ram-val">{{.RAM}}%</div>
-                        <div class="text-xs text-gray-500" id="ram-detail">{{.RAMUsedStr}} / {{.RAMTotalStr}}</div>
+                        <div class="text-4xl font-bold text-on-surface" id="ram-val">{{.RAM}}%</div>
+                        <div class="text-xs text-on-surface-variant" id="ram-detail">{{.RAMUsedStr}} / {{.RAMTotalStr}}</div>
                     </div>
-                    <div class="w-full bg-[#2a2839] h-2 rounded-full mt-4 overflow-hidden">
-                        <div id="ram-bar" class="bg-gradient-to-r from-cyan-500 to-blue-600 h-full rounded-full"
+                    <div class="w-full bg-outline-variant h-2 rounded-full mt-4 overflow-hidden">
+                        <div id="ram-bar" class="bg-secondary h-full rounded-full"
                             style="--percent: {{.RAM}}%; width: var(--percent);"></div>
                     </div>
                     <div class="mt-3 h-12 w-full" id="spark-ram"></div>
                 </div>
 
                 <!-- Storage -->
-                <div class="glass rounded-2xl p-6 relative overflow-hidden">
-                    <h3 class="text-gray-400 text-sm font-medium uppercase mb-4">Storage (ZFS)</h3>
+                <div class="rounded-xl p-6 relative overflow-hidden bg-surface-container border border-outline-variant">
+                    <h3 class="text-on-surface-variant text-sm font-medium uppercase mb-4">Storage (ZFS)</h3>
                     <div class="flex items-end justify-between">
-                        <div class="text-4xl font-bold text-white" id="storage-val">{{.Storage}}%</div>
+                        <div class="text-4xl font-bold text-on-surface" id="storage-val">{{.Storage}}%</div>
                         <div id="storage-badge">
                             {{if ge .Storage 85}}
                             <div class="text-orange-500 text-xs px-2 py-1 rounded font-bold border border-orange-500">
@@ -261,8 +94,8 @@
                             {{end}}
                         </div>
                     </div>
-                    <div class="w-full bg-[#2a2839] h-2 rounded-full mt-4 overflow-hidden">
-                        <div id="storage-bar" class="bg-gradient-to-r from-orange-500 to-red-600 h-full rounded-full"
+                    <div class="w-full bg-outline-variant h-2 rounded-full mt-4 overflow-hidden">
+                        <div id="storage-bar" class="bg-tertiary h-full rounded-full"
                             style="--percent: {{.Storage}}%; width: var(--percent);"></div>
                     </div>
                     <div class="mt-3 h-12 w-full" id="spark-storage"></div>
@@ -270,11 +103,11 @@
             </div>
 
             <!-- VM List -->
-            <h3 class="text-xl font-semibold text-white mb-4">Machines Virtuelles</h3>
-            <div class="glass rounded-2xl overflow-hidden border border-[#2a2839]">
+            <h3 class="text-xl font-semibold text-on-surface mb-4">Machines Virtuelles</h3>
+            <div class="bg-surface-container rounded-xl overflow-hidden border border-outline-variant">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="bg-[#1b1928] text-gray-400 text-xs uppercase border-b border-[#2a2839]">
+                        <tr class="bg-surface-container text-on-surface-variant text-xs uppercase border-b border-outline-variant">
                             <th class="p-4 font-semibold w-16">Type</th>
                             <th class="p-4 font-semibold">ID</th>
                             <th class="p-4 font-semibold">Name</th>
@@ -283,44 +116,44 @@
                             <th class="p-4 font-semibold">IP Address</th>
                         </tr>
                     </thead>
-                    <tbody id="vm-list" class="text-gray-300 text-sm divide-y divide-[#2a2839]">
+                    <tbody id="vm-list" class="text-on-surface text-sm divide-y divide-outline-variant">
                         {{range .VMs}}
-                        <tr class="hover:bg-white/5 transition{{if and .Type (ne .Status "error")}} cursor-pointer{{end}}"
+                        <tr class="hover:bg-surface-container-high transition{{if and .Type (ne .Status "error")}} cursor-pointer{{end}}"
                             {{if and .Type (ne .Status "error")}}onclick="openGuestModal('{{.Type}}', '{{.ID}}')"{{end}}>
                             <td class="p-4">
                                 {{if eq .Type "VM"}}
                                 <!-- Server Stack Icon -->
-                                <svg class="w-6 h-6 text-cyan-400" fill="none" viewBox="0 0 24 24"
+                                <svg class="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
                                 </svg>
                                 {{else}}
                                 <!-- Cube Icon -->
-                                <svg class="w-6 h-6 text-fuchsia-400" fill="none" viewBox="0 0 24 24"
+                                <svg class="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                                 </svg>
                                 {{end}}
                             </td>
-                            <td class="p-4 font-mono text-gray-500">{{.ID}}</td>
-                            <td class="p-4 font-medium text-white">{{.Name}}</td>
+                            <td class="p-4 font-mono text-on-surface-variant">{{.ID}}</td>
+                            <td class="p-4 font-medium text-on-surface">{{.Name}}</td>
                             <td class="p-4">
                                 {{if eq .Status "running"}}
                                 <span
-                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-400/10 text-green-400">
+                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-container text-green-400">
                                     <span class="w-1.5 h-1.5 rounded-full bg-green-400 mr-1.5"></span> Running
                                 </span>
                                 {{else}}
                                 <span
-                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-400/10 text-red-400">
+                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-error-container text-red-400">
                                     <span class="w-1.5 h-1.5 rounded-full bg-red-400 mr-1.5"></span> Stopped
                                 </span>
                                 {{end}}
                             </td>
-                            <td class="p-4 text-gray-400">{{.Uptime}}</td>
-                            <td class="p-4 font-mono text-gray-400">{{.IP}}</td>
+                            <td class="p-4 text-on-surface-variant">{{.Uptime}}</td>
+                            <td class="p-4 font-mono text-on-surface-variant">{{.IP}}</td>
                         </tr>
                         {{end}}
                     </tbody>
@@ -341,24 +174,24 @@
 
             <!-- Modal Panel -->
             <div
-                class="inline-block align-bottom glass rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-[#2a2839]">
+                class="inline-block align-bottom bg-surface-container rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-outline-variant">
                 <div class="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     <div class="sm:flex sm:items-start">
                         <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                            <h3 class="text-xl leading-6 font-bold text-white flex items-center justify-between"
+                            <h3 class="text-xl leading-6 font-bold text-on-surface flex items-center justify-between"
                                 id="modal-title">
                                 <span id="modal-guest-name">Loading...</span>
-                                <span id="modal-guest-id" class="text-sm text-gray-400 font-mono"></span>
+                                <span id="modal-guest-id" class="text-sm text-on-surface-variant font-mono"></span>
                             </h3>
-                            <div class="mt-2 text-sm text-gray-500" id="modal-guest-status">
+                            <div class="mt-2 text-sm text-on-surface-variant" id="modal-guest-status">
                                 <!-- Status Badge will go here -->
                             </div>
 
-                            <hr class="border-[#2a2839] my-4">
+                            <hr class="border-outline-variant my-4">
 
                             <!-- Loading State -->
                             <div id="modal-loading" class="flex justify-center py-8">
-                                <svg class="animate-spin h-8 w-8 text-fuchsia-500" xmlns="http://www.w3.org/2000/svg"
+                                <svg class="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg"
                                     fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
                                         stroke-width="4"></circle>
@@ -372,25 +205,25 @@
                             <div id="modal-content" class="hidden space-y-4">
                                 <!-- Resources Grid -->
                                 <div class="grid grid-cols-2 gap-4">
-                                    <div class="bg-[#151421] p-3 rounded-lg border border-[#2a2839]">
-                                        <p class="text-xs text-gray-500 uppercase">Uptime</p>
-                                        <p class="text-white font-medium" id="modal-uptime">-</p>
+                                    <div class="bg-surface-container-low p-3 rounded-lg border border-outline-variant">
+                                        <p class="text-xs text-on-surface-variant uppercase">Uptime</p>
+                                        <p class="text-on-surface font-medium" id="modal-uptime">-</p>
                                     </div>
-                                    <div class="bg-[#151421] p-3 rounded-lg border border-[#2a2839]">
-                                        <p class="text-xs text-gray-500 uppercase">Cores</p>
-                                        <p class="text-white font-medium" id="modal-cores">-</p>
+                                    <div class="bg-surface-container-low p-3 rounded-lg border border-outline-variant">
+                                        <p class="text-xs text-on-surface-variant uppercase">Cores</p>
+                                        <p class="text-on-surface font-medium" id="modal-cores">-</p>
                                     </div>
                                 </div>
 
                                 <!-- CPU -->
                                 <div>
                                     <div class="flex justify-between text-sm mb-1">
-                                        <span class="text-gray-400">CPU Usage</span>
-                                        <span class="text-white font-bold" id="modal-cpu-val">0%</span>
+                                        <span class="text-on-surface-variant">CPU Usage</span>
+                                        <span class="text-on-surface font-bold" id="modal-cpu-val">0%</span>
                                     </div>
-                                    <div class="w-full bg-[#2a2839] h-2 rounded-full overflow-hidden">
+                                    <div class="w-full bg-outline-variant h-2 rounded-full overflow-hidden">
                                         <div id="modal-cpu-bar"
-                                            class="bg-gradient-to-r from-fuchsia-500 to-purple-600 h-full rounded-full"
+                                            class="bg-primary h-full rounded-full"
                                             style="width: 0%"></div>
                                     </div>
                                 </div>
@@ -398,13 +231,13 @@
                                 <!-- RAM -->
                                 <div>
                                     <div class="flex justify-between text-sm mb-1">
-                                        <span class="text-gray-400">RAM Usage</span>
-                                        <span class="text-white font-bold" id="modal-ram-val">0%</span>
+                                        <span class="text-on-surface-variant">RAM Usage</span>
+                                        <span class="text-on-surface font-bold" id="modal-ram-val">0%</span>
                                     </div>
-                                    <p class="text-xs text-gray-500 mb-1" id="modal-ram-text">- / -</p>
-                                    <div class="w-full bg-[#2a2839] h-2 rounded-full overflow-hidden">
+                                    <p class="text-xs text-on-surface-variant mb-1" id="modal-ram-text">- / -</p>
+                                    <div class="w-full bg-outline-variant h-2 rounded-full overflow-hidden">
                                         <div id="modal-ram-bar"
-                                            class="bg-gradient-to-r from-cyan-500 to-blue-600 h-full rounded-full"
+                                            class="bg-secondary h-full rounded-full"
                                             style="width: 0%"></div>
                                     </div>
                                 </div>
@@ -412,48 +245,48 @@
                                 <!-- Disk -->
                                 <div>
                                     <div class="flex justify-between text-sm mb-1">
-                                        <span class="text-gray-400">Disk Usage</span>
-                                        <span class="text-white font-bold" id="modal-disk-val">0%</span>
+                                        <span class="text-on-surface-variant">Disk Usage</span>
+                                        <span class="text-on-surface font-bold" id="modal-disk-val">0%</span>
                                     </div>
-                                    <p class="text-xs text-gray-500 mb-1" id="modal-disk-text">- / -</p>
-                                    <div class="w-full bg-[#2a2839] h-2 rounded-full overflow-hidden">
+                                    <p class="text-xs text-on-surface-variant mb-1" id="modal-disk-text">- / -</p>
+                                    <div class="w-full bg-outline-variant h-2 rounded-full overflow-hidden">
                                         <div id="modal-disk-bar"
-                                            class="bg-gradient-to-r from-orange-500 to-red-600 h-full rounded-full"
+                                            class="bg-tertiary h-full rounded-full"
                                             style="width: 0%"></div>
                                     </div>
                                 </div>
 
                                 <!-- Note -->
-                                <div class="bg-[#151421] p-3 rounded-lg border border-[#2a2839] hidden"
+                                <div class="bg-surface-container-low p-3 rounded-lg border border-outline-variant hidden"
                                     id="modal-note-container">
-                                    <p class="text-xs text-gray-500 uppercase mb-1">Note</p>
-                                    <p class="text-sm text-gray-300 italic" id="modal-note"></p>
+                                    <p class="text-xs text-on-surface-variant uppercase mb-1">Note</p>
+                                    <p class="text-sm text-on-surface italic" id="modal-note"></p>
                                 </div>
 
                                 <!-- Snapshots -->
-                                <div class="bg-[#151421] p-3 rounded-lg border border-[#2a2839]">
+                                <div class="bg-surface-container-low p-3 rounded-lg border border-outline-variant">
                                     <div class="flex items-center justify-between mb-2">
-                                        <p class="text-xs text-gray-500 uppercase">Snapshots</p>
+                                        <p class="text-xs text-on-surface-variant uppercase">Snapshots</p>
                                         <button onclick="toggleSnapshotForm()"
-                                            class="text-xs px-2 py-1 rounded bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/30 hover:bg-fuchsia-500/20 transition"
+                                            class="text-xs px-2 py-1 rounded bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition"
                                             id="btn-toggle-snap-form">+ Nouveau</button>
                                     </div>
 
                                     <!-- Create Snapshot Form (inline, hidden by default) -->
                                     <div id="snapshot-form" class="hidden mb-3 space-y-2">
                                         <input id="snap-name" type="text" placeholder="Nom du snapshot"
-                                            class="w-full px-3 py-1.5 rounded-lg bg-[#0f0e17] border border-[#2a2839] text-sm text-white placeholder-gray-500 focus:outline-none focus:border-fuchsia-500/50">
+                                            class="w-full px-3 py-1.5 rounded-xs bg-transparent border border-outline text-sm text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
                                         <input id="snap-desc" type="text" placeholder="Description (optionnel)"
-                                            class="w-full px-3 py-1.5 rounded-lg bg-[#0f0e17] border border-[#2a2839] text-sm text-white placeholder-gray-500 focus:outline-none focus:border-fuchsia-500/50">
+                                            class="w-full px-3 py-1.5 rounded-xs bg-transparent border border-outline text-sm text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
                                         <button onclick="createSnapshot()"
-                                            class="w-full px-3 py-1.5 rounded-lg text-xs font-medium bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/30 hover:bg-fuchsia-500/20 transition">
+                                            class="w-full px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition">
                                             Creer le snapshot
                                         </button>
                                     </div>
 
                                     <!-- Snapshot List -->
                                     <div id="snapshot-list" class="space-y-2">
-                                        <p class="text-xs text-gray-500 italic">Chargement...</p>
+                                        <p class="text-xs text-on-surface-variant italic">Chargement...</p>
                                     </div>
                                 </div>
                             </div>
@@ -463,7 +296,7 @@
                 <!-- Power Action Toast -->
                 <div id="power-toast" class="hidden mx-6 mb-2 px-3 py-2 rounded-lg text-xs font-medium"></div>
 
-                <div class="bg-[#151421]/50 px-4 py-3 sm:px-6 flex flex-wrap items-center justify-between gap-2 border-t border-[#2a2839]">
+                <div class="bg-surface-container-low/50 px-4 py-3 sm:px-6 flex flex-wrap items-center justify-between gap-2 border-t border-outline-variant">
                     <!-- Power Buttons -->
                     <div class="flex items-center gap-2">
                         <button id="btn-start" onclick="powerAction('start')"
@@ -482,13 +315,13 @@
                             Redémarrer
                         </button>
                         <button id="btn-console" onclick="openConsole()"
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/30 hover:bg-purple-500/20 transition">
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition">
                             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                             Console
                         </button>
                     </div>
                     <button type="button"
-                        class="inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-white/10 text-sm font-medium text-white hover:bg-white/20 focus:outline-none transition"
+                        class="inline-flex justify-center rounded-full border border-outline px-4 py-2 text-sm font-medium text-on-surface-variant hover:bg-surface-container-highest focus:outline-none transition"
                         onclick="closeGuestModal()">
                         Fermer
                     </button>
@@ -502,69 +335,69 @@
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" aria-hidden="true" onclick="closeCreateModal()"></div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div class="inline-block align-bottom glass rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-[#2a2839]">
+            <div class="inline-block align-bottom bg-surface-container rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-outline-variant">
                 <div class="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    <h3 class="text-xl leading-6 font-bold text-white mb-4">Cr&eacute;er une VM / CT</h3>
+                    <h3 class="text-xl leading-6 font-bold text-on-surface mb-4">Cr&eacute;er une VM / CT</h3>
 
                     <!-- Type Radio -->
                     <div class="mb-4">
-                        <label class="text-xs text-gray-500 uppercase font-semibold block mb-2">Type</label>
+                        <label class="text-xs text-on-surface-variant uppercase font-semibold block mb-2">Type</label>
                         <div class="flex gap-4">
-                            <label class="flex items-center gap-2 text-sm text-white cursor-pointer">
-                                <input type="radio" name="create-type" value="VM" checked class="accent-fuchsia-500"> VM (QEMU)
+                            <label class="flex items-center gap-2 text-sm text-on-surface cursor-pointer">
+                                <input type="radio" name="create-type" value="VM" checked class="accent-primary"> VM (QEMU)
                             </label>
-                            <label class="flex items-center gap-2 text-sm text-white cursor-pointer">
-                                <input type="radio" name="create-type" value="CT" onchange="toggleTemplateField()" class="accent-fuchsia-500"> CT (LXC)
+                            <label class="flex items-center gap-2 text-sm text-on-surface cursor-pointer">
+                                <input type="radio" name="create-type" value="CT" onchange="toggleTemplateField()" class="accent-primary"> CT (LXC)
                             </label>
                         </div>
                     </div>
 
                     <!-- VMID -->
                     <div class="mb-3">
-                        <label class="text-xs text-gray-500 uppercase font-semibold block mb-1">VMID</label>
-                        <input id="create-vmid" type="number" placeholder="100" class="w-full px-3 py-2 rounded-lg bg-[#0f0e17] border border-[#2a2839] text-sm text-white placeholder-gray-500 focus:outline-none focus:border-fuchsia-500/50">
+                        <label class="text-xs text-on-surface-variant uppercase font-semibold block mb-1">VMID</label>
+                        <input id="create-vmid" type="number" placeholder="100" class="w-full px-3 py-2 rounded-xs bg-transparent border border-outline text-sm text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
                     </div>
 
                     <!-- Name -->
                     <div class="mb-3">
-                        <label class="text-xs text-gray-500 uppercase font-semibold block mb-1">Nom</label>
-                        <input id="create-name" type="text" placeholder="my-server" class="w-full px-3 py-2 rounded-lg bg-[#0f0e17] border border-[#2a2839] text-sm text-white placeholder-gray-500 focus:outline-none focus:border-fuchsia-500/50">
+                        <label class="text-xs text-on-surface-variant uppercase font-semibold block mb-1">Nom</label>
+                        <input id="create-name" type="text" placeholder="my-server" class="w-full px-3 py-2 rounded-xs bg-transparent border border-outline text-sm text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
                     </div>
 
                     <!-- Cores -->
                     <div class="grid grid-cols-2 gap-3 mb-3">
                         <div>
-                            <label class="text-xs text-gray-500 uppercase font-semibold block mb-1">Cores</label>
-                            <input id="create-cores" type="number" value="1" min="1" class="w-full px-3 py-2 rounded-lg bg-[#0f0e17] border border-[#2a2839] text-sm text-white placeholder-gray-500 focus:outline-none focus:border-fuchsia-500/50">
+                            <label class="text-xs text-on-surface-variant uppercase font-semibold block mb-1">Cores</label>
+                            <input id="create-cores" type="number" value="1" min="1" class="w-full px-3 py-2 rounded-xs bg-transparent border border-outline text-sm text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
                         </div>
                         <div>
-                            <label class="text-xs text-gray-500 uppercase font-semibold block mb-1">M&eacute;moire (MB)</label>
-                            <input id="create-memory" type="number" value="512" min="128" class="w-full px-3 py-2 rounded-lg bg-[#0f0e17] border border-[#2a2839] text-sm text-white placeholder-gray-500 focus:outline-none focus:border-fuchsia-500/50">
+                            <label class="text-xs text-on-surface-variant uppercase font-semibold block mb-1">M&eacute;moire (MB)</label>
+                            <input id="create-memory" type="number" value="512" min="128" class="w-full px-3 py-2 rounded-xs bg-transparent border border-outline text-sm text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
                         </div>
                     </div>
 
                     <!-- Disk -->
                     <div class="mb-3">
-                        <label class="text-xs text-gray-500 uppercase font-semibold block mb-1">Disque (GB)</label>
-                        <input id="create-disk" type="number" value="8" min="1" class="w-full px-3 py-2 rounded-lg bg-[#0f0e17] border border-[#2a2839] text-sm text-white placeholder-gray-500 focus:outline-none focus:border-fuchsia-500/50">
+                        <label class="text-xs text-on-surface-variant uppercase font-semibold block mb-1">Disque (GB)</label>
+                        <input id="create-disk" type="number" value="8" min="1" class="w-full px-3 py-2 rounded-xs bg-transparent border border-outline text-sm text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
                     </div>
 
                     <!-- Template (CT only) -->
                     <div id="create-template-field" class="mb-3 hidden">
-                        <label class="text-xs text-gray-500 uppercase font-semibold block mb-1">Template (CT)</label>
-                        <input id="create-template" type="text" placeholder="local:vztmpl/debian-12-standard_12.2-1_amd64.tar.zst" class="w-full px-3 py-2 rounded-lg bg-[#0f0e17] border border-[#2a2839] text-sm text-white placeholder-gray-500 focus:outline-none focus:border-fuchsia-500/50">
+                        <label class="text-xs text-on-surface-variant uppercase font-semibold block mb-1">Template (CT)</label>
+                        <input id="create-template" type="text" placeholder="local:vztmpl/debian-12-standard_12.2-1_amd64.tar.zst" class="w-full px-3 py-2 rounded-xs bg-transparent border border-outline text-sm text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
                     </div>
 
                     <!-- Toast -->
                     <div id="create-toast" class="hidden mb-3 px-3 py-2 rounded-lg text-xs font-medium"></div>
                 </div>
 
-                <div class="bg-[#151421]/50 px-4 py-3 sm:px-6 flex items-center justify-between gap-2 border-t border-[#2a2839]">
-                    <button onclick="submitCreateGuest()" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/30 hover:bg-fuchsia-500/20 transition">
+                <div class="bg-surface-container-low/50 px-4 py-3 sm:px-6 flex items-center justify-between gap-2 border-t border-outline-variant">
+                    <button onclick="submitCreateGuest()" class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-primary text-on-primary hover:opacity-90 transition">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                         Cr&eacute;er
                     </button>
-                    <button type="button" class="inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-white/10 text-sm font-medium text-white hover:bg-white/20 focus:outline-none transition" onclick="closeCreateModal()">
+                    <button type="button" class="inline-flex justify-center rounded-full border border-outline px-4 py-2 text-sm font-medium text-on-surface-variant hover:bg-surface-container-highest focus:outline-none transition" onclick="closeCreateModal()">
                         Annuler
                     </button>
                 </div>
@@ -598,9 +431,9 @@
                                 const statusCell = row.querySelector('td:nth-child(4)');
                                 if (statusCell) {
                                     if (vm.Status === 'running') {
-                                        statusCell.innerHTML = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-400/10 text-green-400"><span class="w-1.5 h-1.5 rounded-full bg-green-400 mr-1.5"></span> Running</span>';
+                                        statusCell.innerHTML = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-container text-green-400"><span class="w-1.5 h-1.5 rounded-full bg-green-400 mr-1.5"></span> Running</span>';
                                     } else {
-                                        statusCell.innerHTML = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-400/10 text-red-400"><span class="w-1.5 h-1.5 rounded-full bg-red-400 mr-1.5"></span> Stopped</span>';
+                                        statusCell.innerHTML = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-error-container text-red-400"><span class="w-1.5 h-1.5 rounded-full bg-red-400 mr-1.5"></span> Stopped</span>';
                                     }
                                 }
                             }
@@ -703,9 +536,9 @@
 
                     let statusHtml = '';
                     if (data.status === 'running') {
-                        statusHtml = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-400/10 text-green-400"><span class="w-1.5 h-1.5 rounded-full bg-green-400 mr-1.5"></span> Running</span>';
+                        statusHtml = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-container text-green-400"><span class="w-1.5 h-1.5 rounded-full bg-green-400 mr-1.5"></span> Running</span>';
                     } else {
-                        statusHtml = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-400/10 text-red-400"><span class="w-1.5 h-1.5 rounded-full bg-red-400 mr-1.5"></span> Stopped</span>';
+                        statusHtml = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-error-container text-red-400"><span class="w-1.5 h-1.5 rounded-full bg-red-400 mr-1.5"></span> Stopped</span>';
                     }
                     document.getElementById('modal-guest-status').innerHTML = statusHtml;
 
@@ -778,7 +611,7 @@
 
         function loadSnapshots(type, id) {
             const list = document.getElementById('snapshot-list');
-            list.innerHTML = '<p class="text-xs text-gray-500 italic">Chargement...</p>';
+            list.innerHTML = '<p class="text-xs text-on-surface-variant italic">Chargement...</p>';
 
             fetch(`/api/proxmox/snapshots?type=${type}&id=${id}`)
                 .then(r => r.json())
@@ -788,19 +621,19 @@
                         return;
                     }
                     if (!data.length) {
-                        list.innerHTML = '<p class="text-xs text-gray-500 italic">Aucun snapshot</p>';
+                        list.innerHTML = '<p class="text-xs text-on-surface-variant italic">Aucun snapshot</p>';
                         return;
                     }
                     list.innerHTML = '';
                     data.forEach(snap => {
                         const date = snap.snaptime ? new Date(snap.snaptime * 1000).toLocaleString() : '-';
                         const div = document.createElement('div');
-                        div.className = 'flex items-center justify-between bg-[#0f0e17] p-2 rounded-lg border border-[#2a2839]';
+                        div.className = 'flex items-center justify-between bg-surface p-2 rounded-lg border border-outline-variant';
                         div.innerHTML = `
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm text-white font-medium truncate">${snap.name}</p>
-                                <p class="text-xs text-gray-500 truncate">${snap.description || '-'}</p>
-                                <p class="text-xs text-gray-600">${date}</p>
+                                <p class="text-sm text-on-surface font-medium truncate">${snap.name}</p>
+                                <p class="text-xs text-on-surface-variant truncate">${snap.description || '-'}</p>
+                                <p class="text-xs text-on-surface-variant">${date}</p>
                             </div>
                             <div class="flex items-center gap-1 ml-2 flex-shrink-0">
                                 <button onclick="rollbackSnapshot('${snap.name}')" title="Rollback"
@@ -960,51 +793,13 @@
                 });
         }
 
-        // Mobile Menu Logic
-        document.addEventListener('DOMContentLoaded', () => {
-            const btn = document.getElementById('mobile-menu-btn');
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('mobile-overlay');
-
-            if (btn && sidebar && overlay) {
-                function toggleMenu() {
-                    const isClosed = sidebar.classList.contains('-translate-x-full');
-                    if (isClosed) {
-                        sidebar.classList.remove('-translate-x-full');
-                        overlay.classList.remove('hidden');
-                    } else {
-                        sidebar.classList.add('-translate-x-full');
-                        overlay.classList.add('hidden');
-                    }
-                }
-
-                btn.addEventListener('click', toggleMenu);
-                overlay.addEventListener('click', toggleMenu);
-            }
-        });
     </script>
-    <script>
-        document.querySelectorAll('.sidebar-link').forEach(link => {
-            if (link.getAttribute('href') === window.location.pathname) {
-                link.classList.add('active');
-            }
-        });
-        fetch('/api/me').then(r => r.json()).then(data => {
-            if (data.github_url) {
-                const link = document.getElementById('sidebar-github-link');
-                if (link) {
-                    link.href = data.github_url;
-                    link.target = '_blank';
-                    link.title = 'Mon profil GitHub';
-                }
-            }
-        }).catch(() => {});
-    </script>
+    {{template "sidebar-js"}}
     <script>
         function drawSparkline(containerId, data, color) {
             const container = document.getElementById(containerId);
             if (!container || data.length < 2) {
-                if (container) container.innerHTML = '<p class="text-xs text-gray-600 text-center pt-3">Pas assez de données</p>';
+                if (container) container.innerHTML = '<p class="text-xs text-on-surface-variant text-center pt-3">Pas assez de données</p>';
                 return;
             }
             const w = container.offsetWidth || 300;
