@@ -1,0 +1,23 @@
+{
+  "name": "goacloud",
+  "version": "1.0.0",
+  "description": "GoaCloud is a self-hosted **Single Pane of Glass** dashboard for managing your homelab infrastructure. It brings together Proxmox VM management, Wazuh SIEM security, Ansible automation, SSH key management, and AI-powered SOAR — all in one place.",
+  "main": "tailwind.config.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AbrahamOP/GoaCloud.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AbrahamOP/GoaCloud/issues"
+  },
+  "homepage": "https://github.com/AbrahamOP/GoaCloud#readme",
+  "dependencies": {
+    "tailwindcss": "^3.4.19"
+  }
+}
