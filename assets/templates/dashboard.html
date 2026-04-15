@@ -41,16 +41,20 @@
 
     <!-- Main Content -->
     <main class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
-        {{template "top-actions"}}
         {{template "bubbles"}}
 
         <div class="px-8 py-10 relative z-10">
             <!-- Header -->
-            <div class="mb-10">
-                <h2 class="text-3xl font-bold text-on-surface mb-2"><span id="greeting"></span>, <span
-                        class="gradient-text">{{.Username}}</span>
-                </h2>
-                <p class="text-on-surface-variant text-sm">Ravi de vous revoir sur votre dashboard.</p>
+            <div class="flex flex-wrap items-start justify-between gap-4 mb-10">
+                <div>
+                    <h2 class="text-3xl font-bold text-on-surface mb-2"><span id="greeting"></span>, <span
+                            class="gradient-text">{{.Username}}</span>
+                    </h2>
+                    <p class="text-on-surface-variant text-sm">Ravi de vous revoir sur votre dashboard.</p>
+                </div>
+                <div class="flex items-center gap-3 flex-wrap">
+                    {{template "top-actions"}}
+                </div>
             </div>
 
             <!-- Stats/Featured Cards (Optional decorative) -->

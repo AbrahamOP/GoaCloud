@@ -16,17 +16,19 @@
 
     <!-- Main Content -->
     <main class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
-        {{template "top-actions"}}
         {{template "bubbles"}}
 
         <div class="px-8 py-10 relative z-10">
             <!-- Header -->
-            <div class="flex items-center justify-between mb-10">
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-10">
                 <div>
                     <h2 class="text-3xl font-bold text-on-surface mb-2">SOAR <span
                             class="text-primary text-sm border border-primary/30 bg-primary/10 px-2 py-0.5 rounded-full uppercase tracking-wider">Beta</span>
                     </h2>
                     <p class="text-on-surface-variant text-sm">Automated Security Response & Orchestration</p>
+                </div>
+                <div class="flex items-center gap-3 flex-wrap">
+                    {{template "top-actions"}}
                 </div>
             </div>
 

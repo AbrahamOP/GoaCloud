@@ -15,18 +15,17 @@
 
     <!-- Main Content -->
     <main class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
-        {{template "top-actions"}}
         {{template "bubbles"}}
 
         <div class="px-8 py-10 relative z-10">
             <!--            -->
-            <div class="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+            <div class="flex flex-wrap items-center justify-between mb-8 gap-4">
                 <div>
                     <h2 class="text-3xl font-bold text-on-surface mb-2">Wazuh <span class="gradient-text">Security</span>
                     </h2>
                     <p class="text-on-surface-variant text-sm">Surveillance des vulnérabilités de votre infrastructure.</p>
                 </div>
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 flex-wrap">
                     <!-- Refresh Button -->
                     <button id="btn-refresh" onclick="refreshPage()"
                         class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-surface-container border border-outline-variant text-on-surface-variant hover:text-on-surface hover:border-primary transition-all">
@@ -45,6 +44,7 @@
                         <button onclick="filterAgents('disconnected')" id="btn-disconnected"
                             class="px-4 py-2 text-sm font-medium rounded-md text-on-surface-variant hover:text-on-surface transition-all">Déconnectés</button>
                     </div>
+                    {{template "top-actions"}}
                 </div>
             </div>
 
