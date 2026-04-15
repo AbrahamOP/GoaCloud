@@ -14,6 +14,11 @@
 <body
     class="flex items-center justify-center min-h-screen bg-surface text-on-surface relative overflow-hidden">
 
+    <!-- Decoration Gradients -->
+    <div class="absolute top-0 left-0 w-96 h-96 bg-purple-600/5 rounded-full pointer-events-none"></div>
+    <div class="absolute bottom-0 right-0 w-96 h-96 bg-cyan-600/5 rounded-full pointer-events-none"></div>
+    <div class="absolute top-1/2 left-1/2 w-96 h-96 bg-purple-600/5 rounded-full pointer-events-none -translate-x-1/2 -translate-y-1/2 blur-2xl"></div>
+
     <!-- Main Container -->
     <div class="relative z-10 w-full max-w-md px-6">
         <div class="bg-surface-container rounded-xl p-8 shadow-lg border border-outline-variant">
@@ -62,7 +67,7 @@
                             </svg>
                         </div>
                         <input id="username" name="username" type="text" required
-                            class="w-full bg-transparent border border-outline rounded-xs pl-10 pr-4 py-3 text-on-surface text-sm placeholder-on-surface-variant focus:border-primary focus:ring-2 focus:ring-primary focus:outline-none"
+                            class="js-clear-on-focus w-full bg-transparent border border-outline rounded-xs pl-10 pr-4 py-3 text-on-surface text-sm placeholder-on-surface-variant focus:border-primary focus:ring-2 focus:ring-primary focus:outline-none"
                             placeholder="admin">
                     </div>
                 </div>
@@ -78,8 +83,22 @@
                             </svg>
                         </div>
                         <input id="password" name="password" type="password" required
-                            class="w-full bg-transparent border border-outline rounded-xs pl-10 pr-4 py-3 text-on-surface text-sm placeholder-on-surface-variant focus:border-primary focus:ring-2 focus:ring-primary focus:outline-none"
+                            class="js-clear-on-focus js-password w-full bg-transparent border border-outline rounded-xs pl-10 pr-12 py-3 text-on-surface text-sm placeholder-on-surface-variant focus:border-primary focus:ring-2 focus:ring-primary focus:outline-none"
                             placeholder="••••••••">
+                        <button type="button" data-toggle-password="password" tabindex="-1"
+                            class="absolute inset-y-0 right-0 pr-3 flex items-center text-on-surface-variant hover:text-on-surface focus:outline-none"
+                            aria-label="Afficher le mot de passe">
+                            <svg class="h-5 w-5 icon-eye" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            <svg class="h-5 w-5 icon-eye-off hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L14.12 14.12m0 0L21 21m-6.88-6.88a3 3 0 01-4.242-4.242" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
 
@@ -95,8 +114,22 @@
                             </svg>
                         </div>
                         <input id="confirm_password" name="confirm_password" type="password" required
-                            class="w-full bg-transparent border border-outline rounded-xs pl-10 pr-4 py-3 text-on-surface text-sm placeholder-on-surface-variant focus:border-primary focus:ring-2 focus:ring-primary focus:outline-none"
+                            class="js-clear-on-focus js-password w-full bg-transparent border border-outline rounded-xs pl-10 pr-12 py-3 text-on-surface text-sm placeholder-on-surface-variant focus:border-primary focus:ring-2 focus:ring-primary focus:outline-none"
                             placeholder="••••••••">
+                        <button type="button" data-toggle-password="confirm_password" tabindex="-1"
+                            class="absolute inset-y-0 right-0 pr-3 flex items-center text-on-surface-variant hover:text-on-surface focus:outline-none"
+                            aria-label="Afficher le mot de passe">
+                            <svg class="h-5 w-5 icon-eye" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            <svg class="h-5 w-5 icon-eye-off hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L14.12 14.12m0 0L21 21m-6.88-6.88a3 3 0 01-4.242-4.242" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
 
@@ -116,6 +149,38 @@
     </div>
     <script src="/static/theme.js"></script>
     <script src="/static/csrf.js"></script>
+    <script>
+        // Clear field value on first focus
+        document.querySelectorAll('.js-clear-on-focus').forEach(function (input) {
+            input.addEventListener('focus', function () {
+                if (!input.dataset.cleared) {
+                    input.value = '';
+                    input.dataset.cleared = '1';
+                }
+            }, { once: false });
+        });
+
+        // Toggle password visibility
+        document.querySelectorAll('[data-toggle-password]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var target = document.getElementById(btn.getAttribute('data-toggle-password'));
+                if (!target) return;
+                var eye = btn.querySelector('.icon-eye');
+                var eyeOff = btn.querySelector('.icon-eye-off');
+                if (target.type === 'password') {
+                    target.type = 'text';
+                    eye.classList.add('hidden');
+                    eyeOff.classList.remove('hidden');
+                    btn.setAttribute('aria-label', 'Masquer le mot de passe');
+                } else {
+                    target.type = 'password';
+                    eyeOff.classList.add('hidden');
+                    eye.classList.remove('hidden');
+                    btn.setAttribute('aria-label', 'Afficher le mot de passe');
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>
