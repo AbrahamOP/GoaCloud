@@ -9,8 +9,27 @@
         /* Edit mode: disable card link navigation and add dashed outline */
         #apps-grid.edit-mode .app-card-link { pointer-events: none; }
         #apps-grid.edit-mode .app-card[data-id] {
-            cursor: pointer;
+            cursor: grab;
             border-style: dashed;
+            transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease;
+        }
+        #apps-grid.edit-mode .app-card[data-id]:hover {
+            border-color: var(--md-color-primary);
+        }
+        /* The card being dragged: ghosted placeholder */
+        .app-card.dragging {
+            opacity: 0.35 !important;
+            transform: scale(0.96) !important;
+            border-color: var(--md-color-primary) !important;
+            border-style: dashed !important;
+            background: color-mix(in srgb, var(--md-color-primary) 10%, transparent) !important;
+        }
+        /* A card currently being hovered as a drop target */
+        .app-card.drop-target {
+            border-color: var(--md-color-primary) !important;
+            border-style: solid !important;
+            box-shadow: 0 0 0 2px var(--md-color-primary), 0 10px 24px rgba(0,0,0,0.35) !important;
+            transform: translateY(-4px) scale(1.02) !important;
         }
     </style>
 </head>
@@ -619,29 +638,46 @@
 
                 // HTML5 drag and drop reorder
                 let draggedEl = null;
+                let lastTarget = null;
+                function clearDropTargets() {
+                    appsGrid.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
+                }
                 appsGrid.addEventListener('dragstart', (e) => {
                     if (!editMode) return;
                     const card = e.target.closest('.app-card');
                     if (!card || !card.dataset.id) return;
                     draggedEl = card;
-                    card.classList.add('opacity-50');
+                    // Defer adding the class so the browser captures the drag ghost first
+                    setTimeout(() => card.classList.add('dragging'), 0);
                     e.dataTransfer.effectAllowed = 'move';
                     try { e.dataTransfer.setData('text/plain', card.dataset.id); } catch (_) {}
                 });
                 appsGrid.addEventListener('dragend', () => {
-                    if (draggedEl) draggedEl.classList.remove('opacity-50');
+                    if (draggedEl) draggedEl.classList.remove('dragging');
+                    clearDropTargets();
                     draggedEl = null;
+                    lastTarget = null;
                     persistOrder();
                 });
                 appsGrid.addEventListener('dragover', (e) => {
                     if (!editMode || !draggedEl) return;
                     e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
                     const target = e.target.closest('.app-card');
                     if (!target || target === draggedEl || !target.dataset.id) return;
                     const rect = target.getBoundingClientRect();
                     const before = (e.clientY - rect.top) / rect.height < 0.5;
                     if (before) target.parentNode.insertBefore(draggedEl, target);
                     else target.parentNode.insertBefore(draggedEl, target.nextSibling);
+                    if (lastTarget !== target) {
+                        clearDropTargets();
+                        target.classList.add('drop-target');
+                        lastTarget = target;
+                    }
+                });
+                appsGrid.addEventListener('dragleave', (e) => {
+                    const target = e.target.closest && e.target.closest('.app-card');
+                    if (target) target.classList.remove('drop-target');
                 });
             }
 
