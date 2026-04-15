@@ -3,150 +3,493 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GoaCloud - Rapport Infrastructure</title>
+    <title>GoaCloud — Rapport d'Infrastructure</title>
     <link rel="stylesheet" href="/static/tailwind.min.css">
     <style>
-        body {
-            font-family: 'Outfit', sans-serif;
-            background: white;
-            color: #111827;
+        :root {
+            --c-primary: #7c3aed;
+            --c-primary-soft: #ede9fe;
+            --c-ink: #0f172a;
+            --c-ink-muted: #64748b;
+            --c-border: #e2e8f0;
+            --c-ok: #059669;
+            --c-warn: #d97706;
+            --c-err: #dc2626;
+            --c-bg: #ffffff;
+            --c-bg-soft: #f8fafc;
+        }
+        * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        html, body {
+            font-family: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+            background: var(--c-bg-soft);
+            color: var(--c-ink);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .page {
+            background: var(--c-bg);
+            max-width: 900px;
+            margin: 16px auto;
+            padding: 36px 44px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.08);
+            border-radius: 10px;
+        }
+        h1 { font-size: 26px; font-weight: 800; color: var(--c-ink); letter-spacing: -0.01em; }
+        h2 { font-size: 16px; font-weight: 700; color: var(--c-ink); }
+        h3 { font-size: 13px; font-weight: 600; color: var(--c-ink); }
+
+        .cover {
+            background: linear-gradient(135deg, #7c3aed 0%, #2563eb 55%, #0891b2 100%);
+            color: #fff;
+            border-radius: 12px;
+            padding: 28px 32px;
+            margin-bottom: 28px;
+            position: relative;
+            overflow: hidden;
+        }
+        .cover::after {
+            content: "";
+            position: absolute;
+            right: -60px; top: -60px;
+            width: 220px; height: 220px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.08);
+        }
+        .cover h1 { color: #fff; font-size: 28px; }
+        .cover .sub { color: rgba(255,255,255,.85); font-size: 12px; margin-top: 6px; }
+        .cover .meta { display: flex; gap: 20px; margin-top: 18px; flex-wrap: wrap; font-size: 11px; }
+        .cover .meta span b { display: block; font-size: 10px; opacity: .75; text-transform: uppercase; letter-spacing: .08em; font-weight: 500; }
+
+        .section-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 24px 0 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--c-border);
+        }
+        .section-head .icon {
+            width: 28px; height: 28px;
+            border-radius: 8px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 14px;
+            background: var(--c-primary-soft);
+            color: var(--c-primary);
+        }
+        .section-head .num { color: var(--c-ink-muted); font-weight: 500; font-size: 11px; margin-left: auto; }
+
+        .kpi-grid { display: grid; gap: 10px; margin-bottom: 16px; }
+        .kpi-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+        .kpi-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+        .kpi-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+        .kpi {
+            border: 1px solid var(--c-border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            background: #fff;
+            break-inside: avoid;
+        }
+        .kpi .value { font-size: 22px; font-weight: 800; color: var(--c-ink); line-height: 1; }
+        .kpi .label { font-size: 10px; color: var(--c-ink-muted); text-transform: uppercase; letter-spacing: .06em; margin-top: 6px; font-weight: 600; }
+        .kpi .hint { font-size: 10px; color: var(--c-ink-muted); margin-top: 2px; }
+
+        .kpi.ok    { border-left: 3px solid var(--c-ok);  }
+        .kpi.warn  { border-left: 3px solid var(--c-warn); }
+        .kpi.err   { border-left: 3px solid var(--c-err); }
+        .kpi.info  { border-left: 3px solid var(--c-primary); }
+
+        .kpi.ok   .value { color: var(--c-ok); }
+        .kpi.warn .value { color: var(--c-warn); }
+        .kpi.err  .value { color: var(--c-err); }
+        .kpi.info .value { color: var(--c-primary); }
+
+        .bar {
+            height: 6px;
+            border-radius: 9999px;
+            background: #f1f5f9;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .bar > span { display: block; height: 100%; background: var(--c-primary); border-radius: 9999px; }
+        .bar.ok   > span { background: var(--c-ok); }
+        .bar.warn > span { background: var(--c-warn); }
+        .bar.err  > span { background: var(--c-err); }
+
+        table.report {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border: 1px solid var(--c-border);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 18px;
+            font-size: 11px;
+        }
+        table.report thead th {
+            background: var(--c-bg-soft);
+            color: var(--c-ink-muted);
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            font-weight: 600;
+            padding: 8px 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--c-border);
+        }
+        table.report tbody td {
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--c-border);
+            vertical-align: middle;
+        }
+        table.report tbody tr:last-child td { border-bottom: none; }
+        table.report tbody tr:nth-child(even) td { background: #fafbfc; }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            border: 1px solid transparent;
+        }
+        .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+        .badge.ok  { background: #ecfdf5; color: var(--c-ok);  border-color: #a7f3d0; }
+        .badge.err { background: #fef2f2; color: var(--c-err); border-color: #fecaca; }
+        .badge.warn{ background: #fffbeb; color: var(--c-warn);border-color: #fde68a; }
+        .badge.muted{ background: #f8fafc; color: var(--c-ink-muted); border-color: var(--c-border); }
+
+        .footer {
+            text-align: center;
+            margin-top: 28px;
+            padding-top: 12px;
+            border-top: 1px solid var(--c-border);
+            font-size: 10px;
+            color: var(--c-ink-muted);
+        }
+
+        .page-break { page-break-before: always; }
+
+        .no-print { display: flex; align-items: center; justify-content: space-between; max-width: 900px; margin: 24px auto 0; padding: 0 44px; }
+        .no-print a { font-size: 12px; color: #2563eb; text-decoration: none; }
+        .no-print a:hover { text-decoration: underline; }
+        .no-print .btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 10px 18px; border-radius: 9999px;
+            background: var(--c-primary); color: #fff; font-size: 12px; font-weight: 600;
+            border: none; cursor: pointer;
+        }
+        .no-print .btn:hover { background: #6d28d9; }
+
+        @page {
+            size: A4;
+            margin: 16mm 14mm 18mm 14mm;
         }
         @media print {
-            body { background: white; }
+            html, body { background: #fff; }
             .no-print { display: none !important; }
-            .page-break { page-break-before: always; }
-        }
-        .stat-card {
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 16px;
-            text-align: center;
+            .page {
+                box-shadow: none;
+                margin: 0 auto;
+                padding: 0;
+                max-width: 100%;
+                border-radius: 0;
+            }
+            .kpi, table.report, .section-head + .kpi-grid { break-inside: avoid; }
+            table.report thead { display: table-header-group; }
+            tr, td, th { break-inside: avoid; }
         }
     </style>
 </head>
-<body class="p-8 max-w-4xl mx-auto">
-    <!-- Print Button -->
-    <div class="no-print flex justify-between items-center mb-8">
-        <a href="/" class="text-blue-600 hover:underline text-sm">&larr; Retour au dashboard</a>
-        <button onclick="window.print()"
-            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
+<body>
+    <!-- Toolbar (hidden on print) -->
+    <div class="no-print">
+        <a href="/">&larr; Retour au dashboard</a>
+        <button type="button" onclick="window.print()" class="btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 9V2h12v7"/>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                <rect x="6" y="14" width="12" height="8" rx="1"/>
+            </svg>
             Exporter en PDF
         </button>
     </div>
 
-    <!-- Header -->
-    <div class="text-center mb-10">
-        <h1 class="text-3xl font-bold text-gray-900">Rapport d'Infrastructure</h1>
-        <p class="text-gray-500 text-sm mt-1">GoaCloud &mdash; G&eacute;n&eacute;r&eacute; le {{.GeneratedAt}}</p>
-    </div>
-
-    <!-- Infrastructure Overview -->
-    <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Infrastructure Proxmox</h2>
-    <div class="grid grid-cols-3 gap-4 mb-6">
-        <div class="stat-card">
-            <p class="text-3xl font-bold text-purple-600">{{.CPU}}%</p>
-            <p class="text-xs text-gray-500 uppercase mt-1">CPU</p>
+    <div class="page">
+        <!-- Cover -->
+        <div class="cover">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:6px;">
+                <div style="width:36px; height:36px; border-radius:10px; background:rgba(255,255,255,.18); display:inline-flex; align-items:center; justify-content:center; font-size:18px;">⚡</div>
+                <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; opacity:.85;">GoaCloud &middot; Rapport d'infrastructure</div>
+            </div>
+            <h1>Vue d'ensemble de votre HomeLab</h1>
+            <div class="sub">Synthèse des ressources, de la sécurité et des services gérés.</div>
+            <div class="meta">
+                <span><b>Généré le</b>{{.GeneratedAt}}</span>
+                {{if .Username}}<span><b>Par</b>{{.Username}}</span>{{end}}
+                <span><b>État global</b>
+                    {{if eq .InfraHealth "OK"}}🟢 {{.InfraHealth}}
+                    {{else if eq .InfraHealth "Dégradé"}}🟠 {{.InfraHealth}}
+                    {{else}}🔴 {{.InfraHealth}}{{end}}
+                </span>
+            </div>
         </div>
-        <div class="stat-card">
-            <p class="text-3xl font-bold text-blue-600">{{.RAM}}%</p>
-            <p class="text-xs text-gray-500 uppercase mt-1">RAM</p>
-            <p class="text-xs text-gray-400 mt-0.5">{{.RAMUsedStr}} / {{.RAMTotalStr}}</p>
-        </div>
-        <div class="stat-card">
-            <p class="text-3xl font-bold text-orange-600">{{.Storage}}%</p>
-            <p class="text-xs text-gray-500 uppercase mt-1">Stockage</p>
-        </div>
-    </div>
 
-    <div class="grid grid-cols-2 gap-4 mb-8">
-        <div class="stat-card bg-green-50">
-            <p class="text-2xl font-bold text-green-600">{{.VMsRunning}}</p>
-            <p class="text-xs text-gray-500">VMs en marche</p>
+        <!-- Executive summary -->
+        <div class="section-head">
+            <span class="icon">✦</span>
+            <h2>Résumé exécutif</h2>
+            <span class="num">§ 1</span>
         </div>
-        <div class="stat-card bg-red-50">
-            <p class="text-2xl font-bold text-red-600">{{.VMsStopped}}</p>
-            <p class="text-xs text-gray-500">VMs arr&ecirc;t&eacute;es</p>
+        <div class="kpi-grid cols-4">
+            <div class="kpi info">
+                <div class="value">{{.VMsRunning}}<span style="font-size:12px; color:var(--c-ink-muted); font-weight:500;"> / {{len .VMs}}</span></div>
+                <div class="label">VMs en marche</div>
+            </div>
+            <div class="kpi {{if eq .AppsDown 0}}ok{{else}}err{{end}}">
+                <div class="value">{{.AppsUp}}<span style="font-size:12px; color:var(--c-ink-muted); font-weight:500;"> / {{len .Apps}}</span></div>
+                <div class="label">Applications en ligne</div>
+            </div>
+            <div class="kpi {{if gt .VulnCritical 0}}err{{else if gt .VulnHigh 0}}warn{{else}}ok{{end}}">
+                <div class="value">{{.WazuhActive}}<span style="font-size:12px; color:var(--c-ink-muted); font-weight:500;"> / {{len .WazuhAgents}}</span></div>
+                <div class="label">Agents Wazuh actifs</div>
+            </div>
+            <div class="kpi info">
+                <div class="value">{{.AnsibleSchedulesN}}</div>
+                <div class="label">Playbooks planifiés</div>
+            </div>
         </div>
-    </div>
 
-    <!-- VM Table -->
-    <h3 class="text-lg font-semibold text-gray-700 mb-3">Liste des machines</h3>
-    <table class="w-full text-sm border border-gray-200 rounded-lg overflow-hidden mb-8">
-        <thead>
-            <tr class="bg-gray-50 text-gray-500 text-xs uppercase">
-                <th class="p-3 text-left">Type</th>
-                <th class="p-3 text-left">ID</th>
-                <th class="p-3 text-left">Nom</th>
-                <th class="p-3 text-left">Statut</th>
-                <th class="p-3 text-left">IP</th>
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-            {{range .VMs}}
-            <tr>
-                <td class="p-3 font-mono text-xs text-gray-500">{{.Type}}</td>
-                <td class="p-3 font-mono">{{.ID}}</td>
-                <td class="p-3 font-medium">{{.Name}}</td>
-                <td class="p-3">
-                    {{if eq .Status "running"}}
-                    <span class="text-green-600 font-medium">Running</span>
-                    {{else}}
-                    <span class="text-red-600 font-medium">Stopped</span>
-                    {{end}}
-                </td>
-                <td class="p-3 font-mono text-gray-500">{{.IP}}</td>
-            </tr>
-            {{end}}
-        </tbody>
-    </table>
-
-    <div class="page-break"></div>
-
-    <!-- Applications -->
-    <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Applications</h2>
-    <div class="grid grid-cols-2 gap-4 mb-6">
-        <div class="stat-card bg-green-50">
-            <p class="text-2xl font-bold text-green-600">{{.AppsUp}}</p>
-            <p class="text-xs text-gray-500">En ligne</p>
+        <!-- Infrastructure -->
+        <div class="section-head">
+            <span class="icon">⚙</span>
+            <h2>Infrastructure Proxmox</h2>
+            <span class="num">§ 2</span>
         </div>
-        <div class="stat-card bg-red-50">
-            <p class="text-2xl font-bold text-red-600">{{.AppsDown}}</p>
-            <p class="text-xs text-gray-500">Hors ligne</p>
+        <div class="kpi-grid cols-3">
+            <div class="kpi {{if ge .CPU 90}}err{{else if ge .CPU 75}}warn{{else}}ok{{end}}">
+                <div class="value">{{.CPU}}%</div>
+                <div class="label">CPU</div>
+                <div class="bar {{if ge .CPU 90}}err{{else if ge .CPU 75}}warn{{else}}ok{{end}}"><span style="width: {{.CPU}}%"></span></div>
+            </div>
+            <div class="kpi {{if ge .RAM 90}}err{{else if ge .RAM 75}}warn{{else}}ok{{end}}">
+                <div class="value">{{.RAM}}%</div>
+                <div class="label">Mémoire</div>
+                <div class="hint">{{.RAMUsedStr}} / {{.RAMTotalStr}}</div>
+                <div class="bar {{if ge .RAM 90}}err{{else if ge .RAM 75}}warn{{else}}ok{{end}}"><span style="width: {{.RAM}}%"></span></div>
+            </div>
+            <div class="kpi {{if ge .Storage 90}}err{{else if ge .Storage 75}}warn{{else}}ok{{end}}">
+                <div class="value">{{.Storage}}%</div>
+                <div class="label">Stockage</div>
+                <div class="bar {{if ge .Storage 90}}err{{else if ge .Storage 75}}warn{{else}}ok{{end}}"><span style="width: {{.Storage}}%"></span></div>
+            </div>
         </div>
-    </div>
+        <div class="kpi-grid cols-2">
+            <div class="kpi ok">
+                <div class="value">{{.VMsRunning}}</div>
+                <div class="label">VMs en marche</div>
+            </div>
+            <div class="kpi {{if gt .VMsStopped 0}}err{{else}}muted{{end}}">
+                <div class="value">{{.VMsStopped}}</div>
+                <div class="label">VMs arrêtées</div>
+            </div>
+        </div>
 
-    <table class="w-full text-sm border border-gray-200 rounded-lg overflow-hidden mb-8">
-        <thead>
-            <tr class="bg-gray-50 text-gray-500 text-xs uppercase">
-                <th class="p-3 text-left">Nom</th>
-                <th class="p-3 text-left">Cat&eacute;gorie</th>
-                <th class="p-3 text-left">Statut</th>
-                <th class="p-3 text-left">Temps de r&eacute;ponse</th>
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-            {{range .Apps}}
-            <tr>
-                <td class="p-3 font-medium">{{.Name}}</td>
-                <td class="p-3 text-gray-500">{{.Category}}</td>
-                <td class="p-3">
-                    {{if eq .HealthStatus "up"}}
-                    <span class="text-green-600 font-medium">En ligne</span>
-                    {{else if eq .HealthStatus "down"}}
-                    <span class="text-red-600 font-medium">Hors ligne</span>
-                    {{else}}
-                    <span class="text-gray-400">Non v&eacute;rifi&eacute;</span>
-                    {{end}}
-                </td>
-                <td class="p-3 font-mono text-gray-500">{{.HealthRespMs}} ms</td>
-            </tr>
-            {{end}}
-        </tbody>
-    </table>
+        <h3 style="margin:16px 0 6px;">Liste des machines ({{len .VMs}})</h3>
+        {{if .VMs}}
+        <table class="report">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>ID</th>
+                    <th>Nom</th>
+                    <th>Statut</th>
+                    <th>IP</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .VMs}}
+                <tr>
+                    <td style="font-family:ui-monospace,monospace; color:var(--c-ink-muted); text-transform:uppercase; font-size:10px;">{{.Type}}</td>
+                    <td style="font-family:ui-monospace,monospace;">{{.ID}}</td>
+                    <td style="font-weight:600;">{{.Name}}</td>
+                    <td>
+                        {{if eq .Status "running"}}
+                        <span class="badge ok"><span class="dot"></span>Running</span>
+                        {{else}}
+                        <span class="badge err"><span class="dot"></span>Stopped</span>
+                        {{end}}
+                    </td>
+                    <td style="font-family:ui-monospace,monospace; color:var(--c-ink-muted);">{{if .IP}}{{.IP}}{{else}}—{{end}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+        {{else}}
+        <p style="color:var(--c-ink-muted); font-size:11px; padding:12px 0;">Aucune VM inventoriée.</p>
+        {{end}}
 
-    <!-- Footer -->
-    <div class="text-center text-xs text-gray-400 mt-12 border-t pt-4">
-        <p>GoaCloud Infrastructure Report &mdash; {{.GeneratedAt}}</p>
+        <!-- Security -->
+        <div class="section-head">
+            <span class="icon">🛡</span>
+            <h2>Sécurité &mdash; Wazuh</h2>
+            <span class="num">§ 3</span>
+        </div>
+        <div class="kpi-grid cols-4">
+            <div class="kpi {{if gt .VulnCritical 0}}err{{else}}muted{{end}}">
+                <div class="value">{{.VulnCritical}}</div>
+                <div class="label">Critiques</div>
+            </div>
+            <div class="kpi {{if gt .VulnHigh 0}}warn{{else}}muted{{end}}">
+                <div class="value">{{.VulnHigh}}</div>
+                <div class="label">Élevées</div>
+            </div>
+            <div class="kpi info">
+                <div class="value">{{.VulnMedium}}</div>
+                <div class="label">Moyennes</div>
+            </div>
+            <div class="kpi muted">
+                <div class="value">{{.VulnLow}}</div>
+                <div class="label">Faibles</div>
+            </div>
+        </div>
+        <div class="kpi-grid cols-2">
+            <div class="kpi ok">
+                <div class="value">{{.WazuhActive}}</div>
+                <div class="label">Agents actifs</div>
+            </div>
+            <div class="kpi {{if gt .WazuhDisconnected 0}}err{{else}}muted{{end}}">
+                <div class="value">{{.WazuhDisconnected}}</div>
+                <div class="label">Agents déconnectés</div>
+            </div>
+        </div>
+
+        {{if .WazuhAgents}}
+        <h3 style="margin:16px 0 6px;">Agents Wazuh ({{len .WazuhAgents}})</h3>
+        <table class="report">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nom</th>
+                    <th>IP</th>
+                    <th>OS</th>
+                    <th>Statut</th>
+                    <th style="text-align:right;">Crit.</th>
+                    <th style="text-align:right;">Élev.</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .WazuhAgents}}
+                <tr>
+                    <td style="font-family:ui-monospace,monospace;">{{.ID}}</td>
+                    <td style="font-weight:600;">{{.Name}}</td>
+                    <td style="font-family:ui-monospace,monospace; color:var(--c-ink-muted);">{{.IP}}</td>
+                    <td style="color:var(--c-ink-muted);">{{if .OS.Name}}{{.OS.Name}}{{else}}—{{end}}</td>
+                    <td>
+                        {{if eq .Status "active"}}
+                        <span class="badge ok"><span class="dot"></span>Actif</span>
+                        {{else}}
+                        <span class="badge err"><span class="dot"></span>{{.Status}}</span>
+                        {{end}}
+                    </td>
+                    <td style="text-align:right; color:{{if gt .VulnSummary.Critical 0}}var(--c-err){{else}}var(--c-ink-muted){{end}}; font-weight:600;">{{.VulnSummary.Critical}}</td>
+                    <td style="text-align:right; color:{{if gt .VulnSummary.High 0}}var(--c-warn){{else}}var(--c-ink-muted){{end}}; font-weight:600;">{{.VulnSummary.High}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+        {{end}}
+
+        <div class="page-break"></div>
+
+        <!-- Applications -->
+        <div class="section-head">
+            <span class="icon">▦</span>
+            <h2>Applications</h2>
+            <span class="num">§ 4</span>
+        </div>
+        <div class="kpi-grid cols-3">
+            <div class="kpi ok">
+                <div class="value">{{.AppsUp}}</div>
+                <div class="label">En ligne</div>
+            </div>
+            <div class="kpi {{if gt .AppsDown 0}}err{{else}}muted{{end}}">
+                <div class="value">{{.AppsDown}}</div>
+                <div class="label">Hors ligne</div>
+            </div>
+            <div class="kpi muted">
+                <div class="value">{{.AppsUnknown}}</div>
+                <div class="label">Non vérifiées</div>
+            </div>
+        </div>
+
+        {{if .Apps}}
+        <table class="report">
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Catégorie</th>
+                    <th>Statut</th>
+                    <th style="text-align:right;">Temps de réponse</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Apps}}
+                <tr>
+                    <td style="font-weight:600;">{{.Name}}</td>
+                    <td><span class="badge muted">{{.Category}}</span></td>
+                    <td>
+                        {{if eq .HealthStatus "up"}}
+                        <span class="badge ok"><span class="dot"></span>En ligne</span>
+                        {{else if eq .HealthStatus "down"}}
+                        <span class="badge err"><span class="dot"></span>Hors ligne</span>
+                        {{else}}
+                        <span class="badge muted"><span class="dot"></span>Non vérifié</span>
+                        {{end}}
+                    </td>
+                    <td style="text-align:right; font-family:ui-monospace,monospace; color:var(--c-ink-muted);">
+                        {{if eq .HealthStatus "up"}}{{.HealthRespMs}} ms{{else}}—{{end}}
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+        {{else}}
+        <p style="color:var(--c-ink-muted); font-size:11px;">Aucune application configurée.</p>
+        {{end}}
+
+        <!-- Platform -->
+        <div class="section-head">
+            <span class="icon">⎈</span>
+            <h2>Plateforme GoaCloud</h2>
+            <span class="num">§ 5</span>
+        </div>
+        <div class="kpi-grid cols-4">
+            <div class="kpi info">
+                <div class="value">{{.UsersCount}}</div>
+                <div class="label">Utilisateurs</div>
+            </div>
+            <div class="kpi info">
+                <div class="value">{{.SSHKeysCount}}</div>
+                <div class="label">Clés SSH</div>
+            </div>
+            <div class="kpi info">
+                <div class="value">{{.AnsibleSchedulesN}}</div>
+                <div class="label">Playbooks actifs</div>
+            </div>
+            <div class="kpi info">
+                <div class="value">{{.AuditLogs7d}}</div>
+                <div class="label">Événements (7 j)</div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>GoaCloud</strong> — Rapport d'infrastructure · Généré le {{.GeneratedAt}}{{if .Username}} par {{.Username}}{{end}}</p>
+            <p style="margin-top:4px;">Document confidentiel — à usage interne uniquement.</p>
+        </div>
     </div>
 </body>
 </html>
