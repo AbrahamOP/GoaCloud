@@ -8,10 +8,21 @@
         body {
             font-family: 'Outfit', sans-serif;
         }
-        /* Hide native browser password reveal button (Edge / IE) */
-        input[type="password"]::-ms-reveal,
-        input[type="password"]::-ms-clear {
-            display: none;
+        /* Hide all native browser-added controls inside password / text inputs */
+        input::-ms-reveal,
+        input::-ms-clear,
+        input::-webkit-contacts-auto-fill-button,
+        input::-webkit-credentials-auto-fill-button,
+        input::-webkit-caps-lock-indicator,
+        input::-webkit-credit-card-auto-fill-button,
+        input::-webkit-strong-password-auto-fill-button {
+            display: none !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            position: absolute !important;
+            right: 0 !important;
+            width: 0 !important;
+            height: 0 !important;
         }
         /* Reserve space for the eye toggle button on the right */
         .input-with-eye {
