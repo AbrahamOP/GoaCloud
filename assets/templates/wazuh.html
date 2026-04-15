@@ -337,12 +337,38 @@
 
                         <!-- Vulnerabilities List -->
                         <div>
-                            <div class="flex items-center gap-2 mb-3">
+                            <div class="flex items-center gap-2 mb-3 flex-wrap">
                                 <svg class="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                 </svg>
                                 <h4 class="text-sm font-bold text-on-surface uppercase tracking-wider">Détails des vulnérabilités</h4>
+                                <span id="modal-vulns-total" class="text-xs text-on-surface-variant ml-auto"></span>
                             </div>
+
+                            <!-- Toolbar: search + severity filters -->
+                            <div id="modal-vulns-toolbar" class="hidden flex flex-wrap items-center gap-2 mb-3">
+                                <div class="relative flex-1" style="min-width:200px;">
+                                    <svg class="absolute w-4 h-4 text-on-surface-variant" style="left:12px; top:50%; transform:translateY(-50%);" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
+                                    </svg>
+                                    <input id="modal-vuln-search" type="text" placeholder="Rechercher CVE, package ou description…"
+                                        class="w-full bg-surface-container-high border border-outline-variant rounded-full py-2 text-sm text-on-surface focus:outline-none focus:border-primary placeholder-on-surface-variant"
+                                        style="padding-left:36px; padding-right:14px;">
+                                </div>
+                                <div class="flex items-center gap-1 flex-wrap">
+                                    <button type="button" data-sev-filter="all"
+                                        class="sev-filter-btn px-3 py-1 rounded-full text-xs font-semibold border transition-colors bg-primary-container text-primary border-primary">Toutes</button>
+                                    <button type="button" data-sev-filter="Critical"
+                                        class="sev-filter-btn px-3 py-1 rounded-full text-xs font-semibold border transition-colors bg-surface-container-high text-on-surface-variant border-outline-variant">Critiques</button>
+                                    <button type="button" data-sev-filter="High"
+                                        class="sev-filter-btn px-3 py-1 rounded-full text-xs font-semibold border transition-colors bg-surface-container-high text-on-surface-variant border-outline-variant">Élevées</button>
+                                    <button type="button" data-sev-filter="Medium"
+                                        class="sev-filter-btn px-3 py-1 rounded-full text-xs font-semibold border transition-colors bg-surface-container-high text-on-surface-variant border-outline-variant">Moyennes</button>
+                                    <button type="button" data-sev-filter="Low"
+                                        class="sev-filter-btn px-3 py-1 rounded-full text-xs font-semibold border transition-colors bg-surface-container-high text-on-surface-variant border-outline-variant">Faibles</button>
+                                </div>
+                            </div>
+
                             <div id="modal-vulns-loading" class="text-center py-8 hidden">
                                 <svg class="animate-spin h-6 w-6 text-primary mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -350,7 +376,7 @@
                                 </svg>
                                 <p class="text-xs text-on-surface-variant mt-2">Chargement des vulnérabilités&hellip;</p>
                             </div>
-                            <div id="modal-vulns-content" class="space-y-4">
+                            <div id="modal-vulns-content" class="space-y-3">
                                 <!-- Populated via JS -->
                             </div>
                         </div>
@@ -566,8 +592,18 @@
             }, 300); // Match transition duration
         }
 
+        // Vulnerability state (persisted across filter/search interactions)
+        let vulnState = {
+            vulns: [],
+            severity: 'all',
+            search: '',
+            collapsed: { Critical: false, High: true, Medium: true, Low: true }
+        };
+
         async function loadVulnerabilities(agentId) {
             modalVulnsContent.innerHTML = '';
+            document.getElementById('modal-vulns-toolbar').classList.add('hidden');
+            document.getElementById('modal-vulns-total').textContent = '';
             modalVulnsLoading.classList.remove('hidden');
 
             try {
@@ -575,7 +611,15 @@
                 if (!response.ok) throw new Error('Failed to fetch');
                 const vulns = await response.json();
 
-                renderVulnerabilities(vulns);
+                vulnState.vulns = Array.isArray(vulns) ? vulns : [];
+                vulnState.severity = 'all';
+                vulnState.search = '';
+                vulnState.collapsed = { Critical: false, High: true, Medium: true, Low: true };
+                const searchEl = document.getElementById('modal-vuln-search');
+                if (searchEl) searchEl.value = '';
+                setActiveSeverityFilter('all');
+
+                renderVulnerabilities();
             } catch (error) {
                 console.error("Error loading vulns:", error);
                 modalVulnsContent.innerHTML = `<p class="text-red-400 text-xs text-center">Erreur lors du chargement des vulnérabilités.</p>`;
@@ -584,10 +628,71 @@
             }
         }
 
-        function renderVulnerabilities(vulns) {
-            // Reset severity KPI counters every time we (re)render
+        function setActiveSeverityFilter(sev) {
+            const tints = {
+                all:      { text: 'text-primary',        border: 'border-primary' },
+                Critical: { text: 'text-red-400',        border: 'border-red-500' },
+                High:     { text: 'text-orange-400',     border: 'border-orange-500' },
+                Medium:   { text: 'text-yellow-400',     border: 'border-yellow-500' },
+                Low:      { text: 'text-blue-400',       border: 'border-blue-500' }
+            };
+            document.querySelectorAll('.sev-filter-btn').forEach(function (btn) {
+                const key = btn.getAttribute('data-sev-filter');
+                const isActive = key === sev;
+                const t = tints[key] || tints.all;
+                btn.className = 'sev-filter-btn px-3 py-1 rounded-full text-xs font-semibold border transition-colors ' + (
+                    isActive
+                        ? ('bg-primary-container ' + t.text + ' ' + t.border)
+                        : 'bg-surface-container-high text-on-surface-variant border-outline-variant'
+                );
+            });
+        }
+
+        // Toolbar wiring (search + severity filter buttons)
+        (function wireVulnToolbar() {
+            const search = document.getElementById('modal-vuln-search');
+            if (search) {
+                search.addEventListener('input', function () {
+                    vulnState.search = search.value.trim().toLowerCase();
+                    renderVulnerabilities();
+                });
+            }
+            document.querySelectorAll('.sev-filter-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    vulnState.severity = btn.getAttribute('data-sev-filter');
+                    setActiveSeverityFilter(vulnState.severity);
+                    renderVulnerabilities();
+                });
+            });
+        })();
+
+        // Toggle collapse of a severity group
+        window.toggleVulnGroup = function (sev) {
+            vulnState.collapsed[sev] = !vulnState.collapsed[sev];
+            renderVulnerabilities();
+        };
+
+        function escapeHtml(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        // Compose a clean package label: name + version only if name doesn't already contain it
+        function pkgLabel(pkg) {
+            if (!pkg) return '';
+            const name = pkg.name || '';
+            const ver = pkg.version || '';
+            if (!ver || name.indexOf(ver) !== -1) return name;
+            return name + ' ' + ver;
+        }
+
+        function renderVulnerabilities() {
+            const vulns = vulnState.vulns || [];
+
+            // --- KPI counters (always reflect the full, unfiltered dataset) ---
             const sevCounts = { Critical: 0, High: 0, Medium: 0, Low: 0 };
-            (vulns || []).forEach(function (v) {
+            vulns.forEach(function (v) {
                 if (sevCounts[v.severity] !== undefined) sevCounts[v.severity]++;
             });
             document.getElementById('modal-vuln-critical-count').textContent = sevCounts.Critical;
@@ -595,56 +700,41 @@
             document.getElementById('modal-vuln-medium-count').textContent = sevCounts.Medium;
             document.getElementById('modal-vuln-low-count').textContent = sevCounts.Low;
 
-            if (!vulns || vulns.length === 0) {
-                document.getElementById('modal-top-packages-body').innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-xs text-on-surface-variant">Aucune donnée.</td></tr>`;
-                modalVulnsContent.innerHTML = `<div class="rounded-xl border border-outline-variant bg-surface-container-high p-6 text-center text-sm text-on-surface-variant">Aucune vulnérabilité détectée. 🎉</div>`;
-                return;
-            }
-
-            // --- Top 10 Packages Logic ---
+            // --- Top 10 Packages (always built from the full dataset) ---
             const pkgCounts = {};
-            vulns.forEach(v => {
-                const key = v.package.name + '|||' + v.package.version; // Use unique key
+            vulns.forEach(function (v) {
+                const key = (v.package && v.package.name) + '|||' + (v.package && v.package.version);
                 if (!pkgCounts[key]) {
                     pkgCounts[key] = {
-                        name: v.package.name,
-                        version: v.package.version,
+                        name: (v.package && v.package.name) || '',
+                        version: (v.package && v.package.version) || '',
                         count: 0,
                         condition: v.condition || 'N/A'
                     };
                 }
                 pkgCounts[key].count++;
-
-                // Try to find a meaningful condition if current is N/A or generic
                 if (v.condition && pkgCounts[key].condition === 'N/A') {
                     pkgCounts[key].condition = v.condition;
                 }
             });
-
-            // Convert to array and sort
             const sortedPkgs = Object.values(pkgCounts).sort((a, b) => b.count - a.count).slice(0, 10);
 
-            // Render Top 10
             let topPkgHtml = '';
             if (sortedPkgs.length === 0) {
-                topPkgHtml = `<tr><td colspan="4" class="px-3 py-4 text-center text-xs text-on-surface-variant">Aucun package trouvé.</td></tr>`;
+                topPkgHtml = '<tr><td colspan="4" class="px-4 py-5 text-center text-xs text-on-surface-variant">Aucun package trouvé.</td></tr>';
             } else {
-                sortedPkgs.forEach(p => {
-                    let condDisplay = p.condition;
-                    let condClass = "text-on-surface-variant";
-
-                    // Parse symbols
-                    if (condDisplay.includes("Package less than")) {
-                        condDisplay = `<span class="text-primary font-bold mr-1">&lt;</span> ` + condDisplay.replace("Package less than", "").trim();
-                    } else if (condDisplay.includes("Package equal to")) {
-                        condDisplay = `<span class="text-yellow-400 font-bold mr-1">=</span> ` + condDisplay.replace("Package equal to", "").trim();
+                sortedPkgs.forEach(function (p) {
+                    let condDisplay = escapeHtml(p.condition);
+                    if (p.condition.includes('Package less than')) {
+                        condDisplay = '<span class="text-primary font-bold mr-1">&lt;</span> ' + escapeHtml(p.condition.replace('Package less than', '').trim());
+                    } else if (p.condition.includes('Package equal to')) {
+                        condDisplay = '<span class="text-yellow-400 font-bold mr-1">=</span> ' + escapeHtml(p.condition.replace('Package equal to', '').trim());
                     }
-
                     topPkgHtml += `
                     <tr class="hover:bg-surface-container-high transition-colors">
-                        <td class="px-4 py-2 font-medium text-on-surface">${p.name}</td>
-                        <td class="px-4 py-2 text-xs font-mono text-on-surface-variant">${p.version}</td>
-                        <td class="px-4 py-2 text-xs font-mono truncate" style="max-width:180px;" title="${p.condition}">${condDisplay}</td>
+                        <td class="px-4 py-2 font-medium text-on-surface">${escapeHtml(p.name)}</td>
+                        <td class="px-4 py-2 text-xs font-mono text-on-surface-variant">${escapeHtml(p.version)}</td>
+                        <td class="px-4 py-2 text-xs font-mono truncate" style="max-width:180px;" title="${escapeHtml(p.condition)}">${condDisplay}</td>
                         <td class="px-4 py-2 text-right">
                             <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs font-bold border border-red-500/30" style="min-width:28px;">
                                 ${p.count}
@@ -654,48 +744,95 @@
                 });
             }
             document.getElementById('modal-top-packages-body').innerHTML = topPkgHtml;
-            // -----------------------------
 
-            // Group by severity
-            const groups = { 'Critical': [], 'High': [], 'Medium': [], 'Low': [] };
-            vulns.forEach(v => {
-                if (groups[v.severity]) groups[v.severity].push(v);
-                else groups['Low'].push(v); // Default fallback
+            // --- Empty state ---
+            const toolbar = document.getElementById('modal-vulns-toolbar');
+            const totalLabel = document.getElementById('modal-vulns-total');
+            if (vulns.length === 0) {
+                toolbar.classList.add('hidden');
+                totalLabel.textContent = '';
+                modalVulnsContent.innerHTML = `<div class="rounded-xl border border-outline-variant bg-surface-container-high p-6 text-center text-sm text-on-surface-variant">Aucune vulnérabilité détectée. 🎉</div>`;
+                return;
+            }
+            toolbar.classList.remove('hidden');
+
+            // --- Filter (severity + search) ---
+            const q = vulnState.search;
+            const filtered = vulns.filter(function (v) {
+                if (vulnState.severity !== 'all' && v.severity !== vulnState.severity) return false;
+                if (!q) return true;
+                const hay = (
+                    (v.cve || '') + ' ' +
+                    (v.title || '') + ' ' +
+                    ((v.package && v.package.name) || '') + ' ' +
+                    ((v.package && v.package.version) || '')
+                ).toLowerCase();
+                return hay.indexOf(q) !== -1;
             });
+            totalLabel.textContent = filtered.length + ' / ' + vulns.length + ' vulnérabilités';
 
-            let html = '';
+            // --- Group by severity & render ---
+            const groups = { Critical: [], High: [], Medium: [], Low: [] };
+            filtered.forEach(function (v) {
+                (groups[v.severity] || groups.Low).push(v);
+            });
             const order = ['Critical', 'High', 'Medium', 'Low'];
             const colors = {
-                'Critical': 'border-red-500/50 bg-red-500/10 text-red-400',
-                'High': 'border-orange-500/50 bg-orange-500/10 text-orange-400',
-                'Medium': 'border-yellow-500/50 bg-yellow-500/10 text-yellow-400',
-                'Low': 'border-blue-500/50 bg-blue-500/10 text-blue-400'
+                Critical: { border: 'border-red-500/50',    bg: 'bg-red-500/10',    text: 'text-red-400',    label: 'Critical' },
+                High:     { border: 'border-orange-500/50', bg: 'bg-orange-500/10', text: 'text-orange-400', label: 'High' },
+                Medium:   { border: 'border-yellow-500/50', bg: 'bg-yellow-500/10', text: 'text-yellow-400', label: 'Medium' },
+                Low:      { border: 'border-blue-500/50',   bg: 'bg-blue-500/10',   text: 'text-blue-400',   label: 'Low' }
             };
 
-            order.forEach(sev => {
+            let html = '';
+            let hadAny = false;
+            order.forEach(function (sev) {
                 const items = groups[sev];
                 if (items.length === 0) return;
-                const textClass = colors[sev].split(' ').pop();
+                hadAny = true;
+                const c = colors[sev];
+                const collapsed = !!vulnState.collapsed[sev];
+                const chevron = collapsed
+                    ? '<svg class="w-4 h-4 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>'
+                    : '<svg class="w-4 h-4 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>';
+
                 html += `<div class="rounded-xl border border-outline-variant bg-surface-container-high overflow-hidden">
-                    <div class="flex items-center justify-between px-4 py-2 bg-surface-container-highest border-b border-outline-variant">
-                        <h5 class="text-xs font-bold uppercase tracking-wider ${textClass}">${sev}</h5>
-                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${colors[sev]}">${items.length}</span>
-                    </div>
-                    <div class="divide-y divide-outline-variant">`;
-
-                items.forEach(v => {
-                    html += `
-                    <div class="px-4 py-2.5 hover:bg-surface-container transition-colors border-l-2 ${colors[sev].split(' ')[0]}">
-                        <div class="flex flex-wrap items-center justify-between gap-2">
-                            <span class="font-mono font-bold text-xs ${textClass}">${v.cve}</span>
-                            <span class="text-[10px] text-on-surface-variant">${v.package.name} <span class="font-mono">${v.package.version}</span></span>
+                    <button type="button" onclick="toggleVulnGroup('${sev}')"
+                        class="w-full flex items-center justify-between px-4 py-2 bg-surface-container-highest border-b border-outline-variant cursor-pointer transition-colors">
+                        <div class="flex items-center gap-2 ${c.text}">
+                            ${chevron}
+                            <span class="text-xs font-bold uppercase tracking-wider">${c.label}</span>
                         </div>
-                        <p class="text-xs mt-1 text-on-surface truncate" title="${v.title}">${v.title}</p>
-                    </div>`;
-                });
+                        <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${c.bg} ${c.text} border ${c.border}">${items.length}</span>
+                    </button>`;
 
-                html += `</div></div>`;
+                if (!collapsed) {
+                    html += `<div class="divide-y divide-outline-variant">`;
+                    items.forEach(function (v) {
+                        const pkg = pkgLabel(v.package);
+                        const cve = escapeHtml(v.cve || '');
+                        const title = escapeHtml(v.title || '');
+                        const nvdUrl = v.cve ? ('https://nvd.nist.gov/vuln/detail/' + encodeURIComponent(v.cve)) : '';
+                        html += `
+                        <div class="px-4 py-2 transition-colors border-l-2 ${c.border}">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                ${v.cve
+                                    ? `<a href="${nvdUrl}" target="_blank" rel="noopener" class="font-mono font-bold text-xs ${c.text}" style="text-decoration:underline; text-decoration-color:transparent; text-underline-offset:3px;" onmouseover="this.style.textDecorationColor='currentColor'" onmouseout="this.style.textDecorationColor='transparent'" title="Voir sur nvd.nist.gov">${cve}</a>`
+                                    : `<span class="font-mono font-bold text-xs ${c.text}">-</span>`
+                                }
+                                <span class="text-xs text-on-surface-variant font-mono truncate" style="max-width:60%;" title="${escapeHtml(pkg)}">${escapeHtml(pkg)}</span>
+                            </div>
+                            <p class="text-xs mt-1 text-on-surface" title="${title}">${title}</p>
+                        </div>`;
+                    });
+                    html += `</div>`;
+                }
+                html += `</div>`;
             });
+
+            if (!hadAny) {
+                html = `<div class="rounded-xl border border-outline-variant bg-surface-container-high p-6 text-center text-sm text-on-surface-variant">Aucun résultat pour ce filtre.</div>`;
+            }
 
             modalVulnsContent.innerHTML = html;
         }
