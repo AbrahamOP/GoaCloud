@@ -188,123 +188,146 @@
     <div id="agent-modal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog"
         aria-modal="true">
         <!-- Backdrop -->
-        <div class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity opacity-0" id="modal-backdrop"></div>
+        <div class="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity opacity-0" id="modal-backdrop"></div>
 
         <div class="fixed inset-0 z-10 overflow-y-auto">
             <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                <div class="relative transform rounded-xl bg-surface-container border border-outline-variant text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                <div class="relative transform rounded-2xl bg-surface-container border border-outline-variant text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-5xl opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95 overflow-hidden"
                     id="modal-panel">
 
-                    <!-- Header -->
-                    <div class="bg-surface-container-high px-6 py-4 border-b border-outline-variant flex justify-between items-center">
-                        <h3 class="text-xl font-bold text-on-surface flex items-center gap-3">
-                            <div class="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary">
-                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                                </svg>
+                    <!-- Header: gradient banner -->
+                    <div class="relative px-6 py-5 bg-gradient-to-br from-primary/20 via-surface-container-high to-surface-container-high border-b border-outline-variant">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex items-center gap-4 min-w-0">
+                                <div class="w-12 h-12 rounded-xl bg-primary/15 text-primary flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                    </svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="text-[10px] uppercase tracking-widest text-on-surface-variant font-semibold mb-0.5">Agent Wazuh</p>
+                                    <h3 class="text-2xl font-bold text-on-surface truncate" id="modal-agent-name">Agent Name</h3>
+                                    <div class="flex items-center gap-2 mt-1.5 flex-wrap">
+                                        <span id="modal-agent-status-badge"
+                                            class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
+                                            <span id="modal-agent-status">-</span>
+                                        </span>
+                                        <span class="text-xs text-on-surface-variant">ID <span id="modal-agent-id" class="font-mono text-on-surface">-</span></span>
+                                    </div>
+                                </div>
                             </div>
-                            <span id="modal-agent-name">Agent Name</span>
-                        </h3>
-                        <button type="button" onclick="closeAgentModal()"
-                            class="text-on-surface-variant hover:text-on-surface transition-colors">
-                            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+                            <button type="button" onclick="closeAgentModal()"
+                                class="text-on-surface-variant hover:text-on-surface p-1.5 rounded-full hover:bg-surface-container-highest transition-colors flex-shrink-0"
+                                aria-label="Fermer">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Content -->
-                    <div class="px-6 py-6 text-on-surface space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-surface-container-high p-3 rounded-lg">
-                                <p class="text-xs text-on-surface-variant uppercase font-semibold">ID</p>
-                                <p class="text-sm font-mono text-on-surface" id="modal-agent-id">-</p>
-                            </div>
-                            <div class="bg-surface-container-high p-3 rounded-lg">
-                                <p class="text-xs text-on-surface-variant uppercase font-semibold">Status</p>
-                                <p class="text-sm font-medium" id="modal-agent-status">-</p>
-                            </div>
-                            <div class="bg-surface-container-high p-3 rounded-lg col-span-2">
-                                <p class="text-xs text-on-surface-variant uppercase font-semibold">IP Address</p>
-                                <p class="text-sm font-mono text-primary" id="modal-agent-ip">-</p>
-                            </div>
-                        </div>
+                    <div class="px-6 py-5 text-on-surface max-h-[78vh] overflow-y-auto custom-scrollbar">
 
-                        <div class="border-t border-outline-variant my-4"></div>
-
-                        <div class="grid grid-cols-1 gap-3">
-                            <div>
-                                <p class="text-xs text-on-surface-variant uppercase font-semibold mb-1">Système d'exploitation</p>
-                                <p class="text-sm text-on-surface flex items-center gap-2">
-                                    <svg class="w-4 h-4 text-on-surface-variant" fill="none" viewBox="0 0 24 24"
-                                        stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                    </svg>
-                                    <span id="modal-agent-os">-</span>
-                                </p>
+                        <!-- Vulnerability KPI strip -->
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                            <div class="rounded-xl border border-red-500/30 bg-red-500/10 p-3">
+                                <div class="flex items-center justify-between">
+                                    <p class="text-[10px] uppercase tracking-widest text-red-400 font-bold">Critiques</p>
+                                    <svg class="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M4.93 19.07l14.14-14.14"/></svg>
+                                </div>
+                                <p class="text-2xl font-bold text-red-400 mt-1" id="modal-vuln-critical-count">0</p>
                             </div>
-                            <div>
-                                <p class="text-xs text-on-surface-variant uppercase font-semibold mb-1">Version Wazuh</p>
-                                <p class="text-sm text-on-surface" id="modal-agent-version">-</p>
+                            <div class="rounded-xl border border-orange-500/30 bg-orange-500/10 p-3">
+                                <div class="flex items-center justify-between">
+                                    <p class="text-[10px] uppercase tracking-widest text-orange-400 font-bold">Élevées</p>
+                                    <svg class="w-4 h-4 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                </div>
+                                <p class="text-2xl font-bold text-orange-400 mt-1" id="modal-vuln-high-count">0</p>
                             </div>
-                            <div>
-                                <p class="text-xs text-on-surface-variant uppercase font-semibold mb-1">Dernier Keep-Alive</p>
-                                <p class="text-sm text-on-surface" id="modal-agent-lastkeepalive">-</p>
+                            <div class="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-3">
+                                <div class="flex items-center justify-between">
+                                    <p class="text-[10px] uppercase tracking-widest text-yellow-400 font-bold">Moyennes</p>
+                                    <svg class="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                </div>
+                                <p class="text-2xl font-bold text-yellow-400 mt-1" id="modal-vuln-medium-count">0</p>
+                            </div>
+                            <div class="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3">
+                                <div class="flex items-center justify-between">
+                                    <p class="text-[10px] uppercase tracking-widest text-blue-400 font-bold">Faibles</p>
+                                    <svg class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                                </div>
+                                <p class="text-2xl font-bold text-blue-400 mt-1" id="modal-vuln-low-count">0</p>
                             </div>
                         </div>
 
-                        <div class="border-t border-outline-variant my-4"></div>
-
-
-                        <!-- Top 10 Packages -->
-                        <div class="mb-6">
-                            <h4
-                                class="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-3 flex items-center gap-2">
-                                <span class="flex items-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                                    </svg>
-                                    Top 10 Packages Vulnérables
-                                </span>
-
-                                <!-- Legend Tooltip (Moved outside table to avoid overflow clipping) -->
-                                <div class="group relative flex items-center ml-2">
-                                    <svg class="w-4 h-4 text-primary cursor-help" fill="none" viewBox="0 0 24 24"
-                                        stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    <div
-                                        class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-56 p-3 bg-surface-container border border-outline-variant rounded text-xs text-on-surface shadow-xl z-[60]">
-                                        <p class="font-bold mb-2 border-b border-outline-variant pb-1">Légende "Patch /
-                                            Condition" :</p>
-                                        <div class="flex items-center gap-2 mb-1"><span
-                                                class="text-primary font-bold">&lt;</span> Mettre à jour (Version <
-                                                cible)</div>
-                                                <div class="flex items-center gap-2"><span
-                                                        class="text-yellow-400 font-bold">=</span> Version vulnérable
-                                                    exacte</div>
+                        <!-- Agent info grid -->
+                        <div class="rounded-xl border border-outline-variant bg-surface-container-high overflow-hidden mb-5">
+                            <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-outline-variant">
+                                <div class="p-4">
+                                    <p class="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold mb-2">Réseau</p>
+                                    <div class="space-y-2">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <span class="text-xs text-on-surface-variant">Adresse IP</span>
+                                            <span class="text-sm font-mono text-primary" id="modal-agent-ip">-</span>
+                                        </div>
+                                        <div class="flex items-center justify-between gap-2">
+                                            <span class="text-xs text-on-surface-variant">Dernier Keep-Alive</span>
+                                            <span class="text-sm text-on-surface" id="modal-agent-lastkeepalive">-</span>
                                         </div>
                                     </div>
-                            </h4>
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-left text-sm text-on-surface-variant">
-                                    <thead class="text-xs uppercase bg-surface-container-high text-on-surface">
+                                </div>
+                                <div class="p-4">
+                                    <p class="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold mb-2">Système</p>
+                                    <div class="space-y-2">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <span class="text-xs text-on-surface-variant">OS</span>
+                                            <span class="text-sm text-on-surface text-right truncate" id="modal-agent-os">-</span>
+                                        </div>
+                                        <div class="flex items-center justify-between gap-2">
+                                            <span class="text-xs text-on-surface-variant">Version Wazuh</span>
+                                            <span class="text-sm font-mono text-on-surface" id="modal-agent-version">-</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Top 10 Packages -->
+                        <div class="mb-5">
+                            <div class="flex items-center gap-2 mb-3">
+                                <svg class="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                </svg>
+                                <h4 class="text-sm font-bold text-on-surface uppercase tracking-wider">Top 10 packages vulnérables</h4>
+                                <div class="group relative flex items-center ml-1">
+                                    <svg class="w-4 h-4 text-on-surface-variant hover:text-primary cursor-help transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <div class="absolute bottom-full left-0 mb-2 hidden group-hover:block w-60 p-3 bg-surface-container-highest border border-outline-variant rounded-lg text-xs text-on-surface shadow-xl z-[60]">
+                                        <p class="font-bold mb-2 border-b border-outline-variant pb-1.5">Légende « Patch / Condition »</p>
+                                        <div class="flex items-center gap-2 mb-1"><span class="text-primary font-bold">&lt;</span> <span>Mettre à jour (version &lt; cible)</span></div>
+                                        <div class="flex items-center gap-2"><span class="text-yellow-400 font-bold">=</span> <span>Version vulnérable exacte</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="rounded-xl border border-outline-variant overflow-hidden">
+                                <table class="w-full text-left text-sm">
+                                    <thead class="text-[10px] uppercase tracking-widest bg-surface-container-high text-on-surface-variant">
                                         <tr>
-                                            <th class="px-3 py-2 rounded-l">Package</th>
-                                            <th class="px-3 py-2">Version Actuelle</th>
-                                            <th class="px-3 py-2">Patch / Condition</th>
-                                            <th class="px-3 py-2 text-right rounded-r">Vulns</th>
+                                            <th class="px-4 py-2.5 font-semibold">Package</th>
+                                            <th class="px-4 py-2.5 font-semibold">Version actuelle</th>
+                                            <th class="px-4 py-2.5 font-semibold">Patch / Condition</th>
+                                            <th class="px-4 py-2.5 font-semibold text-right">Vulns</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-outline-variant" id="modal-top-packages-body">
+                                    <tbody class="divide-y divide-outline-variant bg-surface-container" id="modal-top-packages-body">
                                         <tr>
-                                            <td colspan="4" class="px-3 py-4 text-center text-xs text-on-surface-variant">
-                                                Chargement...</td>
+                                            <td colspan="4" class="px-4 py-5 text-center text-xs text-on-surface-variant">
+                                                Chargement&hellip;
+                                            </td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -313,30 +336,29 @@
 
                         <!-- Vulnerabilities List -->
                         <div>
-                            <h4 class="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-3">Détails des
-                                Vulnérabilités</h4>
-                            <div id="modal-vulns-loading" class="text-center py-4 hidden">
-                                <svg class="animate-spin h-5 w-5 text-primary mx-auto"
-                                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                        stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor"
-                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                    </path>
+                            <div class="flex items-center gap-2 mb-3">
+                                <svg class="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                 </svg>
-                                <p class="text-xs text-on-surface-variant mt-2">Chargement...</p>
+                                <h4 class="text-sm font-bold text-on-surface uppercase tracking-wider">Détails des vulnérabilités</h4>
                             </div>
-                            <div id="modal-vulns-content" class="space-y-3">
+                            <div id="modal-vulns-loading" class="text-center py-8 hidden">
+                                <svg class="animate-spin h-6 w-6 text-primary mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <p class="text-xs text-on-surface-variant mt-2">Chargement des vulnérabilités&hellip;</p>
+                            </div>
+                            <div id="modal-vulns-content" class="space-y-4">
                                 <!-- Populated via JS -->
                             </div>
                         </div>
                     </div>
 
                     <!-- Footer -->
-                    <div class="bg-surface-container-high px-6 py-4 sm:flex sm:flex-row-reverse border-t border-outline-variant">
-                        <button type="button"
-                            class="w-full inline-flex justify-center rounded-full border border-outline px-4 py-2 text-base font-medium text-on-surface-variant hover:bg-surface-container-highest focus:outline-none sm:ml-3 sm:w-auto sm:text-sm transition-colors"
-                            onclick="closeAgentModal()">
+                    <div class="bg-surface-container-high px-6 py-3 flex justify-end gap-2 border-t border-outline-variant">
+                        <button type="button" onclick="closeAgentModal()"
+                            class="inline-flex justify-center rounded-full border border-outline px-5 py-2 text-sm font-medium text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface focus:outline-none transition-colors">
                             Fermer
                         </button>
                     </div>
@@ -504,13 +526,21 @@
             document.getElementById('modal-agent-version').textContent = data.version || 'N/A';
             document.getElementById('modal-agent-lastkeepalive').textContent = data.lastKeepAlive || 'N/A';
 
-            const statusEl = document.getElementById('modal-agent-status');
-            statusEl.textContent = data.status.toUpperCase();
-            if (data.status === 'active') {
-                statusEl.className = 'text-sm font-bold text-green-400';
-            } else {
-                statusEl.className = 'text-sm font-bold text-red-400';
-            }
+            // Status badge (pill)
+            const statusLabel = document.getElementById('modal-agent-status');
+            const statusBadge = document.getElementById('modal-agent-status-badge');
+            statusLabel.textContent = (data.status || 'unknown').toUpperCase();
+            statusBadge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ' + (
+                data.status === 'active'
+                    ? 'bg-green-500/10 border-green-500/40 text-green-400'
+                    : 'bg-red-500/10 border-red-500/40 text-red-400'
+            );
+
+            // Reset KPI counters until vulnerabilities are loaded
+            ['critical','high','medium','low'].forEach(function (sev) {
+                const el = document.getElementById('modal-vuln-' + sev + '-count');
+                if (el) el.textContent = '0';
+            });
 
             // Show Modal (Anim)
             modal.classList.remove('hidden');
@@ -554,9 +584,19 @@
         }
 
         function renderVulnerabilities(vulns) {
+            // Reset severity KPI counters every time we (re)render
+            const sevCounts = { Critical: 0, High: 0, Medium: 0, Low: 0 };
+            (vulns || []).forEach(function (v) {
+                if (sevCounts[v.severity] !== undefined) sevCounts[v.severity]++;
+            });
+            document.getElementById('modal-vuln-critical-count').textContent = sevCounts.Critical;
+            document.getElementById('modal-vuln-high-count').textContent = sevCounts.High;
+            document.getElementById('modal-vuln-medium-count').textContent = sevCounts.Medium;
+            document.getElementById('modal-vuln-low-count').textContent = sevCounts.Low;
+
             if (!vulns || vulns.length === 0) {
-                document.getElementById('modal-top-packages-body').innerHTML = `<tr><td colspan="4" class="px-3 py-4 text-center text-xs text-on-surface-variant">Aucune donnée.</td></tr>`;
-                modalVulnsContent.innerHTML = `<p class="text-on-surface-variant text-xs text-center">Aucune vulnérabilité détectée.</p>`;
+                document.getElementById('modal-top-packages-body').innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-xs text-on-surface-variant">Aucune donnée.</td></tr>`;
+                modalVulnsContent.innerHTML = `<div class="rounded-xl border border-outline-variant bg-surface-container-high p-6 text-center text-sm text-on-surface-variant">Aucune vulnérabilité détectée. 🎉</div>`;
                 return;
             }
 
@@ -600,12 +640,12 @@
                     }
 
                     topPkgHtml += `
-                    <tr class="hover:bg-outline-variant">
-                        <td class="px-3 py-2 font-medium text-on-surface">${p.name}</td>
-                        <td class="px-3 py-2 text-xs font-mono text-on-surface-variant">${p.version}</td>
-                        <td class="px-3 py-2 text-xs font-mono truncate max-w-[150px]" title="${p.condition}">${condDisplay}</td>
-                        <td class="px-3 py-2 text-right">
-                            <span class="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs font-bold border border-red-500/30">
+                    <tr class="hover:bg-surface-container-high transition-colors">
+                        <td class="px-4 py-2.5 font-medium text-on-surface">${p.name}</td>
+                        <td class="px-4 py-2.5 text-xs font-mono text-on-surface-variant">${p.version}</td>
+                        <td class="px-4 py-2.5 text-xs font-mono truncate max-w-[180px]" title="${p.condition}">${condDisplay}</td>
+                        <td class="px-4 py-2.5 text-right">
+                            <span class="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 text-xs font-bold border border-red-500/30">
                                 ${p.count}
                             </span>
                         </td>
@@ -633,24 +673,27 @@
 
             order.forEach(sev => {
                 const items = groups[sev];
-                if (items.length > 0) {
-                    html += `<div class="mb-4">
-                        <h5 class="text-xs font-bold uppercase mb-2 ${colors[sev].split(' ').pop()}">${sev} (${items.length})</h5>
-                        <div class="space-y-2">`;
+                if (items.length === 0) return;
+                const textClass = colors[sev].split(' ').pop();
+                html += `<div class="rounded-xl border border-outline-variant bg-surface-container-high overflow-hidden">
+                    <div class="flex items-center justify-between px-4 py-2 bg-surface-container-highest border-b border-outline-variant">
+                        <h5 class="text-xs font-bold uppercase tracking-wider ${textClass}">${sev}</h5>
+                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${colors[sev]}">${items.length}</span>
+                    </div>
+                    <div class="divide-y divide-outline-variant">`;
 
-                    items.forEach(v => {
-                        html += `
-                        <div class="p-2 rounded border ${colors[sev]} border-l-4">
-                            <div class="flex justify-between items-start">
-                                <span class="font-mono font-bold text-xs">${v.cve}</span>
-                                <span class="text-[10px] opacity-70">${v.package.name} ${v.package.version}</span>
-                            </div>
-                            <p class="text-xs mt-1 opacity-90 truncate" title="${v.title}">${v.title}</p>
-                        </div>`;
-                    });
+                items.forEach(v => {
+                    html += `
+                    <div class="px-4 py-2.5 hover:bg-surface-container transition-colors border-l-2 ${colors[sev].split(' ')[0]}">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="font-mono font-bold text-xs ${textClass}">${v.cve}</span>
+                            <span class="text-[10px] text-on-surface-variant">${v.package.name} <span class="font-mono">${v.package.version}</span></span>
+                        </div>
+                        <p class="text-xs mt-1 text-on-surface truncate" title="${v.title}">${v.title}</p>
+                    </div>`;
+                });
 
-                    html += `</div></div>`;
-                }
+                html += `</div></div>`;
             });
 
             modalVulnsContent.innerHTML = html;
