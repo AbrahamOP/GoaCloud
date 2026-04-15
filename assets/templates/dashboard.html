@@ -695,25 +695,60 @@
             }
 
             // ---------- Icon file import (add + edit modals) ----------
+            // Resize an image file to fit within LOGO_SIZE x LOGO_SIZE, preserving
+            // aspect ratio and centering on a transparent canvas. Returns a PNG
+            // data URL so every imported logo renders at the same icon size.
+            const LOGO_SIZE = 128;
+            function resizeImageToLogo(file) {
+                return new Promise((resolve, reject) => {
+                    const url = URL.createObjectURL(file);
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = LOGO_SIZE;
+                        canvas.height = LOGO_SIZE;
+                        const ctx = canvas.getContext('2d');
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+                        // Fit image inside the square (contain)
+                        const ratio = Math.min(LOGO_SIZE / img.width, LOGO_SIZE / img.height);
+                        const w = img.width * ratio;
+                        const h = img.height * ratio;
+                        const x = (LOGO_SIZE - w) / 2;
+                        const y = (LOGO_SIZE - h) / 2;
+                        ctx.drawImage(img, x, y, w, h);
+                        URL.revokeObjectURL(url);
+                        resolve(canvas.toDataURL('image/png'));
+                    };
+                    img.onerror = () => {
+                        URL.revokeObjectURL(url);
+                        reject(new Error('Image invalide'));
+                    };
+                    img.src = url;
+                });
+            }
+
             function wireIconFileInput(fileInputId, urlInputId, previewId, nameInputId) {
                 const fileInput = document.getElementById(fileInputId);
                 const urlInput = document.getElementById(urlInputId);
                 if (!fileInput || !urlInput) return;
-                fileInput.addEventListener('change', (e) => {
+                fileInput.addEventListener('change', async (e) => {
                     const file = e.target.files && e.target.files[0];
                     if (!file) return;
-                    if (file.size > 1024 * 1024) {
-                        alert('Image trop volumineuse (max 1 Mo).');
+                    if (file.size > 2 * 1024 * 1024) {
+                        alert('Image trop volumineuse (max 2 Mo).');
                         fileInput.value = '';
                         return;
                     }
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                        urlInput.value = reader.result;
+                    try {
+                        const dataUrl = await resizeImageToLogo(file);
+                        urlInput.value = dataUrl;
                         const nameEl = nameInputId ? document.getElementById(nameInputId) : null;
-                        renderIconPreview(previewId, reader.result, nameEl ? nameEl.value : '');
-                    };
-                    reader.readAsDataURL(file);
+                        renderIconPreview(previewId, dataUrl, nameEl ? nameEl.value : '');
+                    } catch (err) {
+                        alert('Impossible de lire l\'image: ' + err.message);
+                        fileInput.value = '';
+                    }
                 });
                 urlInput.addEventListener('input', () => {
                     const nameEl = nameInputId ? document.getElementById(nameInputId) : null;
