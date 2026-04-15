@@ -192,25 +192,26 @@
 
         <div class="fixed inset-0 z-10 overflow-y-auto">
             <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                <div class="relative transform rounded-2xl bg-surface-container border border-outline-variant text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-5xl opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95 overflow-hidden"
+                <div class="relative transform rounded-xl bg-surface-container border border-outline-variant text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95 overflow-hidden"
                     id="modal-panel">
 
-                    <!-- Header: gradient banner -->
-                    <div class="relative px-6 py-5 bg-gradient-to-br from-primary/20 via-surface-container-high to-surface-container-high border-b border-outline-variant">
+                    <!-- Header banner -->
+                    <div class="relative px-6 py-5 border-b border-outline-variant"
+                         style="background: linear-gradient(135deg, rgba(124,58,237,0.25) 0%, var(--md-color-surface-container-high) 70%);">
                         <div class="flex items-start justify-between gap-4">
-                            <div class="flex items-center gap-4 min-w-0">
-                                <div class="w-12 h-12 rounded-xl bg-primary/15 text-primary flex items-center justify-center flex-shrink-0">
+                            <div class="flex items-center gap-4" style="min-width:0;">
+                                <div class="w-12 h-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center" style="flex-shrink:0;">
                                     <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round"
                                             d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                                     </svg>
                                 </div>
-                                <div class="min-w-0">
-                                    <p class="text-[10px] uppercase tracking-widest text-on-surface-variant font-semibold mb-0.5">Agent Wazuh</p>
+                                <div style="min-width:0;">
+                                    <p class="uppercase tracking-widest text-on-surface-variant font-semibold" style="font-size:10px;">Agent Wazuh</p>
                                     <h3 class="text-2xl font-bold text-on-surface truncate" id="modal-agent-name">Agent Name</h3>
-                                    <div class="flex items-center gap-2 mt-1.5 flex-wrap">
+                                    <div class="flex items-center gap-2 mt-1 flex-wrap">
                                         <span id="modal-agent-status-badge"
-                                            class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border">
+                                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border">
                                             <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
                                             <span id="modal-agent-status">-</span>
                                         </span>
@@ -219,8 +220,8 @@
                                 </div>
                             </div>
                             <button type="button" onclick="closeAgentModal()"
-                                class="text-on-surface-variant hover:text-on-surface p-1.5 rounded-full hover:bg-surface-container-highest transition-colors flex-shrink-0"
-                                aria-label="Fermer">
+                                class="text-on-surface-variant hover:text-on-surface p-1 rounded-full hover:bg-surface-container-highest transition-colors"
+                                style="flex-shrink:0;" aria-label="Fermer">
                                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
@@ -229,34 +230,34 @@
                     </div>
 
                     <!-- Content -->
-                    <div class="px-6 py-5 text-on-surface max-h-[78vh] overflow-y-auto custom-scrollbar">
+                    <div class="px-6 py-5 text-on-surface overflow-y-auto custom-scrollbar" style="max-height:78vh;">
 
                         <!-- Vulnerability KPI strip -->
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-                            <div class="rounded-xl border border-red-500/30 bg-red-500/10 p-3">
+                            <div class="rounded-lg border border-red-500/30 bg-red-500/10 p-3">
                                 <div class="flex items-center justify-between">
-                                    <p class="text-[10px] uppercase tracking-widest text-red-400 font-bold">Critiques</p>
+                                    <p class="uppercase tracking-widest text-red-400 font-bold" style="font-size:10px;">Critiques</p>
                                     <svg class="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M4.93 19.07l14.14-14.14"/></svg>
                                 </div>
                                 <p class="text-2xl font-bold text-red-400 mt-1" id="modal-vuln-critical-count">0</p>
                             </div>
-                            <div class="rounded-xl border border-orange-500/30 bg-orange-500/10 p-3">
+                            <div class="rounded-lg border border-orange-500/30 bg-orange-500/10 p-3">
                                 <div class="flex items-center justify-between">
-                                    <p class="text-[10px] uppercase tracking-widest text-orange-400 font-bold">Élevées</p>
+                                    <p class="uppercase tracking-widest text-orange-400 font-bold" style="font-size:10px;">Élevées</p>
                                     <svg class="w-4 h-4 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                                 </div>
                                 <p class="text-2xl font-bold text-orange-400 mt-1" id="modal-vuln-high-count">0</p>
                             </div>
-                            <div class="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-3">
+                            <div class="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3">
                                 <div class="flex items-center justify-between">
-                                    <p class="text-[10px] uppercase tracking-widest text-yellow-400 font-bold">Moyennes</p>
+                                    <p class="uppercase tracking-widest text-yellow-400 font-bold" style="font-size:10px;">Moyennes</p>
                                     <svg class="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 </div>
                                 <p class="text-2xl font-bold text-yellow-400 mt-1" id="modal-vuln-medium-count">0</p>
                             </div>
-                            <div class="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3">
+                            <div class="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3">
                                 <div class="flex items-center justify-between">
-                                    <p class="text-[10px] uppercase tracking-widest text-blue-400 font-bold">Faibles</p>
+                                    <p class="uppercase tracking-widest text-blue-400 font-bold" style="font-size:10px;">Faibles</p>
                                     <svg class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                                 </div>
                                 <p class="text-2xl font-bold text-blue-400 mt-1" id="modal-vuln-low-count">0</p>
@@ -264,10 +265,10 @@
                         </div>
 
                         <!-- Agent info grid -->
-                        <div class="rounded-xl border border-outline-variant bg-surface-container-high overflow-hidden mb-5">
-                            <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-outline-variant">
-                                <div class="p-4">
-                                    <p class="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold mb-2">Réseau</p>
+                        <div class="rounded-lg border border-outline-variant bg-surface-container-high overflow-hidden mb-5">
+                            <div class="grid grid-cols-1 md:grid-cols-2">
+                                <div class="p-4 border-b md:border-b-0 md:border-r border-outline-variant">
+                                    <p class="text-on-surface-variant uppercase tracking-widest font-semibold mb-2" style="font-size:10px;">Réseau</p>
                                     <div class="space-y-2">
                                         <div class="flex items-center justify-between gap-2">
                                             <span class="text-xs text-on-surface-variant">Adresse IP</span>
@@ -280,7 +281,7 @@
                                     </div>
                                 </div>
                                 <div class="p-4">
-                                    <p class="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold mb-2">Système</p>
+                                    <p class="text-on-surface-variant uppercase tracking-widest font-semibold mb-2" style="font-size:10px;">Système</p>
                                     <div class="space-y-2">
                                         <div class="flex items-center justify-between gap-2">
                                             <span class="text-xs text-on-surface-variant">OS</span>
@@ -306,21 +307,21 @@
                                     <svg class="w-4 h-4 text-on-surface-variant hover:text-primary cursor-help transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    <div class="absolute bottom-full left-0 mb-2 hidden group-hover:block w-60 p-3 bg-surface-container-highest border border-outline-variant rounded-lg text-xs text-on-surface shadow-xl z-[60]">
-                                        <p class="font-bold mb-2 border-b border-outline-variant pb-1.5">Légende « Patch / Condition »</p>
+                                    <div class="absolute bottom-full left-0 mb-2 hidden group-hover:block w-56 p-3 bg-surface-container-highest border border-outline-variant rounded-lg text-xs text-on-surface shadow-xl" style="z-index:60;">
+                                        <p class="font-bold mb-2 border-b border-outline-variant pb-1">Légende « Patch / Condition »</p>
                                         <div class="flex items-center gap-2 mb-1"><span class="text-primary font-bold">&lt;</span> <span>Mettre à jour (version &lt; cible)</span></div>
                                         <div class="flex items-center gap-2"><span class="text-yellow-400 font-bold">=</span> <span>Version vulnérable exacte</span></div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="rounded-xl border border-outline-variant overflow-hidden">
+                            <div class="rounded-lg border border-outline-variant overflow-hidden">
                                 <table class="w-full text-left text-sm">
-                                    <thead class="text-[10px] uppercase tracking-widest bg-surface-container-high text-on-surface-variant">
+                                    <thead class="uppercase tracking-widest bg-surface-container-high text-on-surface-variant" style="font-size:10px;">
                                         <tr>
-                                            <th class="px-4 py-2.5 font-semibold">Package</th>
-                                            <th class="px-4 py-2.5 font-semibold">Version actuelle</th>
-                                            <th class="px-4 py-2.5 font-semibold">Patch / Condition</th>
-                                            <th class="px-4 py-2.5 font-semibold text-right">Vulns</th>
+                                            <th class="px-4 py-2 font-semibold">Package</th>
+                                            <th class="px-4 py-2 font-semibold">Version actuelle</th>
+                                            <th class="px-4 py-2 font-semibold">Patch / Condition</th>
+                                            <th class="px-4 py-2 font-semibold text-right">Vulns</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-outline-variant bg-surface-container" id="modal-top-packages-body">
@@ -641,11 +642,11 @@
 
                     topPkgHtml += `
                     <tr class="hover:bg-surface-container-high transition-colors">
-                        <td class="px-4 py-2.5 font-medium text-on-surface">${p.name}</td>
-                        <td class="px-4 py-2.5 text-xs font-mono text-on-surface-variant">${p.version}</td>
-                        <td class="px-4 py-2.5 text-xs font-mono truncate max-w-[180px]" title="${p.condition}">${condDisplay}</td>
-                        <td class="px-4 py-2.5 text-right">
-                            <span class="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 text-xs font-bold border border-red-500/30">
+                        <td class="px-4 py-2 font-medium text-on-surface">${p.name}</td>
+                        <td class="px-4 py-2 text-xs font-mono text-on-surface-variant">${p.version}</td>
+                        <td class="px-4 py-2 text-xs font-mono truncate" style="max-width:180px;" title="${p.condition}">${condDisplay}</td>
+                        <td class="px-4 py-2 text-right">
+                            <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs font-bold border border-red-500/30" style="min-width:28px;">
                                 ${p.count}
                             </span>
                         </td>
