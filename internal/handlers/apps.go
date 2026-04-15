@@ -74,6 +74,45 @@ func (h *Handler) HandleUpdateApp(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{"ok": true})
 }
 
+// HandleReorderApps updates the manual position of each app based on the
+// order of IDs submitted by the client (drag-and-drop reorder).
+func (h *Handler) HandleReorderApps(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		IDs []int `json:"ids"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "invalid JSON"})
+		return
+	}
+
+	tx, err := h.DB.Begin()
+	if err != nil {
+		slog.Error("Error starting tx for reorder", "error", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "database error"})
+		return
+	}
+	for i, id := range req.IDs {
+		if _, err := tx.Exec("UPDATE apps SET position = ? WHERE id = ?", i, id); err != nil {
+			tx.Rollback()
+			slog.Error("Error updating app position", "error", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"error": "database error"})
+			return
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		slog.Error("Error committing reorder tx", "error", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "database error"})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"ok": true})
+}
+
 // HandleDeleteApp handles deleting an application via JSON API.
 func (h *Handler) HandleDeleteApp(w http.ResponseWriter, r *http.Request) {
 	appID := r.URL.Query().Get("id")

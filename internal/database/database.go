@@ -157,6 +157,8 @@ func Migrate(db *sql.DB) {
 		"ALTER TABLE apps ADD COLUMN health_response_ms INT NOT NULL DEFAULT 0",
 		"ALTER TABLE apps ADD COLUMN health_last_check DATETIME NULL",
 		"ALTER TABLE apps ADD COLUMN is_pinned BOOLEAN NOT NULL DEFAULT FALSE",
+		"ALTER TABLE apps ADD COLUMN position INT NOT NULL DEFAULT 0",
+		"ALTER TABLE apps MODIFY COLUMN icon_url MEDIUMTEXT",
 	}
 	for _, m := range migrations {
 		if _, err := db.Exec(m); err != nil {

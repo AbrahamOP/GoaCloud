@@ -26,21 +26,18 @@
 
     <!-- Main Content -->
     <main class="flex-1 md:ml-64 bg-surface relative overflow-hidden flex flex-col">
-        {{template "top-actions" .}}
-        <!-- Decoration Gradients (no blur for terminal perf) -->
-        <div class="absolute top-0 left-0 w-96 h-96 bg-purple-600/5 rounded-full pointer-events-none"></div>
-        <div class="absolute bottom-0 right-0 w-96 h-96 bg-cyan-600/5 rounded-full pointer-events-none"></div>
+        {{template "bubbles"}}
 
         <div class="flex-1 flex flex-col p-8 relative z-10 max-w-7xl mx-auto w-full h-full">
             <!-- Header -->
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
                 <div>
                     <h2 class="text-3xl font-bold mb-2">Console <span class="gradient-text">Web</span></h2>
                     <p class="text-on-surface-variant">Accès SSH direct à vos machines virtuelles.</p>
                 </div>
 
-
-                <div class="bg-surface-container p-2 rounded-xl flex items-center gap-2 border border-outline-variant" style="margin-right:52px">
+                <div class="flex items-center gap-3 flex-wrap">
+                <div class="bg-surface-container p-2 rounded-xl flex items-center gap-2 border border-outline-variant">
                     <div class="relative group">
                         <i class="fas fa-server absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant"></i>
                         <select id="conn-vm"
@@ -85,6 +82,8 @@
                         class="hidden ml-2 bg-error-container text-error border border-error/50 px-5 py-2 rounded-full text-sm transition font-medium flex items-center">
                         <i class="fas fa-power-off mr-2"></i> Déconnexion
                     </button>
+                </div>
+                {{template "top-actions"}}
                 </div>
 
             </div>

@@ -124,6 +124,7 @@ func New(h *handlers.Handler, store *sessions.CookieStore, db *sql.DB, cookieSec
 		// Apps management
 		r.Post("/api/apps/pin", h.HandleTogglePin)
 		r.Post("/api/apps/update", h.HandleUpdateApp)
+		r.Post("/api/apps/reorder", h.HandleReorderApps)
 		r.Delete("/api/apps/delete", h.HandleDeleteApp)
 	})
 

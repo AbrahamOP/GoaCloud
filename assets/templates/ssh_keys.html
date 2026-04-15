@@ -19,14 +19,17 @@
 
     <!-- Main Content -->
     <main class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
-        {{template "top-actions" .}}
+        {{template "bubbles"}}
 
         <!-- Header -->
-        <div class="h-20 border-b border-outline-variant flex items-center justify-between px-8 bg-surface z-10">
+        <div class="h-20 border-b border-outline-variant flex items-center justify-between px-8 bg-surface z-10 gap-4">
             <h1
                 class="text-2xl font-bold text-primary">
                 Gestion Clés SSH
             </h1>
+            <div class="flex items-center gap-3 flex-wrap">
+                {{template "top-actions"}}
+            </div>
         </div>
 
         <!-- Content -->
