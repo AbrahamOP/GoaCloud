@@ -10,8 +10,9 @@ CREATE TABLE IF NOT EXISTS apps (
     name VARCHAR(100) NOT NULL,
     description TEXT,
     external_url VARCHAR(255) NOT NULL,
-    icon_url VARCHAR(255),
+    icon_url MEDIUMTEXT,
     category VARCHAR(50) DEFAULT 'General',
+    position INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

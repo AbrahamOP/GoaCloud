@@ -12,4 +12,5 @@ type App struct {
 	HealthRespMs  int    // response time in ms
 	HealthLastChk string // last check time
 	IsPinned      bool
+	Position      int // manual sort order set by the user
 }

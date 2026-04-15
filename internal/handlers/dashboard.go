@@ -29,7 +29,7 @@ func (h *Handler) HandleDashboard(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) getApps() ([]models.App, error) {
-	rows, err := h.DB.Query("SELECT id, name, description, external_url, icon_url, category, health_status, health_response_ms, health_last_check, is_pinned FROM apps ORDER BY is_pinned DESC, category, name")
+	rows, err := h.DB.Query("SELECT id, name, description, external_url, icon_url, category, health_status, health_response_ms, health_last_check, is_pinned, position FROM apps ORDER BY is_pinned DESC, position ASC, category, name")
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +40,7 @@ func (h *Handler) getApps() ([]models.App, error) {
 		var a models.App
 		var icon sql.NullString
 		var healthLastChk sql.NullString
-		if err := rows.Scan(&a.ID, &a.Name, &a.Description, &a.ExternalURL, &icon, &a.Category, &a.HealthStatus, &a.HealthRespMs, &healthLastChk, &a.IsPinned); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Description, &a.ExternalURL, &icon, &a.Category, &a.HealthStatus, &a.HealthRespMs, &healthLastChk, &a.IsPinned, &a.Position); err != nil {
 			continue
 		}
 		if icon.Valid {
