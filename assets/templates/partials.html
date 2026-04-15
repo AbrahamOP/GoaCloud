@@ -11,6 +11,17 @@
     class="fixed inset-0 bg-scrim/50 z-40 hidden md:hidden transition-opacity"></div>
 {{end}}
 
+{{define "bubbles"}}
+<!-- Decoration Gradients (sidebar palette) -->
+<div class="absolute top-0 left-0 w-96 h-96 bg-purple-500/20 rounded-full pointer-events-none blur-2xl"></div>
+<div class="absolute bottom-0 right-0 w-96 h-96 bg-cyan-600/5 rounded-full pointer-events-none blur-2xl"></div>
+<div class="absolute top-0 right-0 w-32 h-32 bg-red-500/20 rounded-full pointer-events-none blur-2xl"></div>
+<div class="absolute top-1/2 right-0 w-48 h-48 bg-orange-500/20 rounded-full pointer-events-none blur-2xl -translate-y-1/2"></div>
+<div class="absolute bottom-0 left-1/2 w-48 h-48 bg-yellow-500/20 rounded-full pointer-events-none blur-2xl -translate-x-1/2"></div>
+<div class="absolute top-1/2 left-0 w-32 h-32 bg-green-500/20 rounded-full pointer-events-none blur-2xl -translate-y-1/2"></div>
+<div class="absolute top-0 left-1/2 w-48 h-48 bg-blue-500/20 rounded-full pointer-events-none blur-2xl -translate-x-1/2"></div>
+{{end}}
+
 {{define "sidebar"}}
 <aside id="sidebar"
     class="fixed inset-y-0 left-0 z-50 w-64 overflow-y-auto bg-surface-container-low border-r border-outline-variant flex flex-col justify-between transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">

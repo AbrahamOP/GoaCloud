@@ -27,9 +27,7 @@
     <!-- Main Content -->
     <main class="flex-1 md:ml-64 bg-surface relative overflow-hidden flex flex-col">
         {{template "top-actions" .}}
-        <!-- Decoration Gradients (no blur for terminal perf) -->
-        <div class="absolute top-0 left-0 w-96 h-96 bg-purple-600/5 rounded-full pointer-events-none"></div>
-        <div class="absolute bottom-0 right-0 w-96 h-96 bg-cyan-600/5 rounded-full pointer-events-none"></div>
+        {{template "bubbles"}}
 
         <div class="flex-1 flex flex-col p-8 relative z-10 max-w-7xl mx-auto w-full h-full">
             <!-- Header -->
