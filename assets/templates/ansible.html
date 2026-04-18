@@ -24,12 +24,17 @@
             padding-right: 32px !important;
         }
         select.themed option {
-            background-color: var(--md-color-surface-container-high);
-            color: var(--md-color-on-surface);
+            background-color: #1e1e2e;
+            color: #cdd6f4;
             padding: 8px 12px;
         }
-        select.themed option:disabled { color: var(--md-color-on-surface-variant); }
-        select.themed option:checked { background-color: var(--md-color-primary-container); color: var(--md-color-on-surface); }
+        select.themed option:disabled {
+            color: #6c7086;
+        }
+        select.themed option:checked {
+            background-color: #313244;
+            color: #cdd6f4;
+        }
 
         /* Playbook content textarea */
         .yaml-editor {
@@ -93,13 +98,18 @@
                 <!-- PLAYBOOKS LIST (Left) -->
                 <div
                     class="bg-surface-container border border-outline-variant rounded-xl p-0 shadow-xl relative overflow-hidden flex flex-col h-full lg:col-span-1">
-                    <div class="px-6 py-4 border-b border-outline-variant bg-surface-container-low/50 flex justify-between items-center">
-                        <h3 class="font-semibold text-on-surface">📚 Playbooks</h3>
+                    <div class="px-6 py-4 border-b border-outline-variant flex justify-between items-center"
+                         style="background: linear-gradient(135deg, rgba(251,146,60,0.12) 0%, var(--md-color-surface-container) 70%);">
+                        <h3 class="font-semibold text-on-surface flex items-center gap-2">
+                            <svg class="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                            </svg>
+                            Playbooks
+                        </h3>
                         <div class="flex items-center gap-2">
-                            <span class="text-xs bg-outline-variant text-on-surface-variant px-2 py-1 rounded-full">{{len .Playbooks}}
-                                found</span>
+                            <span class="text-xs bg-orange-500/10 text-orange-400 px-2 py-1 rounded-full border border-orange-500/30 font-semibold">{{.TotalPlaybooks}}</span>
                             <button onclick="openUploadModal()"
-                                class="text-on-surface-variant hover:text-on-surface p-1 rounded hover:bg-surface-container-highest transition"
+                                class="text-on-surface-variant hover:text-on-surface p-1.5 rounded-lg hover:bg-surface-container-highest transition"
                                 title="Ajouter un Playbook">
                                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
