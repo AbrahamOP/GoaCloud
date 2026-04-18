@@ -52,14 +52,28 @@ func (h *Handler) HandleAnsible(w http.ResponseWriter, r *http.Request) {
 		slog.Error("Error fetching keys", "error", err)
 	}
 
+	// Count active schedules for KPI
+	var activeSchedules int
+	_ = h.DB.QueryRow("SELECT COUNT(*) FROM ansible_schedules WHERE enabled = TRUE").Scan(&activeSchedules)
+
+	// Count total playbooks
+	totalPlaybooks := 0
+	for _, files := range playbooks {
+		totalPlaybooks += len(files)
+	}
+
 	data := struct {
-		Playbooks map[string][]string
-		VMs       []models.VM
-		Keys      []models.SSHKey
+		Playbooks       map[string][]string
+		VMs             []models.VM
+		Keys            []models.SSHKey
+		ActiveSchedules int
+		TotalPlaybooks  int
 	}{
-		Playbooks: playbooks,
-		VMs:       vms,
-		Keys:      keys,
+		Playbooks:       playbooks,
+		VMs:             vms,
+		Keys:            keys,
+		ActiveSchedules: activeSchedules,
+		TotalPlaybooks:  totalPlaybooks,
 	}
 
 	if err = h.Templates.ExecuteTemplate(w, "ansible.html", data); err != nil {
