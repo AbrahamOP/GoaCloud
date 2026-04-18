@@ -95,6 +95,8 @@ func New(h *handlers.Handler, store *sessions.CookieStore, db *sql.DB, cookieSec
 		r.Get("/ansible", h.HandleAnsible)
 		r.Post("/api/ansible/run", h.HandleAnsibleRun)
 		r.Post("/api/ansible/upload", h.HandleAnsibleUpload)
+		r.Get("/api/ansible/playbook", h.HandleAnsiblePlaybookGet)
+		r.Put("/api/ansible/playbook", h.HandleAnsiblePlaybookUpdate)
 		r.Get("/api/ansible/schedules", h.HandleAnsibleSchedules)
 		r.Post("/api/ansible/schedules", h.HandleAnsibleSchedules)
 		r.Delete("/api/ansible/schedules", h.HandleAnsibleScheduleDelete)
