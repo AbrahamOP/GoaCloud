@@ -6,9 +6,18 @@
     <title>GoaCloud - Proxmox</title>
     <style>
         body { font-family: 'Outfit', sans-serif; }
-        .gauge-circle {
-            transition: stroke-dashoffset 1s ease-in-out;
+        .gauge-circle { transition: stroke-dashoffset 1s ease-in-out; }
+
+        select.themed {
+            appearance: none; -webkit-appearance: none; -moz-appearance: none;
+            background-image: linear-gradient(45deg, transparent 50%, var(--md-color-on-surface-variant) 50%), linear-gradient(135deg, var(--md-color-on-surface-variant) 50%, transparent 50%);
+            background-position: calc(100% - 16px) 50%, calc(100% - 10px) 50%;
+            background-size: 6px 6px, 6px 6px; background-repeat: no-repeat;
+            padding-right: 30px !important;
         }
+        select.themed option { background-color: #1e1e2e; color: #cdd6f4; padding: 8px 12px; }
+        select.themed option:disabled { color: #6c7086; }
+        select.themed option:checked { background-color: #313244; }
     </style>
 </head>
 
@@ -29,7 +38,7 @@
                     <p class="text-on-surface-variant text-sm">Statistiques de votre HomeLab — <span id="cache-age">chargement...</span></p>
                 </div>
                 <div class="flex items-center gap-3 flex-wrap">
-                    <select id="metrics-period" onchange="loadMetrics()" class="px-3 py-2 rounded-lg bg-surface-container-high border border-outline-variant text-sm text-on-surface focus:outline-none">
+                    <select id="metrics-period" onchange="loadMetrics()" class="themed px-3 py-2 rounded-lg bg-surface-container-high border border-outline-variant text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
                         <option value="1h">1 heure</option>
                         <option value="6h">6 heures</option>
                         <option value="24h" selected>24 heures</option>
@@ -54,8 +63,8 @@
             <!-- KPI Cards -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <!-- CPU Usage -->
-                <div class="rounded-xl p-6 relative overflow-hidden bg-surface-container border border-outline-variant">
-                    <h3 class="text-on-surface-variant text-sm font-medium uppercase mb-4">CPU Usage</h3>
+                <div class="rounded-xl p-6 relative overflow-hidden bg-surface-container border border-outline-variant" style="border-left: 3px solid var(--md-color-primary);">
+                    <h3 class="text-on-surface-variant text-xs font-semibold uppercase tracking-widest mb-4">CPU Usage</h3>
                     <div class="flex items-end justify-between">
                         <div class="text-4xl font-bold text-on-surface" id="cpu-val">{{.CPU}}%</div>
                         <div class="text-xs text-green-400 bg-success-container px-2 py-1 rounded">+2% this hour</div>
@@ -69,8 +78,8 @@
                 </div>
 
                 <!-- RAM Usage -->
-                <div class="rounded-xl p-6 relative overflow-hidden bg-surface-container border border-outline-variant">
-                    <h3 class="text-on-surface-variant text-sm font-medium uppercase mb-4">Memory Usage</h3>
+                <div class="rounded-xl p-6 relative overflow-hidden bg-surface-container border border-outline-variant" style="border-left: 3px solid var(--md-color-secondary);">
+                    <h3 class="text-on-surface-variant text-xs font-semibold uppercase tracking-widest mb-4">Memory Usage</h3>
                     <div class="flex items-end justify-between">
                         <div class="text-4xl font-bold text-on-surface" id="ram-val">{{.RAM}}%</div>
                         <div class="text-xs text-on-surface-variant" id="ram-detail">{{.RAMUsedStr}} / {{.RAMTotalStr}}</div>
@@ -83,8 +92,8 @@
                 </div>
 
                 <!-- Storage -->
-                <div class="rounded-xl p-6 relative overflow-hidden bg-surface-container border border-outline-variant">
-                    <h3 class="text-on-surface-variant text-sm font-medium uppercase mb-4">Storage (ZFS)</h3>
+                <div class="rounded-xl p-6 relative overflow-hidden bg-surface-container border border-outline-variant" style="border-left: 3px solid var(--md-color-tertiary);">
+                    <h3 class="text-on-surface-variant text-xs font-semibold uppercase tracking-widest mb-4">Storage (ZFS)</h3>
                     <div class="flex items-end justify-between">
                         <div class="text-4xl font-bold text-on-surface" id="storage-val">{{.Storage}}%</div>
                         <div id="storage-badge">
@@ -104,11 +113,20 @@
             </div>
 
             <!-- VM List -->
-            <h3 class="text-xl font-semibold text-on-surface mb-4">Machines Virtuelles</h3>
-            <div class="bg-surface-container rounded-xl overflow-hidden border border-outline-variant">
+            <div class="bg-surface-container rounded-xl overflow-hidden border border-outline-variant shadow-xl">
+                <div class="px-6 py-4 border-b border-outline-variant flex justify-between items-center"
+                     style="background: linear-gradient(135deg, rgba(124,58,237,0.10) 0%, var(--md-color-surface-container) 70%);">
+                    <h3 class="font-semibold text-on-surface flex items-center gap-2">
+                        <svg class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
+                        </svg>
+                        Machines Virtuelles
+                    </h3>
+                    <span class="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full border border-primary/30 font-semibold">{{len .VMs}}</span>
+                </div>
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="bg-surface-container text-on-surface-variant text-xs uppercase border-b border-outline-variant">
+                        <tr class="bg-surface-container-high text-on-surface-variant text-xs uppercase tracking-widest border-b border-outline-variant">
                             <th class="p-4 font-semibold w-16">Type</th>
                             <th class="p-4 font-semibold">ID</th>
                             <th class="p-4 font-semibold">Name</th>
