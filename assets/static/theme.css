@@ -43,3 +43,51 @@ html.transitions-ready .glass-panel {
     background: var(--md-color-outline);
     border-radius: 4px;
 }
+
+/* ============================================
+   Mobile Responsiveness Overrides
+   ============================================ */
+
+/* Reduce padding on small screens */
+@media (max-width: 767px) {
+    .px-8 { padding-left: 1rem !important; padding-right: 1rem !important; }
+    .px-6 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+
+    /* Smaller headings on mobile */
+    h2.text-3xl { font-size: 1.375rem !important; line-height: 1.75rem !important; }
+    h3.text-2xl { font-size: 1.125rem !important; line-height: 1.5rem !important; }
+
+    /* KPI numbers: prevent overflow */
+    .text-2xl { font-size: 1.25rem !important; }
+    .text-4xl { font-size: 1.75rem !important; }
+
+    /* Tab spacing */
+    .space-x-6 > :not([hidden]) ~ :not([hidden]) { --tw-space-x-reverse: 0; margin-right: calc(0.5rem * var(--tw-space-x-reverse)); margin-left: calc(0.5rem * calc(1 - var(--tw-space-x-reverse))); }
+
+    /* Stack flex rows vertically on very small screens */
+    .flex-wrap { gap: 0.5rem; }
+
+    /* Modal scrollable on mobile */
+    .fixed.inset-0[role="dialog"] .overflow-y-auto { -webkit-overflow-scrolling: touch; }
+}
+
+/* All tables scrollable on overflow */
+table { display: table; }
+.overflow-x-auto { -webkit-overflow-scrolling: touch; }
+
+/* Gradient-text fallback */
+.gradient-text {
+    background: linear-gradient(135deg, var(--md-color-primary), var(--md-color-tertiary, var(--md-color-primary)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Health dots */
+.health-dot {
+    width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+    border: 2px solid transparent;
+}
+.health-up { background: #22c55e; border-color: rgba(34,197,94,.3); box-shadow: 0 0 6px rgba(34,197,94,.4); }
+.health-down { background: #ef4444; border-color: rgba(239,68,68,.3); box-shadow: 0 0 6px rgba(239,68,68,.4); }
+.health-unknown { background: var(--md-color-outline); }

@@ -61,7 +61,7 @@
     <main id="console-main" class="flex-1 md:ml-64 bg-surface relative overflow-hidden flex flex-col">
         {{template "bubbles"}}
 
-        <div class="flex-1 flex flex-col p-6 relative z-10 mx-auto w-full h-full console-wrapper" style="max-width:1400px;">
+        <div class="flex-1 flex flex-col p-3 sm:p-6 relative z-10 mx-auto w-full h-full console-wrapper" style="max-width:1400px;">
 
             <!-- Header -->
             <div class="flex flex-wrap items-center justify-between gap-4 mb-6 console-header">
@@ -87,8 +87,8 @@
                     <span id="idle-timer" class="text-xs font-mono text-on-surface-variant hidden"></span>
                 </div>
                 <!-- Controls row -->
-                <div class="px-6 py-4 flex flex-wrap items-end gap-4">
-                    <div class="flex-1" style="min-width:160px;">
+                <div class="px-4 py-4 flex flex-wrap items-end gap-3" style="row-gap:0.75rem;">
+                    <div class="flex-1" style="min-width:min(160px, 100%);">
                         <label class="block text-xs font-medium text-on-surface-variant mb-1">Cible (VM)</label>
                         <select id="conn-vm" onchange="onVMChange()"
                             class="themed w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
@@ -98,7 +98,7 @@
                             {{end}}
                         </select>
                     </div>
-                    <div class="flex-1" style="min-width:140px;">
+                    <div class="flex-1" style="min-width:min(140px, 100%);">
                         <label class="block text-xs font-medium text-on-surface-variant mb-1">Clé SSH</label>
                         <select id="conn-key"
                             class="themed w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
@@ -108,7 +108,7 @@
                             {{end}}
                         </select>
                     </div>
-                    <div style="min-width:100px;">
+                    <div style="min-width:min(100px, 100%);">
                         <label class="block text-xs font-medium text-on-surface-variant mb-1">Utilisateur</label>
                         <input type="text" id="conn-user" value="root" placeholder="root"
                             class="w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary placeholder-on-surface-variant" />
