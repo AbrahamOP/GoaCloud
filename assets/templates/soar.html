@@ -75,8 +75,9 @@
                     <p class="text-lg font-bold text-on-surface mt-1">Le Veilleur</p>
                 </div>
                 <div class="bg-surface-container border border-outline-variant rounded-xl p-4">
-                    <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold">Enrichissement</p>
-                    <p class="text-lg font-bold text-primary mt-1">IA (LLM)</p>
+                    <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold">Enrichissement IA</p>
+                    <p class="text-lg font-bold text-primary mt-1">{{if .AIModel}}{{.AIModel}}{{else}}Non configuré{{end}}</p>
+                    {{if .AIProvider}}<p class="text-xs text-on-surface-variant mt-0.5 capitalize">{{.AIProvider}}</p>{{end}}
                 </div>
                 <div class="bg-surface-container border border-outline-variant rounded-xl p-4">
                     <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold">Alertes actives</p>
