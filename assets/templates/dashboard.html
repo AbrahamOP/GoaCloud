@@ -6,6 +6,16 @@
     <title>GoaCloud</title>
     <style>
         body { font-family: 'Outfit', sans-serif; }
+        select.themed {
+            appearance: none; -webkit-appearance: none; -moz-appearance: none;
+            background-image: linear-gradient(45deg, transparent 50%, var(--md-color-on-surface-variant) 50%), linear-gradient(135deg, var(--md-color-on-surface-variant) 50%, transparent 50%);
+            background-position: calc(100% - 16px) 50%, calc(100% - 10px) 50%;
+            background-size: 6px 6px, 6px 6px; background-repeat: no-repeat;
+            padding-right: 30px !important;
+        }
+        select.themed option { background-color: #1e1e2e; color: #cdd6f4; padding: 8px 12px; }
+        select.themed option:disabled { color: #6c7086; }
+        select.themed option:checked { background-color: #313244; }
         /* Edit mode: disable card link navigation and add dashed outline */
         #apps-grid.edit-mode .app-card-link { pointer-events: none; }
         #apps-grid.edit-mode .app-card[data-id] {
@@ -58,33 +68,34 @@
                 </div>
             </div>
 
-            <!-- Stats/Featured Cards (Optional decorative) -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-                <div
-                    class="rounded-3xl p-6 bg-gradient-to-br from-purple-600 to-indigo-600 text-white shadow-xl shadow-purple-900/20 relative overflow-hidden group">
-                    <div class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-                    <div class="relative z-10">
-                        <p class="text-purple-200 text-sm font-medium mb-1">Nombre d'Applications</p>
-                        <h3 class="text-4xl font-bold">{{len .Apps}}</h3>
-                        <p class="text-xs text-purple-200 mt-4 bg-white/20 inline-block px-2 py-1 rounded-md">Système
-                            opérationnel</p>
-                    </div>
+            <!-- KPI Strip -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-surface-container border border-outline-variant rounded-xl p-4" style="border-left:3px solid var(--md-color-primary);">
+                    <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold">Applications</p>
+                    <p class="text-2xl font-bold text-primary mt-1">{{len .Apps}}</p>
                 </div>
-                <!-- Digital Clock -->
-                <div
-                    class="rounded-xl p-6 bg-surface-container border border-outline-variant relative overflow-hidden flex flex-col items-center justify-center">
-                    <div class="text-center z-10">
-                        <p class="text-primary text-sm font-medium uppercase tracking-widest mb-1" id="clock-date">
-                            CHARGEMENT...</p>
-                        <h3 class="text-5xl font-bold text-on-surface tracking-tight" id="clock-time">--:--</h3>
-                    </div>
+                <div class="bg-surface-container border border-outline-variant rounded-xl p-4" style="border-left:3px solid #22c55e;">
+                    <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold">En ligne</p>
+                    <p class="text-2xl font-bold text-green-400 mt-1" id="kpi-apps-up">—</p>
+                </div>
+                <div class="bg-surface-container border border-outline-variant rounded-xl p-4" style="border-left:3px solid #ef4444;">
+                    <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold">Hors ligne</p>
+                    <p class="text-2xl font-bold text-red-400 mt-1" id="kpi-apps-down">—</p>
+                </div>
+                <div class="bg-surface-container border border-outline-variant rounded-xl p-4 flex flex-col items-center justify-center">
+                    <p class="text-primary text-xs font-medium uppercase tracking-widest mb-1" id="clock-date">—</p>
+                    <p class="text-3xl font-bold text-on-surface tracking-tight" id="clock-time">--:--</p>
                 </div>
             </div>
 
-
             <!-- Apps Grid -->
-            <div class="mb-4 flex items-center justify-between flex-wrap gap-3">
-                <h3 class="text-xl font-semibold text-on-surface">Vos Applications</h3>
+            <div class="bg-surface-container border border-outline-variant rounded-xl shadow-xl overflow-hidden mb-6">
+                <div class="px-6 py-4 border-b border-outline-variant flex items-center justify-between flex-wrap gap-3"
+                     style="background: linear-gradient(135deg, rgba(124,58,237,0.10) 0%, var(--md-color-surface-container) 70%);">
+                <h3 class="font-semibold text-on-surface flex items-center gap-2">
+                    <svg class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                    Vos Applications
+                </h3>
                 <div class="flex items-center gap-2 flex-wrap">
                     <div class="flex gap-2" id="category-filters">
                         <!-- Filters injected by JS -->
@@ -101,6 +112,7 @@
             </div>
 
             {{if .Apps}}
+            <div class="p-6">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6" id="apps-grid">
                 {{range .Apps}}
                 <div data-category="{{.Category}}" data-id="{{.ID}}" data-name="{{.Name}}" data-url="{{.ExternalURL}}"
@@ -191,14 +203,16 @@
                     <p class="text-xs text-on-surface-variant mt-1">Configurer un nouveau service</p>
                 </button>
             </div>
+            </div><!-- end p-6 -->
             {{else}}
-            <div class="glass rounded-xl p-12 text-center border-dashed border-outline">
+            <div class="p-12 text-center">
                 <p class="text-on-surface-variant">Aucune application configurée.</p>
                 <button onclick="openAddModal()"
                     class="inline-block mt-4 text-sm text-primary hover:text-primary/80">Ajouter votre
-                    première app -></button>
+                    première app →</button>
             </div>
             {{end}}
+            </div><!-- end apps card wrapper -->
         </div>
     </main>
 
@@ -231,7 +245,7 @@
                             class="block text-xs font-semibold text-on-surface-variant uppercase tracking-widest pl-1">Catégorie</label>
                         <div class="relative">
                             <select id="category" name="category"
-                                class="w-full bg-transparent border border-outline rounded-xs px-4 py-3 text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition appearance-none cursor-pointer">
+                                class="themed w-full bg-transparent border border-outline rounded-xs px-4 py-3 text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition cursor-pointer">
                                 <option value="General">Général</option>
                                 <option value="Infrastructure">Infrastructure</option>
                                 <option value="Monitoring">Monitoring</option>
@@ -335,7 +349,7 @@
                             class="block text-xs font-semibold text-on-surface-variant uppercase tracking-widest pl-1">Catégorie</label>
                         <div class="relative">
                             <select id="edit-category"
-                                class="w-full bg-transparent border border-outline rounded-xs px-4 py-3 text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition appearance-none cursor-pointer">
+                                class="themed w-full bg-transparent border border-outline rounded-xs px-4 py-3 text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition cursor-pointer">
                                 <option value="General">Général</option>
                                 <option value="Infrastructure">Infrastructure</option>
                                 <option value="Monitoring">Monitoring</option>
@@ -538,6 +552,20 @@
                     greeting.textContent = 'Bonjour';
                 }
             }
+
+            // App health KPI counters
+            (function updateAppKPIs() {
+                var dots = document.querySelectorAll('.health-dot');
+                var up = 0, down = 0;
+                dots.forEach(function (d) {
+                    if (d.classList.contains('health-up')) up++;
+                    else if (d.classList.contains('health-down')) down++;
+                });
+                var elUp = document.getElementById('kpi-apps-up');
+                var elDown = document.getElementById('kpi-apps-down');
+                if (elUp) elUp.textContent = up;
+                if (elDown) elDown.textContent = down;
+            })();
 
             const grid = document.getElementById('apps-grid');
             const filterContainer = document.getElementById('category-filters');

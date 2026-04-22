@@ -18,8 +18,14 @@ func (h *Handler) HandleSoar(w http.ResponseWriter, r *http.Request) {
 	currentUser, _ := session.Values["username"].(string)
 
 	data := struct {
-		User string
-	}{User: currentUser}
+		User       string
+		AIProvider string
+		AIModel    string
+	}{
+		User:       currentUser,
+		AIProvider: h.Config.AIProvider,
+		AIModel:    h.Config.AIModel,
+	}
 
 	if err := h.Templates.ExecuteTemplate(w, "soar.html", data); err != nil {
 		slog.Error("Template error (soar.html)", "error", err)

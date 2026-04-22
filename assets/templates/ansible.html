@@ -5,8 +5,46 @@
     {{template "head-common" .}}
     <title>GoaCloud - Ansible</title>
     <style>
-        body {
-            font-family: 'Outfit', sans-serif;
+        body { font-family: 'Outfit', sans-serif; }
+        .ansible-terminal { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.1) transparent; }
+        .ansible-terminal::-webkit-scrollbar { width: 6px; }
+        .ansible-terminal::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 9999px; }
+
+        /* Dark themed native <select> */
+        select.themed {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image:
+                linear-gradient(45deg, transparent 50%, var(--md-color-on-surface-variant) 50%),
+                linear-gradient(135deg, var(--md-color-on-surface-variant) 50%, transparent 50%);
+            background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%;
+            background-size: 6px 6px, 6px 6px;
+            background-repeat: no-repeat;
+            padding-right: 32px !important;
+        }
+        select.themed option {
+            background-color: #1e1e2e;
+            color: #cdd6f4;
+            padding: 8px 12px;
+        }
+        select.themed option:disabled {
+            color: #6c7086;
+        }
+        select.themed option:checked {
+            background-color: #313244;
+            color: #cdd6f4;
+        }
+
+        /* Playbook content textarea */
+        .yaml-editor {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 12px;
+            line-height: 1.55;
+            tab-size: 2;
+            -moz-tab-size: 2;
+            white-space: pre;
+            overflow-x: auto;
         }
     </style>
 </head>
@@ -21,31 +59,57 @@
     <main class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
         {{template "bubbles"}}
 
-        <!-- Header -->
-        <div class="h-20 border-b border-outline-variant flex items-center justify-between px-8 bg-surface z-10 gap-4">
-            <h1 class="text-2xl font-bold text-primary">
-                Gestion Ansible
-            </h1>
-            <div class="flex items-center gap-3 flex-wrap">
-                {{template "top-actions"}}
-            </div>
-        </div>
-
         <!-- Content -->
         <div class="px-8 py-10 relative z-10">
+
+            <!-- Header -->
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold text-on-surface mb-2">Gestion <span class="gradient-text">Ansible</span></h2>
+                    <p class="text-on-surface-variant text-sm">Exécution et planification de playbooks sur votre infrastructure.</p>
+                </div>
+                <div class="flex items-center gap-3 flex-wrap">
+                    {{template "top-actions"}}
+                </div>
+            </div>
+
+            <!-- KPI Strip -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-surface-container border border-outline-variant rounded-xl p-4">
+                    <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold">Playbooks</p>
+                    <p class="text-2xl font-bold text-orange-400 mt-1">{{.TotalPlaybooks}}</p>
+                </div>
+                <div class="bg-surface-container border border-outline-variant rounded-xl p-4">
+                    <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold">VMs disponibles</p>
+                    <p class="text-2xl font-bold text-primary mt-1">{{len .VMs}}</p>
+                </div>
+                <div class="bg-surface-container border border-outline-variant rounded-xl p-4">
+                    <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold">Clés SSH</p>
+                    <p class="text-2xl font-bold text-cyan-400 mt-1">{{len .Keys}}</p>
+                </div>
+                <div class="bg-surface-container border border-outline-variant rounded-xl p-4">
+                    <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold">Planifications actives</p>
+                    <p class="text-2xl font-bold text-green-400 mt-1">{{.ActiveSchedules}}</p>
+                </div>
+            </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 min-h-[calc(100vh-8rem)]">
 
                 <!-- PLAYBOOKS LIST (Left) -->
                 <div
                     class="bg-surface-container border border-outline-variant rounded-xl p-0 shadow-xl relative overflow-hidden flex flex-col h-full lg:col-span-1">
-                    <div class="px-6 py-4 border-b border-outline-variant bg-surface-container-low/50 flex justify-between items-center">
-                        <h3 class="font-semibold text-on-surface">📚 Playbooks</h3>
+                    <div class="px-6 py-4 border-b border-outline-variant flex justify-between items-center"
+                         style="background: linear-gradient(135deg, rgba(251,146,60,0.12) 0%, var(--md-color-surface-container) 70%);">
+                        <h3 class="font-semibold text-on-surface flex items-center gap-2">
+                            <svg class="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                            </svg>
+                            Playbooks
+                        </h3>
                         <div class="flex items-center gap-2">
-                            <span class="text-xs bg-outline-variant text-on-surface-variant px-2 py-1 rounded-full">{{len .Playbooks}}
-                                found</span>
+                            <span class="text-xs bg-orange-500/10 text-orange-400 px-2 py-1 rounded-full border border-orange-500/30 font-semibold">{{.TotalPlaybooks}}</span>
                             <button onclick="openUploadModal()"
-                                class="text-on-surface-variant hover:text-on-surface p-1 rounded hover:bg-surface-container-highest transition"
+                                class="text-on-surface-variant hover:text-on-surface p-1.5 rounded-lg hover:bg-surface-container-highest transition"
                                 title="Ajouter un Playbook">
                                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -54,22 +118,30 @@
                             </button>
                         </div>
                     </div>
-                    <div class="overflow-y-auto flex-1 p-4 space-y-6">
+                    <!-- Search playbooks -->
+                    <div class="px-4 pt-3 pb-1">
+                        <input id="playbook-search" type="text" placeholder="Filtrer les playbooks…"
+                            class="w-full bg-surface-container-high border border-outline-variant rounded-full py-2 text-xs text-on-surface focus:outline-none focus:border-primary placeholder-on-surface-variant"
+                            style="padding-left:14px; padding-right:14px;"
+                            oninput="filterPlaybooks()">
+                    </div>
+
+                    <div id="playbooks-list" class="overflow-y-auto flex-1 p-4 space-y-6">
                         {{if not .Playbooks}}
                         <div class="text-center p-8 text-on-surface-variant text-sm">
-                            No playbooks found in <code>playbooks/</code>
+                            Aucun playbook trouvé dans <code>playbooks/</code>
                         </div>
                         {{else}}
                         {{range $category, $files := .Playbooks}}
-                        <div class="space-y-2">
+                        <div class="space-y-2 playbook-category">
                             <h4
                                 class="text-xs font-bold text-on-surface-variant uppercase tracking-widest px-1 mb-2 border-b border-outline-variant pb-1">
                                 {{$category}}</h4>
                             <div class="grid grid-cols-1 gap-2">
                                 {{range $files}}
-                                <div class="group flex items-center justify-between p-3 rounded-lg bg-outline-variant/20 hover:bg-outline-variant/80 border border-transparent hover:border-orange-500/30 cursor-pointer transition-all duration-200"
+                                <div data-playbook="{{.}}" class="group flex items-center justify-between p-3 rounded-lg bg-outline-variant/20 hover:bg-outline-variant/80 border border-transparent hover:border-orange-500/30 cursor-pointer transition-all duration-200"
                                     onclick="selectPlaybook('{{.}}')">
-                                    <div class="flex items-center gap-3">
+                                    <div class="flex items-center gap-3 min-w-0" style="min-width:0;">
                                         <span
                                             class="p-2 bg-orange-500/10 rounded text-orange-400 group-hover:scale-110 transition-transform">
                                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -77,17 +149,27 @@
                                                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                             </svg>
                                         </span>
-                                        <div class="flex flex-col">
+                                        <div class="flex flex-col min-w-0">
                                             <span
-                                                class="text-sm font-medium text-on-surface group-hover:text-on-surface truncate max-w-[180px]"
+                                                class="text-sm font-medium text-on-surface group-hover:text-on-surface truncate"
                                                 title="{{.}}">{{.}}</span>
                                         </div>
                                     </div>
-                                    <svg class="w-4 h-4 text-on-surface-variant group-hover:text-orange-400 transform group-hover:translate-x-1 transition-transform"
-                                        fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 5l7 7-7 7" />
-                                    </svg>
+                                    <div class="flex items-center gap-1" style="flex-shrink:0;">
+                                        <button type="button" onclick="event.stopPropagation(); openPlaybookEditor('{{.}}')"
+                                            class="p-1.5 rounded text-on-surface-variant hover:text-orange-400 hover:bg-surface-container-highest transition"
+                                            title="Voir / éditer">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            </svg>
+                                        </button>
+                                        <svg class="w-4 h-4 text-on-surface-variant group-hover:text-orange-400 transition-transform"
+                                            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </div>
                                 </div>
                                 {{end}}
                             </div>
@@ -99,8 +181,9 @@
 
                 <!-- EXECUTION PANEL (Right) -->
                 <div
-                    class="bg-surface-container border border-outline-variant rounded-xl p-6 shadow-xl relative overflow-hidden flex flex-col h-full lg:col-span-2">
-                    <div class="mb-4">
+                    class="bg-surface-container border border-outline-variant rounded-xl shadow-xl relative overflow-hidden flex flex-col h-full lg:col-span-2">
+                    <!-- Exec panel header -->
+                    <div class="px-6 py-4 border-b border-outline-variant" style="background: linear-gradient(135deg, rgba(251,146,60,0.12) 0%, var(--md-color-surface-container) 70%);">
                         <h3 class="text-lg font-semibold text-on-surface mb-1 flex items-center">
                             <svg class="w-5 h-5 mr-2 text-orange-400" fill="none" stroke="currentColor"
                                 viewBox="0 0 24 24">
@@ -115,18 +198,19 @@
                         <p class="text-sm text-on-surface-variant">Sélectionnez une cible et lancez l'automatisation.</p>
                     </div>
 
+                    <div class="p-6 flex flex-col flex-1" style="gap:1rem;">
                     <!-- Controls -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-medium text-on-surface-variant mb-1">Playbook</label>
                             <input type="text" id="selected-playbook" readonly
-                                class="w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary"
+                                class="themed w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary"
                                 placeholder="Aucun sélectionné...">
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-on-surface-variant mb-1">Cible (VM/Container)</label>
                             <select id="target-vm" onchange="autoSelectSSHKey()"
-                                class="w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
+                                class="themed w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
                                 <option value="" disabled selected>Choisir une VM...</option>
                                 {{range .VMs}}
                                 <option value="{{.ID}}" data-name="{{.Name}}">{{.Name}} ({{.ID}})</option>
@@ -137,7 +221,7 @@
                             <label class="block text-xs font-medium text-on-surface-variant mb-1">Clé SSH
                                 (Authentification)</label>
                             <select id="ssh-key"
-                                class="w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
+                                class="themed w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
                                 <option value="" disabled selected>Choisir une Clé...</option>
                                 {{range .Keys}}
                                 <option value="{{.ID}}" data-name="{{.Name}}" data-associated-vms="{{.AssociatedVMs}}">
@@ -154,7 +238,7 @@
                     </div>
 
                     <!-- Terminal Output -->
-                    <div class="flex-1 bg-surface-container-lowest rounded-xl border border-outline-variant p-4 font-mono text-xs overflow-y-auto relative"
+                    <div class="flex-1 bg-surface-container-lowest rounded-xl border border-outline-variant p-4 font-mono text-xs overflow-y-auto relative ansible-terminal"
                         id="terminal-container">
                         <div class="absolute top-2 right-2 flex gap-2">
                             <button onclick="clearTerminal()" class="text-on-surface-variant hover:text-on-surface" title="Effacer">
@@ -168,25 +252,29 @@
                             <span class="text-on-surface-variant">En attente de commande...</span>
                         </div>
                     </div>
+                    </div><!-- end p-6 wrapper -->
                 </div>
 
             </div>
 
             <!-- Scheduled Playbooks -->
-            <div class="bg-surface-container border border-outline-variant rounded-xl shadow-xl overflow-hidden">
-                <div class="px-6 py-4 border-b border-outline-variant bg-surface-container-low/50 flex justify-between items-center">
-                    <h3 class="font-semibold text-on-surface flex items-center gap-2">
-                        <svg class="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        Planifications
-                    </h3>
-                    <button onclick="openScheduleModal()"
-                        class="flex items-center gap-2 text-sm bg-primary text-on-primary px-3 py-1.5 rounded-full transition">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                        Planifier
-                    </button>
+            <div class="bg-surface-container border border-outline-variant rounded-xl shadow-xl overflow-hidden mt-8">
+                <div class="px-6 py-4 border-b border-outline-variant" style="background: linear-gradient(135deg, rgba(168,85,247,0.12) 0%, var(--md-color-surface-container) 70%);">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-semibold text-on-surface flex items-center gap-2">
+                            <svg class="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            Planifications
+                        </h3>
+                        <button onclick="openScheduleModal()"
+                            class="flex items-center gap-2 text-sm bg-primary text-on-primary px-4 py-2 rounded-full transition">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            Planifier
+                        </button>
+                    </div>
+                    <p class="text-sm text-on-surface-variant mt-1">Automatisez l'exécution régulière de vos playbooks.</p>
                 </div>
-                <div id="schedules-container" class="p-4">
-                    <p class="text-center text-on-surface-variant text-sm py-6">Chargement...</p>
+                <div id="schedules-container" class="p-6">
+                    <p class="text-center text-on-surface-variant text-sm py-8">Chargement...</p>
                 </div>
             </div>
 
@@ -206,7 +294,7 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-xs font-medium text-on-surface-variant mb-1">Playbook</label>
-                    <select id="sched-playbook" class="w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
+                    <select id="sched-playbook" class="themed w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
                         <option value="" disabled selected>Choisir un playbook...</option>
                         {{range $category, $files := .Playbooks}}{{range $files}}
                         <option value="{{.}}">{{.}}</option>
@@ -215,7 +303,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-on-surface-variant mb-1">Cible (VM/Container)</label>
-                    <select id="sched-vm" class="w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
+                    <select id="sched-vm" class="themed w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
                         <option value="" disabled selected>Choisir une VM...</option>
                         {{range .VMs}}
                         <option value="{{.ID}}">{{.Name}} ({{.ID}})</option>
@@ -224,7 +312,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-on-surface-variant mb-1">Clé SSH</label>
-                    <select id="sched-key" class="w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
+                    <select id="sched-key" class="themed w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
                         <option value="" disabled selected>Choisir une clé...</option>
                         {{range .Keys}}
                         <option value="{{.ID}}">{{.Name}}</option>
@@ -233,7 +321,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-on-surface-variant mb-1">Fréquence</label>
-                    <select id="sched-interval" class="w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
+                    <select id="sched-interval" class="themed w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
                         <option value="5">Toutes les 5 minutes</option>
                         <option value="15">Toutes les 15 minutes</option>
                         <option value="30">Toutes les 30 minutes</option>
@@ -305,7 +393,7 @@
                     <div>
                         <label class="block text-xs font-medium text-on-surface-variant mb-1">Nom du fichier (.yml)</label>
                         <input type="text" id="playbook-filename" placeholder="exemple_install.yml"
-                            class="w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
+                            class="themed w-full bg-transparent border border-outline rounded-xs px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-on-surface-variant mb-1">Contenu Playbook</label>
@@ -329,108 +417,299 @@
         </div>
     </div>
 
+    <!-- View / Edit Playbook Modal -->
+    <div id="playbook-editor-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-surface-container border border-outline-variant w-full max-w-4xl rounded-xl shadow-xl overflow-hidden flex flex-col" style="max-height:85vh;">
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-outline-variant flex items-center justify-between gap-3" style="background: linear-gradient(135deg, rgba(251,146,60,0.15) 0%, var(--md-color-surface-container-high) 70%);">
+                <div class="flex items-center gap-3 min-w-0" style="min-width:0;">
+                    <div class="w-10 h-10 rounded-lg bg-orange-500/15 text-orange-400 flex items-center justify-center" style="flex-shrink:0;">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="uppercase tracking-widest text-on-surface-variant font-semibold" style="font-size:10px;">Playbook</p>
+                        <h3 id="pb-editor-name" class="text-base font-bold text-on-surface truncate font-mono">-</h3>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2" style="flex-shrink:0;">
+                    <button id="pb-editor-copy" type="button" onclick="copyPlaybookContent()"
+                        class="text-xs font-medium px-3 py-1.5 rounded-full bg-surface-container-high border border-outline-variant text-on-surface-variant hover:text-on-surface transition-colors">
+                        Copier
+                    </button>
+                    <button type="button" onclick="closePlaybookEditor()"
+                        class="text-on-surface-variant hover:text-on-surface p-1.5 rounded-full hover:bg-surface-container-highest transition-colors" aria-label="Fermer">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6 flex-1 overflow-hidden flex flex-col" style="gap:1rem;">
+                <div id="pb-editor-loading" class="text-center py-12">
+                    <svg class="animate-spin h-6 w-6 text-primary mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p class="text-xs text-on-surface-variant mt-2">Chargement du playbook&hellip;</p>
+                </div>
+                <div id="pb-editor-body" class="hidden flex-1 flex flex-col" style="gap:1rem;">
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2">
+                            <span id="pb-editor-mode-label" class="text-xs uppercase tracking-widest font-semibold text-on-surface-variant">Lecture seule</span>
+                        </div>
+                        <label class="inline-flex items-center gap-2 text-xs text-on-surface-variant cursor-pointer select-none">
+                            <input id="pb-editor-edit-toggle" type="checkbox" onchange="togglePlaybookEdit()" class="accent-primary">
+                            Mode édition
+                        </label>
+                    </div>
+                    <textarea id="pb-editor-textarea" readonly
+                        class="yaml-editor flex-1 w-full bg-surface-container-lowest border border-outline-variant rounded-lg p-4 text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary"
+                        style="min-height:50vh; resize:vertical;"></textarea>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-4 border-t border-outline-variant bg-surface-container-high flex flex-wrap items-center justify-between gap-3">
+                <p id="pb-editor-status" class="text-xs text-on-surface-variant"></p>
+                <div class="flex items-center gap-2 ml-auto">
+                    <button type="button" onclick="closePlaybookEditor()"
+                        class="rounded-full border border-outline px-5 py-2 text-sm font-medium text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface transition-colors">
+                        Fermer
+                    </button>
+                    <button id="pb-editor-save-btn" type="button" onclick="savePlaybookContent()" disabled
+                        class="rounded-full bg-primary text-on-primary font-medium px-5 py-2 text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                        Enregistrer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="/static/theme.js"></script>
     <script src="/static/csrf.js"></script>
     <script src="/static/search.js"></script>
     <script>
         function selectPlaybook(name) {
             document.getElementById('selected-playbook').value = name;
+            // Highlight selected in list
+            document.querySelectorAll('#playbooks-list [data-playbook]').forEach(function (el) {
+                el.classList.toggle('border-orange-500/50', el.getAttribute('data-playbook') === name);
+                el.classList.toggle('bg-orange-500/10', el.getAttribute('data-playbook') === name);
+            });
+        }
+
+        // Playbook search / filter
+        function filterPlaybooks() {
+            var q = (document.getElementById('playbook-search').value || '').toLowerCase();
+            document.querySelectorAll('#playbooks-list [data-playbook]').forEach(function (el) {
+                el.style.display = (!q || el.getAttribute('data-playbook').toLowerCase().indexOf(q) !== -1) ? '' : 'none';
+            });
+            document.querySelectorAll('#playbooks-list .playbook-category').forEach(function (cat) {
+                var visible = cat.querySelectorAll('[data-playbook]:not([style*="display: none"])').length;
+                cat.style.display = visible ? '' : 'none';
+            });
+        }
+
+        // Clear terminal
+        function clearTerminal() {
+            document.getElementById('terminal-output').textContent = 'En attente de commande...';
         }
 
         function autoSelectSSHKey() {
             try {
-                const vmSelect = document.getElementById('target-vm');
-                const keySelect = document.getElementById('ssh-key');
-
-                const selectedOption = vmSelect.options[vmSelect.selectedIndex];
+                var vmSelect = document.getElementById('target-vm');
+                var keySelect = document.getElementById('ssh-key');
+                var selectedOption = vmSelect.options[vmSelect.selectedIndex];
                 if (!selectedOption) return;
-
-                // Safe fallback for name
-                const vmName = (selectedOption.dataset.name || "").toLowerCase();
+                var vmName = (selectedOption.dataset.name || '').toLowerCase();
                 if (!vmName) return;
 
-                // Reset selection first (optional, improves clarity)
-                // keySelect.selectedIndex = 0;
-
-                // Iterate keys to find best match
-                for (let i = 0; i < keySelect.options.length; i++) {
-                    const opt = keySelect.options[i];
+                // Priority 1: explicit association
+                for (var i = 0; i < keySelect.options.length; i++) {
+                    var opt = keySelect.options[i];
                     if (opt.disabled) continue;
-
-                    const associated = (opt.dataset.associatedVms || "").toLowerCase();
-                    const keyName = (opt.dataset.name || "").toLowerCase();
-
-                    // Priority 1: Manual Association (Exact Match in List)
+                    var associated = (opt.dataset.associatedVms || '').toLowerCase();
                     if (associated) {
-                        const associatedList = associated.split(',').map(s => s.trim());
-                        if (associatedList.includes(vmName)) {
+                        var list = associated.split(',').map(function (s) { return s.trim(); });
+                        if (list.indexOf(vmName) !== -1) {
                             keySelect.selectedIndex = i;
-                            console.log(`Auto-selected key '${keyName}' (Manual Association) for VM '${vmName}'`);
-                            return; // Stop after finding priority match
+                            return;
                         }
                     }
                 }
 
-                // Priority 2: Name Heuristic (Fallback)
-                for (let i = 0; i < keySelect.options.length; i++) {
-                    const opt = keySelect.options[i];
+                // Priority 2: exact key name match (no substring)
+                for (var i = 0; i < keySelect.options.length; i++) {
+                    var opt = keySelect.options[i];
                     if (opt.disabled) continue;
-                    const keyName = (opt.dataset.name || "").toLowerCase();
-
-                    // Avoid matching empty strings
-                    if (keyName && (keyName.includes(vmName) || vmName.includes(keyName))) {
+                    var keyName = (opt.dataset.name || '').toLowerCase();
+                    if (keyName && keyName === vmName) {
                         keySelect.selectedIndex = i;
-                        console.log(`Auto-selected key '${keyName}' (Name Match) for VM '${vmName}'`);
                         return;
                     }
                 }
             } catch (err) {
-                console.error("AutoSelectSSHKey Error:", err);
+                console.error('AutoSelectSSHKey Error:', err);
             }
         }
 
+        // HTML-escape helper to prevent XSS in terminal output
+        function escTerminal(s) {
+            var d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
         async function runPlaybook() {
-            const playbook = document.getElementById('selected-playbook').value;
-            const vmid = document.getElementById('target-vm').value;
-            const keyId = document.getElementById('ssh-key').value;
-            const output = document.getElementById('terminal-output');
+            var playbook = document.getElementById('selected-playbook').value;
+            var vmid = document.getElementById('target-vm').value;
+            var keyId = document.getElementById('ssh-key').value;
+            var output = document.getElementById('terminal-output');
 
             if (!playbook || !vmid || !keyId) {
-                alert("Veuillez sélectionner un playbook, une VM cible et une clé SSH.");
+                alert('Veuillez sélectionner un playbook, une VM cible et une clé SSH.');
                 return;
             }
 
-            output.innerHTML = `<span class="text-yellow-400">🚀 Starting ${playbook} on VM ${vmid}...</span>\n`;
+            output.innerHTML = '<span class="text-yellow-400">\u{1F680} Starting ' + escTerminal(playbook) + ' on VM ' + escTerminal(vmid) + '...</span>\n';
 
             try {
-                const res = await fetch('/api/ansible/run', {
+                var res = await fetch('/api/ansible/run', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        playbook,
+                        playbook: playbook,
                         vmid: parseInt(vmid),
                         key_id: parseInt(keyId)
                     })
                 });
 
-                const reader = res.body.getReader();
-                const decoder = new TextDecoder();
+                var reader = res.body.getReader();
+                var decoder = new TextDecoder();
 
                 while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    const chunk = decoder.decode(value);
-                    output.innerHTML += chunk;
-                    // Auto-scroll
-                    const container = document.getElementById('terminal-container');
+                    var result = await reader.read();
+                    if (result.done) break;
+                    var chunk = decoder.decode(result.value);
+                    output.appendChild(document.createTextNode(chunk));
+                    var container = document.getElementById('terminal-container');
                     container.scrollTop = container.scrollHeight;
                 }
 
-                output.innerHTML += `\n<span class="text-blue-400">✅ Execution finished.</span>`;
+                var span = document.createElement('span');
+                span.className = 'text-blue-400';
+                span.textContent = '\n\u2705 Execution finished.';
+                output.appendChild(span);
 
             } catch (err) {
-                output.innerHTML += `\n<span class="text-red-500">❌ Error: ${err.message}</span>`;
+                var errSpan = document.createElement('span');
+                errSpan.className = 'text-red-500';
+                errSpan.textContent = '\n\u274C Error: ' + err.message;
+                output.appendChild(errSpan);
             }
+        }
+
+        // Playbook view / edit modal
+        let currentPlaybookName = '';
+        let playbookEditMode = false;
+
+        async function openPlaybookEditor(name) {
+            currentPlaybookName = name;
+            playbookEditMode = false;
+
+            var modal = document.getElementById('playbook-editor-modal');
+            var loading = document.getElementById('pb-editor-loading');
+            var body = document.getElementById('pb-editor-body');
+            var ta = document.getElementById('pb-editor-textarea');
+            var toggle = document.getElementById('pb-editor-edit-toggle');
+            var saveBtn = document.getElementById('pb-editor-save-btn');
+            var status = document.getElementById('pb-editor-status');
+            var label = document.getElementById('pb-editor-mode-label');
+
+            document.getElementById('pb-editor-name').textContent = name;
+            ta.value = '';
+            ta.readOnly = true;
+            toggle.checked = false;
+            saveBtn.disabled = true;
+            status.textContent = '';
+            status.className = 'text-xs text-on-surface-variant';
+            label.textContent = 'Lecture seule';
+
+            loading.classList.remove('hidden');
+            body.classList.add('hidden');
+            modal.classList.remove('hidden');
+
+            try {
+                var res = await fetch('/api/ansible/playbook?name=' + encodeURIComponent(name));
+                if (!res.ok) throw new Error(await res.text() || ('HTTP ' + res.status));
+                var text = await res.text();
+                ta.value = text;
+                loading.classList.add('hidden');
+                body.classList.remove('hidden');
+            } catch (err) {
+                loading.classList.add('hidden');
+                body.classList.remove('hidden');
+                status.textContent = 'Erreur: ' + err.message;
+                status.className = 'text-xs text-red-400';
+            }
+        }
+
+        function closePlaybookEditor() {
+            document.getElementById('playbook-editor-modal').classList.add('hidden');
+        }
+
+        function togglePlaybookEdit() {
+            var toggle = document.getElementById('pb-editor-edit-toggle');
+            var ta = document.getElementById('pb-editor-textarea');
+            var saveBtn = document.getElementById('pb-editor-save-btn');
+            var label = document.getElementById('pb-editor-mode-label');
+            playbookEditMode = toggle.checked;
+            ta.readOnly = !playbookEditMode;
+            saveBtn.disabled = !playbookEditMode;
+            label.textContent = playbookEditMode ? 'Édition' : 'Lecture seule';
+            label.className = 'text-xs uppercase tracking-widest font-semibold ' + (playbookEditMode ? 'text-orange-400' : 'text-on-surface-variant');
+            if (playbookEditMode) ta.focus();
+        }
+
+        async function savePlaybookContent() {
+            var ta = document.getElementById('pb-editor-textarea');
+            var saveBtn = document.getElementById('pb-editor-save-btn');
+            var status = document.getElementById('pb-editor-status');
+            if (!currentPlaybookName) return;
+            saveBtn.disabled = true;
+            status.textContent = 'Enregistrement…';
+            status.className = 'text-xs text-on-surface-variant';
+            try {
+                var res = await fetch('/api/ansible/playbook', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: currentPlaybookName, content: ta.value })
+                });
+                if (!res.ok) throw new Error(await res.text() || ('HTTP ' + res.status));
+                status.textContent = 'Enregistré ✓';
+                status.className = 'text-xs text-green-400';
+            } catch (err) {
+                status.textContent = 'Erreur: ' + err.message;
+                status.className = 'text-xs text-red-400';
+            } finally {
+                saveBtn.disabled = !playbookEditMode;
+            }
+        }
+
+        function copyPlaybookContent() {
+            var ta = document.getElementById('pb-editor-textarea');
+            if (!ta.value) return;
+            try {
+                navigator.clipboard.writeText(ta.value);
+                var btn = document.getElementById('pb-editor-copy');
+                var orig = btn.textContent;
+                btn.textContent = 'Copié !';
+                setTimeout(function () { btn.textContent = orig; }, 1500);
+            } catch (e) { /* ignore */ }
         }
 
         // Upload Logic
