@@ -23,7 +23,7 @@
             <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
                 <div>
                     <h2 class="text-3xl font-bold text-on-surface mb-2">Administration <span
-                            class="text-primary">Systeme</span>
+                            class="gradient-text">Système</span>
                     </h2>
                     <p class="text-on-surface-variant text-sm">Gerez les utilisateurs et consultez les journaux de securite.</p>
                 </div>
@@ -34,21 +34,28 @@
 
             <!-- Tabs -->
             <div class="flex space-x-6 mb-8 border-b border-outline-variant">
-                <a href="/users" class="pb-3 text-sm font-medium text-on-surface border-b-2 border-emerald-500">
+                <a href="/users" class="pb-3 text-sm font-medium text-on-surface border-b-2 border-primary">
                     Utilisateurs
                 </a>
                 <a href="/audit-logs"
-                    class="pb-3 text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors border-b-2 border-transparent hover:border-gray-700">
+                    class="pb-3 text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors border-b-2 border-transparent hover:border-outline">
                     Logs d'Audit
                 </a>
             </div>
-            <p class="text-on-surface-variant text-sm">Gerez les acces a votre plateforme.</p>
 
         <!-- Users List -->
-        <div class="rounded-xl overflow-hidden bg-surface-container border border-outline-variant mb-8">
+        <div class="rounded-xl overflow-hidden bg-surface-container border border-outline-variant mb-8 shadow-xl">
+            <div class="px-6 py-4 border-b border-outline-variant flex justify-between items-center"
+                 style="background: linear-gradient(135deg, rgba(124,58,237,0.10) 0%, var(--md-color-surface-container) 70%);">
+                <h3 class="font-semibold text-on-surface flex items-center gap-2">
+                    <svg class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    Utilisateurs
+                </h3>
+                <span class="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full border border-primary/30 font-semibold">{{len .Users}}</span>
+            </div>
             <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr class="bg-surface-container text-on-surface-variant text-xs uppercase border-b border-outline-variant">
+                    <tr class="bg-surface-container-high text-on-surface-variant text-xs uppercase tracking-widest border-b border-outline-variant">
                         <th class="p-4 font-semibold">ID</th>
                         <th class="p-4 font-semibold">Username</th>
                         <th class="p-4 font-semibold">Email</th>
@@ -65,11 +72,11 @@
                         <td class="p-4 text-on-surface">{{.Email}}</td>
                         <td class="p-4">
                             {{if eq .Role "Admin"}}
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-500/20 text-purple-300">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary border border-primary/30">
                                 {{.Role}}
                             </span>
                             {{else}}
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-500/20 text-on-surface">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-surface-container-high text-on-surface-variant border border-outline-variant">
                                 {{.Role}}
                             </span>
                             {{end}}
@@ -110,8 +117,15 @@
         </div>
 
         <!-- Add User Form -->
-        <div class="rounded-xl p-6 bg-surface-container border border-outline-variant max-w-lg">
-            <h3 class="text-xl font-semibold text-on-surface mb-4">Ajouter un utilisateur</h3>
+        <div class="rounded-xl bg-surface-container border border-outline-variant max-w-lg shadow-xl overflow-hidden">
+            <div class="px-6 py-3 border-b border-outline-variant"
+                 style="background: linear-gradient(135deg, rgba(6,182,212,0.12) 0%, var(--md-color-surface-container) 70%);">
+                <h3 class="font-semibold text-on-surface flex items-center gap-2">
+                    <svg class="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                    Ajouter un utilisateur
+                </h3>
+            </div>
+            <div class="p-6">
             <form action="/api/users/add" method="POST" class="space-y-4">
                 <div>
                     <label for="username"
@@ -147,6 +161,7 @@
                     Creer l'utilisateur
                 </button>
             </form>
+            </div><!-- end p-6 -->
         </div>
         </div>
     </main>

@@ -22,7 +22,7 @@
             <!-- Header -->
             <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
                 <div>
-                    <h2 class="text-3xl font-bold text-on-surface mb-2">Mon <span class="text-primary">Profil</span>
+                    <h2 class="text-3xl font-bold text-on-surface mb-2">Mon <span class="gradient-text">Profil</span>
                     </h2>
                     <p class="text-on-surface-variant text-sm">Gerez vos informations personnelles et votre securite.</p>
                 </div>
@@ -32,7 +32,7 @@
             </div>
 
             <!-- Profile Info -->
-            <div class="rounded-xl p-8 bg-surface-container border border-outline-variant mb-8">
+            <div class="rounded-xl p-8 bg-surface-container border border-outline-variant mb-8" style="border-top: 3px solid var(--md-color-primary);">
                 <div class="flex items-center gap-6">
                     <div
                         class="w-20 h-20 rounded-full bg-primary flex items-center justify-center text-3xl font-bold text-on-primary shadow-lg">
@@ -42,7 +42,7 @@
                         <h3 class="text-2xl font-bold text-on-surface">{{.Username}}</h3>
                         <p class="text-on-surface-variant">{{.Email}}</p>
                         <span
-                            class="inline-block mt-2 px-3 py-1 text-xs font-semibold rounded-full bg-purple-500/20 text-purple-300">
+                            class="inline-block mt-2 px-3 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary border border-primary/30">
                             {{.Role}}
                         </span>
                     </div>
@@ -177,7 +177,7 @@
                                 <input type="text" id="verify-code" placeholder="000 000"
                                     class="bg-transparent border border-outline rounded-xs px-4 py-2 text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary w-32 text-center font-mono tracking-widest">
                                 <button onclick="verifyAndActivate()"
-                                    class="bg-green-600 hover:bg-green-500 text-on-surface px-4 py-2 rounded-full transition">
+                                    class="bg-primary text-on-primary px-4 py-2 rounded-full transition">
                                     Verifier & Activer
                                 </button>
                             </div>
