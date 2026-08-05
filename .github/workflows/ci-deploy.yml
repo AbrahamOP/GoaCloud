@@ -280,6 +280,14 @@ jobs:
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
+          # Les PR Dependabot s'executent avec le store de secrets Dependabot,
+          # pas celui du repo : DISCORD_WEBHOOK arrive vide et `curl -sf` sort
+          # en 3, ce qui faisait echouer PR Check sur un build par ailleurs vert.
+          # Meme garde que le job de release plus haut dans ce fichier.
+          if [ -z "$DISCORD_WEBHOOK" ]; then
+            echo "DISCORD_WEBHOOK absent (PR Dependabot) - notification ignoree"
+            exit 0
+          fi
           curl -sf -H "Content-Type: application/json" -X POST "$DISCORD_WEBHOOK" -d "{
             \"embeds\": [{
               \"title\": \"GoaCloud - PR #${{ github.event.pull_request.number }} prete\",
