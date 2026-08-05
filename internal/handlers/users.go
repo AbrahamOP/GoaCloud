@@ -112,6 +112,51 @@ func (h *Handler) HandleDeleteUser(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/users", http.StatusSeeOther)
 }
 
+// HandleResetUserMFA disables MFA for a designated user (Admin only).
+//
+// Without it, a lost phone — or a SESSION_SECRET rotation, which leaves every
+// stored TOTP secret undecipherable — locks an account out for good: the only way
+// back in was a manual UPDATE in the database. The reset also revokes the target's
+// sessions (session_epoch bump), so an admin can use it as a "kick this account
+// out" lever, and it is written to the audit trail like every other user mutation.
+func (h *Handler) HandleResetUserMFA(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if !middleware.RequireAdmin(w, r, h.SessionStore, h.DB) {
+		return
+	}
+
+	userID := r.FormValue("user_id")
+	if userID == "" {
+		http.Error(w, "User ID required", http.StatusBadRequest)
+		return
+	}
+
+	var targetUser string
+	if err := h.DB.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&targetUser); err != nil {
+		slog.Error("Error fetching user for MFA reset", "error", err)
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	if _, err := h.DB.Exec("UPDATE users SET mfa_enabled = FALSE, mfa_secret = NULL, session_epoch = session_epoch + 1 WHERE id = ?", userID); err != nil {
+		slog.Error("Error resetting user MFA", "error", err)
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	if sess, err := h.SessionStore.Get(r, "goacloud-session"); err == nil {
+		if u, ok := sess.Values["username"].(string); ok && u != "" {
+			go services.LogAudit(h.DB, 0, u, "ResetUserMFA",
+				fmt.Sprintf("Reset MFA for user: %s (ID %s) — sessions revoked", targetUser, userID), r.RemoteAddr)
+		}
+	}
+
+	http.Redirect(w, r, "/users", http.StatusSeeOther)
+}
+
 // HandleUpdateUser updates a user's role (Admin only).
 func (h *Handler) HandleUpdateUser(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

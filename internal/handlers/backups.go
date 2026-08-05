@@ -3,9 +3,11 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"goacore/internal/middleware"
 	"goacore/internal/models"
@@ -186,6 +188,18 @@ func (h *Handler) HandleBackupTest(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Échec du déclenchement du test de restauration", http.StatusInternalServerError)
 		return
 	}
+
+	// A restore test restores a production archive into a disposable guest and
+	// DESTROYS it afterwards: the trail names the target, the requested level and
+	// the test id, so the verdict row (restore_tests) can be tied back to whoever
+	// asked for it.
+	requestedLevel := strings.ToUpper(strings.TrimSpace(level))
+	if requestedLevel == "" {
+		requestedLevel = "N3 (par défaut)"
+	}
+	go services.LogAudit(h.DB, 0, username, "BackupRestoreTest",
+		fmt.Sprintf("Test de restauration déclenché sur la cible #%d (niveau demandé : %s, test #%d)",
+			targetID, requestedLevel, testID), middleware.RealIP(r))
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]any{"test_id": testID, "verdict": "running"})

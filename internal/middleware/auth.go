@@ -30,16 +30,27 @@ func AuthMiddleware(store *sessions.CookieStore, db *sql.DB, next http.Handler) 
 			return
 		}
 
-		// Revalidate user still exists in DB with current role
+		// Revalidate user still exists in DB with current role AND that the session
+		// has not been revoked. Revocation is stateless-friendly: users.session_epoch
+		// is a counter bumped on password change, MFA disable/reset and "log out all
+		// my sessions"; the epoch in force at login travels in the cookie, so a cookie
+		// minted before a bump no longer matches any row and dies here — which is what
+		// makes a stolen 24h cookie revocable at all.
+		//
+		// The epoch is part of the SAME lookup (no extra round trip): a row that
+		// matches the username but not the epoch simply does not come back, and a
+		// missing row already means "invalidate the session".
 		username, _ := session.Values["username"].(string)
 		if username == "" {
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
+		epoch, _ := session.Values["session_epoch"].(int)
 		var dbRole string
-		if err := db.QueryRow("SELECT role FROM users WHERE username = ?", username).Scan(&dbRole); err != nil {
-			// User was deleted or DB error — invalidate session
+		if err := db.QueryRow("SELECT role FROM users WHERE username = ? AND session_epoch = ?", username, epoch).Scan(&dbRole); err != nil {
+			// User deleted, session revoked (epoch bumped) or DB error — invalidate session
 			session.Values["authenticated"] = false
+			session.Options.MaxAge = -1
 			session.Save(r, w)
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return

@@ -10,15 +10,15 @@
     // Create modal HTML
     const modalHTML = `
     <div id="search-modal" class="fixed inset-0 z-[200] hidden">
-        <div class="fixed inset-0 bg-black/60 backdrop-blur-sm" onclick="closeSearch()"></div>
+        <div class="fixed inset-0 bg-scrim/60 backdrop-blur-sm" onclick="closeSearch()"></div>
         <div class="fixed top-[15%] left-1/2 -translate-x-1/2 w-full max-w-lg z-[201]">
-            <div class="mx-4 rounded-2xl border border-[#2a2839] bg-[#1b1928] shadow-2xl overflow-hidden">
-                <div class="flex items-center px-4 border-b border-[#2a2839]">
-                    <svg class="w-5 h-5 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <div class="mx-4 rounded-2xl border border-outline-variant bg-surface-container-high shadow-2xl overflow-hidden">
+                <div class="flex items-center px-4 border-b border-outline-variant">
+                    <svg class="w-5 h-5 text-on-surface-variant shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     <input id="search-input" type="text" placeholder="Rechercher apps, VMs, pages..."
-                        class="w-full bg-transparent border-0 px-3 py-4 text-white text-sm focus:outline-none placeholder-gray-500"
+                        class="w-full bg-transparent border-0 px-3 py-4 text-on-surface text-sm focus:outline-none placeholder-on-surface-variant"
                         oninput="onSearchInput(this.value)" autocomplete="off">
-                    <kbd class="hidden sm:inline text-xs text-gray-600 bg-[#2a2839] px-2 py-0.5 rounded font-mono">ESC</kbd>
+                    <kbd class="hidden sm:inline text-xs text-on-surface-variant bg-surface-container-highest px-2 py-0.5 rounded font-mono">ESC</kbd>
                 </div>
                 <div id="search-results" class="max-h-80 overflow-y-auto p-2"></div>
             </div>
@@ -35,7 +35,7 @@
         input.focus();
         document.getElementById('search-results').textContent = '';
         var hint = document.createElement('p');
-        hint.className = 'text-center text-gray-600 text-sm py-6';
+        hint.className = 'text-center text-on-surface-variant text-sm py-6';
         hint.textContent = 'Tapez pour rechercher...';
         document.getElementById('search-results').appendChild(hint);
     };
@@ -52,7 +52,7 @@
 
         var a = document.createElement('a');
         a.href = r.url || '#';
-        a.className = 'flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition group';
+        a.className = 'flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-on-surface/5 transition group';
         if (r.type === 'app') {
             a.target = '_blank';
             a.rel = 'noopener';
@@ -67,12 +67,12 @@
         infoDiv.className = 'flex-1 min-w-0';
 
         var nameP = document.createElement('p');
-        nameP.className = 'text-sm text-white font-medium truncate group-hover:text-purple-300';
+        nameP.className = 'text-sm text-on-surface font-medium truncate group-hover:text-primary';
         nameP.textContent = r.name || '';
         infoDiv.appendChild(nameP);
 
         var typeP = document.createElement('p');
-        typeP.className = 'text-xs text-gray-500';
+        typeP.className = 'text-xs text-on-surface-variant';
         typeP.textContent = typeLabels[r.type] || '';
         infoDiv.appendChild(typeP);
 
@@ -81,7 +81,7 @@
         // Arrow SVG
         var svgNS = 'http://www.w3.org/2000/svg';
         var svg = document.createElementNS(svgNS, 'svg');
-        svg.setAttribute('class', 'w-4 h-4 text-gray-600 group-hover:text-gray-400');
+        svg.setAttribute('class', 'w-4 h-4 text-on-surface-variant group-hover:text-on-surface');
         svg.setAttribute('fill', 'none');
         svg.setAttribute('viewBox', '0 0 24 24');
         svg.setAttribute('stroke', 'currentColor');
@@ -102,7 +102,7 @@
         if (!q.trim()) {
             container.textContent = '';
             var hint = document.createElement('p');
-            hint.className = 'text-center text-gray-600 text-sm py-6';
+            hint.className = 'text-center text-on-surface-variant text-sm py-6';
             hint.textContent = 'Tapez pour rechercher...';
             container.appendChild(hint);
             return;
@@ -114,7 +114,7 @@
                     container.textContent = '';
                     if (!results || results.length === 0) {
                         var empty = document.createElement('p');
-                        empty.className = 'text-center text-gray-500 text-sm py-6';
+                        empty.className = 'text-center text-on-surface-variant text-sm py-6';
                         empty.textContent = 'Aucun résultat';
                         container.appendChild(empty);
                         return;
@@ -127,7 +127,7 @@
                     console.error('Search error:', err);
                     container.textContent = '';
                     var errP = document.createElement('p');
-                    errP.className = 'text-center text-red-400 text-sm py-6';
+                    errP.className = 'text-center text-error text-sm py-6';
                     errP.textContent = 'Erreur de recherche';
                     container.appendChild(errP);
                 });

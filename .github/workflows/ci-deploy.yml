@@ -1,30 +1,78 @@
 name: CI & Deploy
 
+# SÉCURITÉ — le dépôt est PUBLIC et le runner `self-hosted` vit sur le LAN de
+# l'auteur (socket Docker, coffre de secrets, accès aux services internes). Le code
+# d'une Pull Request — potentiellement issue d'un fork inconnu, cf. CONTRIBUTING.md —
+# ne doit JAMAIS s'y exécuter. Tous les jobs déclenchés par une PR tournent donc sur
+# un runner GitHub hébergé et jetable ; seuls les `push` sur dev/main (du code déjà
+# mergé, donc relu) atteignent le self-hosted.
+#
+# Corollaire : aucune valeur contrôlée par un tiers (titre/corps de PR, nom de
+# branche, acteur, message de commit) n'est interpolée directement dans un `run:` —
+# l'expansion `${{ }}` est textuelle et précède l'analyse par bash, donc un titre de
+# PR bien choisi refermerait la chaîne et exécuterait sa charge. Ces valeurs passent
+# exclusivement par des variables d'environnement, citées et assainies.
+
 on:
   push:
     branches: [dev, main]
   pull_request:
     branches: [main]
 
+# Moindre privilège par défaut ; les jobs qui écrivent (release, publish) le
+# redemandent explicitement.
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build & Test
-    runs-on: self-hosted
+    # PR (code non relu) -> runner jetable GitHub ; push interne -> self-hosted.
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || 'self-hosted' }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
           go-version: '1.22'
 
       - name: Download dependencies
         run: go mod download
 
+      # CONTRIBUTING.md annonce `gofmt -l .` comme faisant partie de la CI : cette
+      # étape rend l'affirmation vraie. gofmt n'ayant pas de code de sortie d'échec,
+      # on transforme sa sortie en échec explicite.
+      - name: Format (gofmt)
+        run: |
+          UNFORMATTED=$(gofmt -l .)
+          if [ -n "$UNFORMATTED" ]; then
+            echo "::error::Fichiers non formatés (lancer 'gofmt -w') :"
+            echo "$UNFORMATTED"
+            exit 1
+          fi
+
       - name: Vet
         run: go vet ./...
 
       - name: Test
         run: go test ./...
+
+      # Le produit est concurrent (workers, scheduler, cache SOAR) : une data race
+      # non détectée se paie en production. Séparé du run normal pour distinguer
+      # « test cassé » de « race détectée » dans les logs.
+      - name: Test (race detector)
+        run: go test ./... -race
+
+      # TODO(sécurité) : retirer `continue-on-error` dès que la mise à jour des
+      # dépendances est mergée. govulncheck remonte aujourd'hui des vulnérabilités
+      # effectivement appelées ; l'étape est volontairement non bloquante pour ne pas
+      # geler la CI avant ce correctif, mais elle DOIT devenir bloquante ensuite —
+      # sans quoi elle ne sert à rien.
+      - name: Vulnérabilités (govulncheck)
+        continue-on-error: true
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          "$(go env GOPATH)/bin/govulncheck" ./...
 
       - name: Build
         run: CGO_ENABLED=0 go build -o bin/goacloud ./cmd/server
@@ -40,9 +88,11 @@ jobs:
   # NEVER touches a real host.
   helper:
     name: Validate goabackup helper
-    runs-on: self-hosted
+    # `test-runner.sh` vient de la PR : il ne s'exécute jamais sur le self-hosted
+    # pour une PR (cf. bandeau sécurité en tête de fichier).
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || 'self-hosted' }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Bash syntax (bash -n)
         run: bash -n deploy/goabackup/goabackup-runner.sh
@@ -72,22 +122,51 @@ jobs:
           docker rmi goacloud-dev-app 2>/dev/null || true
           docker builder prune -af 2>/dev/null || true
 
+      # Un webhook révoqué ou un hôte à court de disque répond 4xx/5xx : sans
+      # vérification du code HTTP la CI resterait verte alors que rien n'est déployé.
       - name: Trigger Portainer (DEV)
+        env:
+          WEBHOOK: ${{ secrets.PORTAINER_WEBHOOK_URL_DEV }}
         run: |
-          curl -sk -X POST "${{ secrets.PORTAINER_WEBHOOK_URL_DEV }}" \
-            -H "Content-Type: application/json" -d '{}'
+          BODY=$(mktemp)
+          CODE=$(curl -sk -o "$BODY" -w '%{http_code}' --max-time 300 \
+            -X POST "$WEBHOOK" -H "Content-Type: application/json" -d '{}')
+          if [ "$CODE" -lt 200 ] || [ "$CODE" -ge 300 ]; then
+            echo "::error::Webhook Portainer DEV : HTTP $CODE — déploiement NON effectué"
+            head -c 500 "$BODY"
+            exit 1
+          fi
+          echo "Webhook Portainer DEV accepté (HTTP $CODE)"
+
+      - name: Vérifier que DEV répond
+        env:
+          PROBE_URL: ${{ vars.DEV_PROBE_URL || 'https://devcore.goacloud.fr/' }}
+        run: |
+          for i in $(seq 1 30); do
+            CODE=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 5 "$PROBE_URL" || echo 000)
+            if [ "$CODE" -ge 200 ] && [ "$CODE" -lt 400 ]; then
+              echo "DEV répond (HTTP $CODE) après $i tentative(s)"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::DEV ne répond pas après 150s (dernier code : $CODE)"
+          exit 1
 
       - name: Notify Discord
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
           COMMIT_MSG: ${{ github.event.head_commit.message }}
+          ACTOR: ${{ github.actor }}
         run: |
-          SAFE_MSG=$(echo "$COMMIT_MSG" | head -1 | tr -d '"\\' | cut -c1-100)
+          export LC_ALL=C.UTF-8
+          SAFE_MSG=$(printf '%s' "$COMMIT_MSG" | head -1 | tr -d '"\\' | tr -d '\000-\037' | cut -c1-100)
+          SAFE_ACTOR=$(printf '%s' "$ACTOR" | tr -cd 'A-Za-z0-9._-' | cut -c1-64)
           SHORT="${GITHUB_SHA:0:7}"
           curl -sf -H "Content-Type: application/json" -X POST "$DISCORD_WEBHOOK" -d "{
             \"embeds\": [{
               \"title\": \"GoaCore DEV - Deploy OK\",
-              \"description\": \"**Commit:** \`$SHORT\`\\n**Auteur:** ${{ github.actor }}\\n**Message:** $SAFE_MSG\\n\\n:globe_with_meridians: https://devcore.goacloud.fr\",
+              \"description\": \"**Commit:** \`$SHORT\`\\n**Auteur:** $SAFE_ACTOR\\n**Message:** $SAFE_MSG\\n\\n:globe_with_meridians: https://devcore.goacloud.fr\",
               \"color\": 3447003,
               \"footer\": {\"text\": \"Branche dev | Self-hosted runner\"}
             }]
@@ -99,7 +178,7 @@ jobs:
     runs-on: self-hosted
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       # The Portainer webhook re-pulls the repo then runs compose pull -> build -> up.
       # The app service is build-only (no pinned `image:` registry tag — see
@@ -107,22 +186,56 @@ jobs:
       # abort that previously killed every prod redeploy), Portainer rebuilds it from
       # source and `up -d` recreates the container with the new code. The db container
       # and ALL named volumes (MySQL data) are preserved. No pre-build / no rm needed.
+      #
+      # Le code HTTP est vérifié : un webhook révoqué ou un hôte plein renvoie 5xx et
+      # doit faire échouer le job. Sans ça la CI reste verte, Discord annonce
+      # « Deploy OK », la version est taguée — et la prod tourne sur l'ancienne image.
       - name: Trigger Portainer (PROD)
+        env:
+          WEBHOOK: ${{ secrets.PORTAINER_WEBHOOK_URL_PROD }}
         run: |
-          curl -sk -X POST "${{ secrets.PORTAINER_WEBHOOK_URL_PROD }}" \
-            -H "Content-Type: application/json" -d '{}'
+          BODY=$(mktemp)
+          CODE=$(curl -sk -o "$BODY" -w '%{http_code}' --max-time 300 \
+            -X POST "$WEBHOOK" -H "Content-Type: application/json" -d '{}')
+          if [ "$CODE" -lt 200 ] || [ "$CODE" -ge 300 ]; then
+            echo "::error::Webhook Portainer PROD : HTTP $CODE — déploiement NON effectué"
+            head -c 500 "$BODY"
+            exit 1
+          fi
+          echo "Webhook Portainer PROD accepté (HTTP $CODE)"
+
+      # Le webhook est asynchrone : un 2xx signifie « pris en compte », pas
+      # « en ligne ». On sonde l'application jusqu'à ce qu'elle réponde (2xx/3xx —
+      # `/` redirige vers /login quand la session est absente).
+      - name: Vérifier que PROD répond
+        env:
+          PROBE_URL: ${{ vars.PROD_PROBE_URL || 'https://core.goacloud.fr/' }}
+        run: |
+          for i in $(seq 1 30); do
+            CODE=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 5 "$PROBE_URL" || echo 000)
+            if [ "$CODE" -ge 200 ] && [ "$CODE" -lt 400 ]; then
+              echo "PROD répond (HTTP $CODE) après $i tentative(s)"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::PROD ne répond pas après 150s (dernier code : $CODE)"
+          exit 1
 
       - name: Notify Discord
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
           COMMIT_MSG: ${{ github.event.head_commit.message }}
+          ACTOR: ${{ github.actor }}
         run: |
-          SAFE_MSG=$(echo "$COMMIT_MSG" | head -1 | tr -d '"\\' | cut -c1-100)
+          export LC_ALL=C.UTF-8
+          SAFE_MSG=$(printf '%s' "$COMMIT_MSG" | head -1 | tr -d '"\\' | tr -d '\000-\037' | cut -c1-100)
+          SAFE_ACTOR=$(printf '%s' "$ACTOR" | tr -cd 'A-Za-z0-9._-' | cut -c1-64)
           SHORT="${GITHUB_SHA:0:7}"
           curl -sf -H "Content-Type: application/json" -X POST "$DISCORD_WEBHOOK" -d "{
             \"embeds\": [{
               \"title\": \"GoaCore PROD - Deploy OK\",
-              \"description\": \"**Commit:** \`$SHORT\`\\n**Auteur:** ${{ github.actor }}\\n**Message:** $SAFE_MSG\\n\\n:globe_with_meridians: https://core.goacloud.fr\",
+              \"description\": \"**Commit:** \`$SHORT\`\\n**Auteur:** $SAFE_ACTOR\\n**Message:** $SAFE_MSG\\n\\n:globe_with_meridians: https://core.goacloud.fr\",
               \"color\": 3066993,
               \"footer\": {\"text\": \"Branche main | Self-hosted runner\"}
             }]
@@ -135,12 +248,19 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
       contents: write
+    outputs:
+      # Consommés par le job `publish` : un tag poussé avec GITHUB_TOKEN ne
+      # redéclenche AUCUN workflow (garde anti-boucle GitHub), donc publish-image.yml
+      # ne se réveille pas tout seul — c'est pour ça qu'on chaîne la publication ici.
+      tag: ${{ steps.release.outputs.tag }}
+      created: ${{ steps.release.outputs.created }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           fetch-depth: 0
 
       - name: Determine version bump and create release
+        id: release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
@@ -194,6 +314,7 @@ jobs:
           # Skip if tag already exists
           if git rev-parse "$NEW_TAG" >/dev/null 2>&1; then
             echo "Tag $NEW_TAG already exists, skipping release"
+            echo "created=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -230,6 +351,12 @@ jobs:
             -d "{\"tag_name\":\"${NEW_TAG}\",\"name\":\"${NEW_TAG}\",\"body\":\"${BODY_ESCAPED}\",\"draft\":false,\"prerelease\":false,\"make_latest\":\"true\"}"
 
           echo "Release $NEW_TAG created successfully"
+
+          # Passe la main au job `publish` (image GHCR).
+          {
+            echo "tag=$NEW_TAG"
+            echo "created=true"
+          } >> "$GITHUB_OUTPUT"
 
           # Notify Discord
           RELEASE_URL="https://github.com/${REPO}/releases/tag/${NEW_TAG}"
@@ -270,20 +397,93 @@ jobs:
             }" || true
           fi
 
+  # Publication de l'image publique ghcr.io/abrahamop/goacore DANS LE MÊME RUN que la
+  # release. Le tag créé ci-dessus l'est avec GITHUB_TOKEN : GitHub ne redéclenche
+  # aucun workflow sur un événement produit par GITHUB_TOKEN, donc publish-image.yml
+  # (sur `push: tags`) ne partait jamais — l'image GHCR était figée plusieurs semaines
+  # derrière le dépôt alors que le README promet une image publiée à chaque version.
+  # publish-image.yml reste utile pour republier un tag à la main (workflow_dispatch).
+  publish:
+    name: Publish image (GHCR)
+    needs: release
+    if: needs.release.outputs.created == 'true'
+    # Runner GitHub : buildx + QEMU y sont disponibles (build multi-arch), et le
+    # self-hosted n'a pas à porter ce build.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout (tag de la release)
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+
+      - name: Set up QEMU (émulation arm64)
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: Login GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # `value=` est explicite : le run tourne sur un ref de branche (main), pas sur
+      # le ref du tag, donc `type=semver` ne peut pas le déduire seul. `latest` est
+      # légitime ici : on vient tout juste de tagger la release depuis main.
+      - name: Métadonnées (tags + labels)
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: ghcr.io/abrahamop/goacore
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.release.outputs.tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.release.outputs.tag }}
+            type=raw,value=latest
+
+      - name: Build & push (amd64 + arm64)
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   notify-pr:
     name: PR Check
     needs: [build, helper]
-    runs-on: self-hosted
-    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    # Une PR de fork n'a de toute façon pas accès aux secrets : le webhook serait
+    # vide et l'étape échouerait bruyamment pour rien. On ne notifie que les PR
+    # internes.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - name: Notify Discord
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          # Valeurs contrôlées par l'auteur de la PR : jamais interpolées dans le
+          # script, uniquement lues (et assainies) depuis l'environnement.
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          ACTOR: ${{ github.actor }}
         run: |
+          export LC_ALL=C.UTF-8
+          SAFE_TITLE=$(printf '%s' "$PR_TITLE" | tr -d '"\\' | tr -d '\000-\037' | cut -c1-120)
+          SAFE_ACTOR=$(printf '%s' "$ACTOR" | tr -cd 'A-Za-z0-9._-' | cut -c1-64)
+          SAFE_NUMBER=$(printf '%s' "$PR_NUMBER" | tr -cd '0-9' | cut -c1-12)
           curl -sf -H "Content-Type: application/json" -X POST "$DISCORD_WEBHOOK" -d "{
             \"embeds\": [{
-              \"title\": \"GoaCloud - PR #${{ github.event.pull_request.number }} prete\",
-              \"description\": \"**PR:** ${{ github.event.pull_request.title }}\\n**Auteur:** ${{ github.actor }}\\n\\nBuild OK, pret a merge dans main (PROD).\",
+              \"title\": \"GoaCloud - PR #${SAFE_NUMBER} prete\",
+              \"description\": \"**PR:** $SAFE_TITLE\\n**Auteur:** $SAFE_ACTOR\\n\\nBuild OK, pret a merge dans main (PROD).\",
               \"color\": 15844367,
               \"footer\": {\"text\": \"Pull Request dev -> main\"}
             }]

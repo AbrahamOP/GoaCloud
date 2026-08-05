@@ -1,7 +1,11 @@
 package services
 
 import (
+	"errors"
+	"net"
 	"testing"
+
+	gossh "golang.org/x/crypto/ssh"
 )
 
 // TestProxmoxChannel_ConfiguredAcceptsEitherKeySource verifies the migrated
@@ -143,5 +147,119 @@ func TestBackupService_LiveChannelResolution(t *testing.T) {
 	s.SetChannel(ch)
 	if got := s.liveChannel(); got != ch {
 		t.Error("SetChannel shim must make liveChannel() return the frozen channel")
+	}
+}
+
+// channelHostKeysStub records the host the channel asked to verify and hands back a
+// callback whose verdict the test controls.
+type channelHostKeysStub struct {
+	askedIP string
+	verdict error
+}
+
+func (s *channelHostKeysStub) SSHHostKeyCallback(ip string) gossh.HostKeyCallback {
+	s.askedIP = ip
+	return func(string, net.Addr, gossh.PublicKey) error { return s.verdict }
+}
+
+// TestProxmoxChannel_RefusesWithoutHostKeyStore is the fail-closed contract: with no
+// TOFU store wired, the channel must NOT dial an unverified Proxmox. Falling back to
+// InsecureIgnoreHostKey here would let a machine-in-the-middle forge the cryptcheck and
+// healthcheck verdicts — i.e. forge the restorability proof itself.
+func TestProxmoxChannel_RefusesWithoutHostKeyStore(t *testing.T) {
+	SetDefaultChannelHostKeys(nil)
+	t.Cleanup(func() { SetDefaultChannelHostKeys(nil) })
+
+	c := NewProxmoxChannelFromKey("192.0.2.20", "goabackup", []byte("irrelevant"))
+	if _, err := c.hostKeyCallback(); !errors.Is(err, ErrNoChannelHostKeys) {
+		t.Fatalf("hostKeyCallback() error = %v, want ErrNoChannelHostKeys", err)
+	}
+
+	// The refusal must surface on a real operation too, before any dial is attempted.
+	if _, err := c.DiskFree(); !errors.Is(err, ErrNoChannelHostKeys) {
+		t.Errorf("DiskFree() error = %v, want ErrNoChannelHostKeys", err)
+	}
+}
+
+// TestProxmoxChannel_VerifiesAgainstPinnedHostKey checks the channel verifies through
+// the shared TOFU store, keyed by the BARE host (the key the console pins under), and
+// that a changed host key is propagated as a hard failure rather than swallowed.
+func TestProxmoxChannel_VerifiesAgainstPinnedHostKey(t *testing.T) {
+	SetDefaultChannelHostKeys(nil)
+	t.Cleanup(func() { SetDefaultChannelHostKeys(nil) })
+
+	store := &channelHostKeysStub{}
+	c := NewProxmoxChannelFromKey("192.0.2.20", "goabackup", []byte("irrelevant"),
+		WithChannelHostKeys(store))
+
+	cb, err := c.hostKeyCallback()
+	if err != nil {
+		t.Fatalf("hostKeyCallback(): %v", err)
+	}
+	if store.askedIP != "192.0.2.20" {
+		t.Errorf("TOFU store keyed on %q, want the bare host 192.0.2.20 (no :22)", store.askedIP)
+	}
+	if err := cb("192.0.2.20:22", nil, nil); err != nil {
+		t.Errorf("a pinned host must be accepted, got %v", err)
+	}
+
+	// A host key that no longer matches the pin is an explicit refusal.
+	store.verdict = errors.New("clé hôte SSH modifiée pour 192.0.2.20 — possible attaque MITM")
+	cb, err = c.hostKeyCallback()
+	if err != nil {
+		t.Fatalf("hostKeyCallback(): %v", err)
+	}
+	if err := cb("192.0.2.20:22", nil, nil); err == nil {
+		t.Error("a changed host key must fail the connection, not be ignored")
+	}
+}
+
+// TestProxmoxChannel_HostKeyStorePrecedence verifies an explicit store wins over the
+// package default, and that a nil option leaves the default in place (so an optional
+// dependency can be passed without branching at the call site).
+func TestProxmoxChannel_HostKeyStorePrecedence(t *testing.T) {
+	fallback := &channelHostKeysStub{}
+	SetDefaultChannelHostKeys(fallback)
+	t.Cleanup(func() { SetDefaultChannelHostKeys(nil) })
+
+	explicit := &channelHostKeysStub{}
+	c := NewProxmoxChannelFromKey("10.0.0.9", "goabackup", []byte("k"), WithChannelHostKeys(explicit))
+	if _, err := c.hostKeyCallback(); err != nil {
+		t.Fatalf("hostKeyCallback(): %v", err)
+	}
+	if explicit.askedIP != "10.0.0.9" || fallback.askedIP != "" {
+		t.Error("an explicit WithChannelHostKeys store must win over the package default")
+	}
+
+	// nil option → package default still used.
+	c = NewProxmoxChannelFromKey("10.0.0.9", "goabackup", []byte("k"), WithChannelHostKeys(nil))
+	if _, err := c.hostKeyCallback(); err != nil {
+		t.Fatalf("hostKeyCallback(): %v", err)
+	}
+	if fallback.askedIP != "10.0.0.9" {
+		t.Error("a nil store option must be ignored so the package default applies")
+	}
+
+	// The env constructor takes options too (the boot channel must be verified as well).
+	envCh := NewProxmoxChannel(nil, WithChannelHostKeys(explicit))
+	if envCh.hostKeys != explicit {
+		t.Error("NewProxmoxChannel must honour ChannelOption")
+	}
+}
+
+// TestChannelHostOnly strips the SSH port so the pin is shared with the console's,
+// including for an IPv6 literal target.
+func TestChannelHostOnly(t *testing.T) {
+	cases := map[string]string{
+		"192.0.2.20:22":    "192.0.2.20",
+		"192.0.2.20":       "192.0.2.20",
+		"pve.local:22":     "pve.local",
+		"[2001:db8::1]:22": "2001:db8::1",
+		"":                 "",
+	}
+	for in, want := range cases {
+		if got := channelHostOnly(in); got != want {
+			t.Errorf("channelHostOnly(%q) = %q, want %q", in, got, want)
+		}
 	}
 }

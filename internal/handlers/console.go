@@ -11,7 +11,9 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"goacore/internal/middleware"
 	"goacore/internal/models"
+	"goacore/internal/services"
 	gossh "golang.org/x/crypto/ssh"
 )
 
@@ -79,6 +81,11 @@ func (h *Handler) HandleSSHWebSocket(w http.ResponseWriter, r *http.Request) {
 		username = "root"
 	}
 
+	// Who is opening the shell, from where. Read BEFORE the upgrade: once the
+	// connection is hijacked the session store can no longer be used.
+	actor := middleware.GetSessionUser(r, h.SessionStore)
+	clientIP := middleware.RealIP(r)
+
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		slog.Error("WebSocket Upgrade Failed", "error", err)
@@ -127,6 +134,10 @@ func (h *Handler) HandleSSHWebSocket(w http.ResponseWriter, r *http.Request) {
 	addr := fmt.Sprintf("%s:22", ip)
 	client, err := gossh.Dial("tcp", addr, config)
 	if err != nil {
+		// A failed attempt to open a shell on a guest is itself worth a trace:
+		// it is what a repeated, unsuccessful lateral move looks like.
+		go services.LogAudit(h.DB, 0, actor, "ConsoleFailed",
+			fmt.Sprintf("Échec d'ouverture d'un shell SSH sur la machine #%s (%s@%s)", vmIDStr, username, ip), clientIP)
 		ws.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: SSH Connection Failed: %v", err)))
 		return
 	}
@@ -181,6 +192,19 @@ func (h *Handler) HandleSSHWebSocket(w http.ResponseWriter, r *http.Request) {
 		wg.Wait()
 		return
 	}
+
+	// Opening an interactive shell on a guest is the single most sensitive action
+	// of the product, and the WebSocket route is a GET the audit middleware does
+	// not cover. It is therefore traced here with the context only this handler
+	// knows: which guest, as which remote user, with which key — the key by name
+	// and id, never by its material.
+	openedAt := time.Now()
+	go services.LogAudit(h.DB, 0, actor, "ConsoleOpen",
+		fmt.Sprintf("Shell SSH ouvert sur la machine #%s (%s@%s) avec la clé « %s » (#%d)", vmIDStr, username, ip, key.Name, key.ID), clientIP)
+	defer func() {
+		go services.LogAudit(h.DB, 0, actor, "ConsoleClose",
+			fmt.Sprintf("Shell SSH fermé sur la machine #%s (%s@%s) après %s", vmIDStr, username, ip, time.Since(openedAt).Round(time.Second)), clientIP)
+	}()
 
 	// Set inactivity timeout (30 min) — reset on each message
 	const idleTimeout = 30 * time.Minute

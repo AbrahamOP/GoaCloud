@@ -56,6 +56,21 @@ func main() {
 	if w := cfg.ProxmoxURLWarning(); w != "" {
 		slog.Warn(w)
 	}
+	// Install the proxy trust boundary used to resolve the client IP of a login
+	// attempt (rate limiting). Empty by default = no X-Forwarded-For / X-Real-IP is
+	// ever believed, because the app is directly reachable in HTTPS on 8443 and a
+	// forged header would otherwise hand an attacker a fresh counter per attempt.
+	// A malformed entry is fatal: silently trusting nothing (or everything) because
+	// of a typo is exactly the kind of surprise this guard exists to prevent.
+	if err := middleware.SetTrustedProxies(cfg.TrustedProxies); err != nil {
+		slog.Error("Invalid TRUSTED_PROXIES — refusing to start", "error", err)
+		os.Exit(1)
+	}
+	if len(cfg.TrustedProxies) > 0 {
+		slog.Info("Trusted proxies configured (X-Forwarded-For honoured from these only)", "cidrs", cfg.TrustedProxies)
+	} else {
+		slog.Info("No trusted proxy declared — forwarding headers ignored, rate limiting keys on the peer address")
+	}
 
 	// Database
 	db, err := database.Connect(cfg)

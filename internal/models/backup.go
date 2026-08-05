@@ -27,7 +27,11 @@ type BackupRun struct {
 	StartedAt   *time.Time
 	CompletedAt *time.Time
 	SizeBytes   int64
-	ArchivePath string // local archive path
+	ArchivePath string // volid (local run) or archive file name (off-site push)
+	// Checksum is NOT populated yet: the read-only Proxmox channel exposes no hashing
+	// operation, and hashing a multi-gigabyte vzdump archive from the app would be
+	// prohibitive. The archive identity of a restore proof therefore rests on
+	// ArchivePath (see RestoreTest.RunID).
 	Checksum    string
 	Source      string // "manual", "scheduler", "external" (discovered)
 	Message     string // error or info detail
@@ -79,7 +83,7 @@ type BackupSummary struct {
 type RestoreTest struct {
 	ID          int
 	TargetID    int
-	RunID       *int   // associated backup_run, if known
+	RunID       *int   // backup_run of the archive actually restored (nil: archive not produced by GoaCore)
 	Level       string // "N1" (integrity), "N2" (restore+boot), "N3" (+healthcheck)
 	Verdict     string // "pending", "running", "passed", "failed"
 	SandboxVMID int    // disposable VMID used (95xx); 0 for N1-only

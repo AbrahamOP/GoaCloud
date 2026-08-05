@@ -53,9 +53,17 @@ func buildInstallerScript(pubkey, instanceHost string) string {
 # ed25519 ci-dessous. Relisez-le entièrement avant de l'exécuter.
 #
 # Il est IDEMPOTENT (ré-exécutable sans empiler) : il (re)crée l'utilisateur de
-# service 'goabackup', pose le helper read-only signé (sha256 vérifié), écrit la
-# ligne authorized_keys à clé forcée, un sudoers validé par visudo, puis lance un
+# service 'goabackup', pose le helper signé (sha256 vérifié), écrit la ligne
+# authorized_keys à clé forcée, un sudoers validé par visudo, puis lance un
 # self-test 'disk-free' qui prouve que le canal fonctionne.
+#
+# PORTÉE EXACTE DE LA CLÉ INSTALLÉE (à lire avant d'exécuter) : elle n'ouvre pas de
+# shell — la commande forcée la restreint au helper, qui n'expose qu'un jeu fixe
+# d'opérations. La plupart sont en LECTURE (disk-free, ping, healthcheck, cryptcheck,
+# rclone-remotes, rclone-about), mais 'rclone-push' ÉCRIT : il envoie une archive
+# vzdump hors site et, si on lui demande de ne pas conserver la copie locale, il
+# SUPPRIME cette archive locale. Ce canal n'est donc PAS un accès strictement en
+# lecture seule.
 # =============================================================================
 set -euo pipefail
 
@@ -91,7 +99,7 @@ else
     ok "Utilisateur de service '$GOABACKUP_USER' créé (/bin/bash)."
 fi
 
-# --- 2. Helper read-only signé (heredoc QUOTÉ : zéro expansion ; sha256 vérifié) ---
+# --- 2. Helper signé (heredoc QUOTÉ : zéro expansion ; sha256 vérifié) ---
 info "Écriture du helper $HELPER_PATH puis vérification d'intégrité…"
 tmp_helper="$(mktemp)"
 trap 'rm -f "$tmp_helper" "${sudoers_tmp:-}"' EXIT
@@ -167,16 +175,18 @@ fi
 	return b.String()
 }
 
-// sanitizeForEcho keeps only safe characters for a value echoed inside a shell comment
-// line (the instance host). It is purely cosmetic — the host is never executed — but it
-// prevents a weird r.Host from breaking the comment block. Allowed: host/port chars.
+// sanitizeForEcho keeps only host/port-safe characters. It guards the two places a
+// client-supplied Host header lands: the shell comment line echoed in the installer,
+// and the installer URL baked into the root command the admin copy-pastes into a root
+// shell. Dropping every shell metacharacter means neither can be turned into an
+// injection. Allowed: alphanumerics, . - : _ and the brackets of an IPv6 literal.
 func sanitizeForEcho(s string) string {
 	var b strings.Builder
 	for _, r := range s {
 		switch {
 		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9':
 			b.WriteRune(r)
-		case r == '.' || r == '-' || r == ':' || r == '_':
+		case r == '.' || r == '-' || r == ':' || r == '_' || r == '[' || r == ']':
 			b.WriteRune(r)
 		}
 	}

@@ -7,111 +7,200 @@
    ============================================ */
 
 /* ---- Dark theme (default) ---- */
+/* Les tokens sont stockés en canaux RGB (« R G B », sans fonction) : c'est ce qui
+   permet à Tailwind d'injecter l'alpha (<alpha-value>) et donc de compiler les
+   utilitaires d'opacité (bg-primary/10, border-primary/30, bg-scrim/50…).
+   Déclarés en hex, ces utilitaires étaient silencieusement omis du build. */
 :root,
 [data-theme="dark"] {
-  --md-color-primary:               #D0BCFF;
-  --md-color-on-primary:            #381E72;
-  --md-color-primary-container:     #4F378B;
-  --md-color-on-primary-container:  #EADDFF;
+  --md-color-primary-rgb:               208 188 255;
+  --md-color-on-primary-rgb:            56 30 114;
+  --md-color-primary-container-rgb:     79 55 139;
+  --md-color-on-primary-container-rgb:  234 221 255;
 
-  --md-color-secondary:             #CCC2DC;
-  --md-color-on-secondary:          #332D41;
-  --md-color-secondary-container:   #4A4458;
-  --md-color-on-secondary-container:#E8DEF8;
+  --md-color-secondary-rgb:             204 194 220;
+  --md-color-on-secondary-rgb:          51 45 65;
+  --md-color-secondary-container-rgb:   74 68 88;
+  --md-color-on-secondary-container-rgb:232 222 248;
 
-  --md-color-tertiary:              #EFB8C8;
-  --md-color-on-tertiary:           #492532;
-  --md-color-tertiary-container:    #633B48;
-  --md-color-on-tertiary-container: #FFD8E4;
+  --md-color-tertiary-rgb:              239 184 200;
+  --md-color-on-tertiary-rgb:           73 37 50;
+  --md-color-tertiary-container-rgb:    99 59 72;
+  --md-color-on-tertiary-container-rgb: 255 216 228;
 
-  --md-color-error:                 #F2B8B5;
-  --md-color-on-error:              #601410;
-  --md-color-error-container:       #8C1D18;
-  --md-color-on-error-container:    #F9DEDC;
+  --md-color-error-rgb:                 242 184 181;
+  --md-color-on-error-rgb:              96 20 16;
+  --md-color-error-container-rgb:       140 29 24;
+  --md-color-on-error-container-rgb:    249 222 220;
 
-  --md-color-surface:               #141218;
-  --md-color-on-surface:            #E6E0E9;
-  --md-color-on-surface-variant:    #CAC4D0;
+  --md-color-surface-rgb:               20 18 24;
+  --md-color-on-surface-rgb:            230 224 233;
+  --md-color-on-surface-variant-rgb:    202 196 208;
 
-  --md-color-surface-container-lowest:  #0F0D13;
-  --md-color-surface-container-low:     #1D1B20;
-  --md-color-surface-container:         #211F26;
-  --md-color-surface-container-high:    #2B2930;
-  --md-color-surface-container-highest: #36343B;
+  --md-color-surface-container-lowest-rgb:  15 13 19;
+  --md-color-surface-container-low-rgb:     29 27 32;
+  --md-color-surface-container-rgb:         33 31 38;
+  --md-color-surface-container-high-rgb:    43 41 48;
+  --md-color-surface-container-highest-rgb: 54 52 59;
 
-  --md-color-outline:               #938F99;
-  --md-color-outline-variant:       #49454F;
+  --md-color-outline-rgb:               147 143 153;
+  --md-color-outline-variant-rgb:       73 69 79;
 
-  --md-color-inverse-surface:       #E6E0E9;
-  --md-color-inverse-on-surface:    #322F35;
-  --md-color-inverse-primary:       #6750A4;
+  --md-color-inverse-surface-rgb:       230 224 233;
+  --md-color-inverse-on-surface-rgb:    50 47 53;
+  --md-color-inverse-primary-rgb:       103 80 164;
 
-  --md-color-surface-tint:          #D0BCFF;
-  --md-color-scrim:                 #000000;
+  --md-color-surface-tint-rgb:          208 188 255;
+  --md-color-scrim-rgb:                 0 0 0;
 
   /* Status semantic colors */
-  --md-color-success:               #81C784;
-  --md-color-on-success:            #0A3D0C;
-  --md-color-success-container:     #1B5E20;
-  --md-color-warning:               #FFD54F;
-  --md-color-on-warning:            #3E2723;
-  --md-color-warning-container:     #F57F17;
-  --md-color-info:                  #64B5F6;
-  --md-color-on-info:               #0D2137;
-  --md-color-info-container:        #1565C0;
+  --md-color-success-rgb:               129 199 132;
+  --md-color-on-success-rgb:            10 61 12;
+  --md-color-success-container-rgb:     27 94 32;
+  --md-color-warning-rgb:               255 213 79;
+  --md-color-on-warning-rgb:            62 39 35;
+  --md-color-warning-container-rgb:     245 127 23;
+  --md-color-info-rgb:                  100 181 246;
+  --md-color-on-info-rgb:               13 33 55;
+  --md-color-info-container-rgb:        21 101 192;
 }
 
 /* ---- Light theme ---- */
+/* success / warning / info sont volontairement plus sombres que leurs équivalents
+   Material « 500 » : sur surface-container-highest (#E6E0E9), les teintes claires
+   tombaient sous 4,5:1. Les valeurs ci-dessous tiennent le seuil WCAG AA sur
+   toutes les surfaces claires de la palette. */
 [data-theme="light"] {
-  --md-color-primary:               #6750A4;
-  --md-color-on-primary:            #FFFFFF;
-  --md-color-primary-container:     #EADDFF;
-  --md-color-on-primary-container:  #21005D;
+  --md-color-primary-rgb:               103 80 164;
+  --md-color-on-primary-rgb:            255 255 255;
+  --md-color-primary-container-rgb:     234 221 255;
+  --md-color-on-primary-container-rgb:  33 0 93;
 
-  --md-color-secondary:             #625B71;
-  --md-color-on-secondary:          #FFFFFF;
-  --md-color-secondary-container:   #E8DEF8;
-  --md-color-on-secondary-container:#1D192B;
+  --md-color-secondary-rgb:             98 91 113;
+  --md-color-on-secondary-rgb:          255 255 255;
+  --md-color-secondary-container-rgb:   232 222 248;
+  --md-color-on-secondary-container-rgb:29 25 43;
 
-  --md-color-tertiary:              #7D5260;
-  --md-color-on-tertiary:           #FFFFFF;
-  --md-color-tertiary-container:    #FFD8E4;
-  --md-color-on-tertiary-container: #31111D;
+  --md-color-tertiary-rgb:              125 82 96;
+  --md-color-on-tertiary-rgb:           255 255 255;
+  --md-color-tertiary-container-rgb:    255 216 228;
+  --md-color-on-tertiary-container-rgb: 49 17 29;
 
-  --md-color-error:                 #B3261E;
-  --md-color-on-error:              #FFFFFF;
-  --md-color-error-container:       #F9DEDC;
-  --md-color-on-error-container:    #410E0B;
+  --md-color-error-rgb:                 179 38 30;
+  --md-color-on-error-rgb:              255 255 255;
+  --md-color-error-container-rgb:       249 222 220;
+  --md-color-on-error-container-rgb:    65 14 11;
 
-  --md-color-surface:               #FEF7FF;
-  --md-color-on-surface:            #1D1B20;
-  --md-color-on-surface-variant:    #49454F;
+  --md-color-surface-rgb:               254 247 255;
+  --md-color-on-surface-rgb:            29 27 32;
+  --md-color-on-surface-variant-rgb:    73 69 79;
 
-  --md-color-surface-container-lowest:  #FFFFFF;
-  --md-color-surface-container-low:     #F7F2FA;
-  --md-color-surface-container:         #F3EDF7;
-  --md-color-surface-container-high:    #ECE6F0;
-  --md-color-surface-container-highest: #E6E0E9;
+  --md-color-surface-container-lowest-rgb:  255 255 255;
+  --md-color-surface-container-low-rgb:     247 242 250;
+  --md-color-surface-container-rgb:         243 237 247;
+  --md-color-surface-container-high-rgb:    236 230 240;
+  --md-color-surface-container-highest-rgb: 230 224 233;
 
-  --md-color-outline:               #79747E;
-  --md-color-outline-variant:       #CAC4D0;
+  --md-color-outline-rgb:               121 116 126;
+  --md-color-outline-variant-rgb:       202 196 208;
 
-  --md-color-inverse-surface:       #322F35;
-  --md-color-inverse-on-surface:    #F5EFF7;
-  --md-color-inverse-primary:       #D0BCFF;
+  --md-color-inverse-surface-rgb:       50 47 53;
+  --md-color-inverse-on-surface-rgb:    245 239 247;
+  --md-color-inverse-primary-rgb:       208 188 255;
 
-  --md-color-surface-tint:          #6750A4;
-  --md-color-scrim:                 #000000;
+  --md-color-surface-tint-rgb:          103 80 164;
+  --md-color-scrim-rgb:                 0 0 0;
 
-  --md-color-success:               #2E7D32;
-  --md-color-on-success:            #FFFFFF;
-  --md-color-success-container:     #C8E6C9;
-  --md-color-warning:               #F57F17;
-  --md-color-on-warning:            #FFFFFF;
-  --md-color-warning-container:     #FFF9C4;
-  --md-color-info:                  #1565C0;
-  --md-color-on-info:               #FFFFFF;
-  --md-color-info-container:        #BBDEFB;
+  --md-color-success-rgb:               27 110 32;   /* #1B6E20 — 4,9:1 mini */
+  --md-color-on-success-rgb:            255 255 255;
+  --md-color-success-container-rgb:     200 230 201;
+  --md-color-warning-rgb:               154 76 0;    /* #9A4C00 — 4,7:1 mini */
+  --md-color-on-warning-rgb:            255 255 255;
+  --md-color-warning-container-rgb:     255 249 196;
+  --md-color-info-rgb:                  15 90 174;   /* #0F5AAE — 5,2:1 mini */
+  --md-color-on-info-rgb:               255 255 255;
+  --md-color-info-container-rgb:        187 222 251;
+}
+
+/* ---- Alias couleur pleine ----
+   Résolus au moment du calcul sur <html>, ils suivent donc automatiquement le
+   thème actif. À utiliser dans le CSS écrit à la main (theme.css, @layer
+   components) ; Tailwind, lui, consomme directement les canaux -rgb. */
+:root {
+  --md-color-primary:               rgb(var(--md-color-primary-rgb));
+  --md-color-on-primary:            rgb(var(--md-color-on-primary-rgb));
+  --md-color-primary-container:     rgb(var(--md-color-primary-container-rgb));
+  --md-color-on-primary-container:  rgb(var(--md-color-on-primary-container-rgb));
+
+  --md-color-secondary:             rgb(var(--md-color-secondary-rgb));
+  --md-color-on-secondary:          rgb(var(--md-color-on-secondary-rgb));
+  --md-color-secondary-container:   rgb(var(--md-color-secondary-container-rgb));
+  --md-color-on-secondary-container:rgb(var(--md-color-on-secondary-container-rgb));
+
+  --md-color-tertiary:              rgb(var(--md-color-tertiary-rgb));
+  --md-color-on-tertiary:           rgb(var(--md-color-on-tertiary-rgb));
+  --md-color-tertiary-container:    rgb(var(--md-color-tertiary-container-rgb));
+  --md-color-on-tertiary-container: rgb(var(--md-color-on-tertiary-container-rgb));
+
+  --md-color-error:                 rgb(var(--md-color-error-rgb));
+  --md-color-on-error:              rgb(var(--md-color-on-error-rgb));
+  --md-color-error-container:       rgb(var(--md-color-error-container-rgb));
+  --md-color-on-error-container:    rgb(var(--md-color-on-error-container-rgb));
+
+  --md-color-surface:               rgb(var(--md-color-surface-rgb));
+  --md-color-on-surface:            rgb(var(--md-color-on-surface-rgb));
+  --md-color-on-surface-variant:    rgb(var(--md-color-on-surface-variant-rgb));
+
+  --md-color-surface-container-lowest:  rgb(var(--md-color-surface-container-lowest-rgb));
+  --md-color-surface-container-low:     rgb(var(--md-color-surface-container-low-rgb));
+  --md-color-surface-container:         rgb(var(--md-color-surface-container-rgb));
+  --md-color-surface-container-high:    rgb(var(--md-color-surface-container-high-rgb));
+  --md-color-surface-container-highest: rgb(var(--md-color-surface-container-highest-rgb));
+
+  --md-color-outline:               rgb(var(--md-color-outline-rgb));
+  --md-color-outline-variant:       rgb(var(--md-color-outline-variant-rgb));
+
+  --md-color-inverse-surface:       rgb(var(--md-color-inverse-surface-rgb));
+  --md-color-inverse-on-surface:    rgb(var(--md-color-inverse-on-surface-rgb));
+  --md-color-inverse-primary:       rgb(var(--md-color-inverse-primary-rgb));
+
+  --md-color-surface-tint:          rgb(var(--md-color-surface-tint-rgb));
+  --md-color-scrim:                 rgb(var(--md-color-scrim-rgb));
+
+  --md-color-success:               rgb(var(--md-color-success-rgb));
+  --md-color-on-success:            rgb(var(--md-color-on-success-rgb));
+  --md-color-success-container:     rgb(var(--md-color-success-container-rgb));
+  --md-color-warning:               rgb(var(--md-color-warning-rgb));
+  --md-color-on-warning:            rgb(var(--md-color-on-warning-rgb));
+  --md-color-warning-container:     rgb(var(--md-color-warning-container-rgb));
+  --md-color-info:                  rgb(var(--md-color-info-rgb));
+  --md-color-on-info:               rgb(var(--md-color-on-info-rgb));
+  --md-color-info-container:        rgb(var(--md-color-info-container-rgb));
+}
+
+/* ---- Base ---- */
+@layer base {
+  /* La police du produit se déclare une fois ici. Elle était recopiée dans dix-sept
+     balises <style> inline : la moindre évolution typographique demandait dix-sept
+     modifications, et une seule oubliée suffisait à casser l'homogénéité. */
+  body {
+    font-family: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+  }
+
+  /* Respect de « Réduire les animations » du système. La pastille de santé pulse
+     en boucle et neuf indicateurs `animate-spin` tournent en continu : pour un
+     utilisateur sensible au mouvement (ou sujet au mal des transports), c'est une
+     page inutilisable. On neutralise, sans jamais supprimer l'information. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 /* ---- MD3 component styles ---- */

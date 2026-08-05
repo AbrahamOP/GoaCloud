@@ -2,9 +2,12 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
+
+	"goacore/internal/models"
 )
 
 func TestParseVMIDFromVolID(t *testing.T) {
@@ -317,4 +320,118 @@ func TestValidateRotationHour(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestValidateRPOHours(t *testing.T) {
+	tests := []struct {
+		name    string
+		hours   int
+		wantErr bool
+	}{
+		{"one hour", 1, false},
+		{"schema default", 24, false},
+		{"one week", 168, false},
+		{"max bound one year", maxRPOHours, false},
+		// 0 est refusé : rpoStatus() lit toute valeur <= 0 comme « toujours ok », ce qui
+		// peindrait en vert une cible jamais sauvegardée dans le KPI de couverture.
+		{"zero would silently green the KPI", 0, true},
+		{"negative", -5, true},
+		{"beyond one year", maxRPOHours + 1, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := validateRPOHours(tt.hours); (err != nil) != tt.wantErr {
+				t.Errorf("validateRPOHours(%d) err = %v, wantErr %v", tt.hours, err, tt.wantErr)
+			}
+		})
+	}
+}
+
+// archive fabrique une entrée d'archive de test pour la rotation de rétention.
+func archive(vmid int, day int) models.BackupEntry {
+	name := fmt.Sprintf("local:backup/vzdump-lxc-%d-2026_06_%02d-03_19_36.tar.zst", vmid, day)
+	return models.BackupEntry{
+		VolID:   name,
+		VMID:    vmid,
+		Type:    "lxc",
+		Storage: "local",
+		CTime:   time.Date(2026, 6, day, 3, 19, 36, 0, time.UTC),
+	}
+}
+
+// TestArchivesToPrune couvre la décision la PLUS destructive du produit : quelles
+// sauvegardes d'un client sont supprimées. Toute ambiguïté doit se résoudre par « on
+// ne supprime rien ».
+func TestArchivesToPrune(t *testing.T) {
+	five := []models.BackupEntry{
+		archive(110, 1), archive(110, 2), archive(110, 3), archive(110, 4), archive(110, 5),
+	}
+
+	t.Run("retention disabled keeps everything", func(t *testing.T) {
+		for _, keep := range []int{0, -1} {
+			if got := archivesToPrune(five, 110, keep); got != nil {
+				t.Fatalf("keep=%d a élu %d archive(s) à supprimer, attendu aucune", keep, len(got))
+			}
+		}
+	})
+
+	t.Run("fewer archives than the retention keeps everything", func(t *testing.T) {
+		if got := archivesToPrune(five, 110, 5); got != nil {
+			t.Fatalf("élu %d archive(s), attendu aucune", len(got))
+		}
+		if got := archivesToPrune(five, 110, 9); got != nil {
+			t.Fatalf("élu %d archive(s), attendu aucune", len(got))
+		}
+	})
+
+	t.Run("keeps the N most recent", func(t *testing.T) {
+		got := archivesToPrune(five, 110, 3)
+		if len(got) != 2 {
+			t.Fatalf("élu %d archive(s), attendu 2", len(got))
+		}
+		pruned := map[string]bool{}
+		for _, e := range got {
+			pruned[e.VolID] = true
+		}
+		if !pruned[archive(110, 1).VolID] || !pruned[archive(110, 2).VolID] {
+			t.Fatalf("mauvaises archives élues: %v (attendu les deux plus anciennes)", pruned)
+		}
+	})
+
+	t.Run("never touches another guest", func(t *testing.T) {
+		mixed := append([]models.BackupEntry{}, five...)
+		mixed = append(mixed, archive(113, 1), archive(113, 2), archive(113, 3))
+		for _, e := range archivesToPrune(mixed, 110, 1) {
+			if e.VMID != 110 {
+				t.Fatalf("archive du VMID %d élue à la suppression pour la cible 110", e.VMID)
+			}
+		}
+	})
+
+	t.Run("ignores an entry whose volid does not carry the vmid", func(t *testing.T) {
+		// Incohérence de listing : l'entrée prétend appartenir à 110 mais le fichier est
+		// celui de 113. Défense en profondeur — on ne la supprime jamais.
+		bogus := models.BackupEntry{
+			VolID: "local:backup/vzdump-lxc-113-2026_06_01-03_19_36.tar.zst",
+			VMID:  110,
+			CTime: time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC), // la plus ancienne
+		}
+		for _, e := range archivesToPrune(append([]models.BackupEntry{bogus}, five...), 110, 2) {
+			if e.VolID == bogus.VolID {
+				t.Fatal("archive incohérente élue à la suppression")
+			}
+		}
+	})
+
+	t.Run("no archive at all", func(t *testing.T) {
+		if got := archivesToPrune(nil, 110, 3); got != nil {
+			t.Fatalf("élu %d archive(s) sur une liste vide", len(got))
+		}
+	})
+
+	t.Run("unknown vmid prunes nothing", func(t *testing.T) {
+		if got := archivesToPrune(five, 0, 1); got != nil {
+			t.Fatalf("élu %d archive(s) pour un VMID nul", len(got))
+		}
+	})
 }

@@ -5,32 +5,50 @@
     {{template "head-common"}}
     <title>GoaCore — Overview</title>
     <style>
-        body { font-family: 'Outfit', sans-serif; }
         .bar-track { background: var(--md-color-surface-container-high); border-radius: 9999px; height: 8px; overflow: hidden; }
         .bar-fill { height: 100%; border-radius: 9999px; transition: width .6s ease; }
+
+        /* Teinte de l'état global : portée par une variable héritée (--ind) plutôt
+           que par un style inline. html/template remplace var(--…) par ZgotmplZ
+           dès que la valeur vient d'une action de template, et une couleur figée
+           ne basculerait pas avec data-theme. */
+        .ind-ok    { --ind: var(--md-color-success); }
+        .ind-warn  { --ind: var(--md-color-warning); }
+        .ind-err   { --ind: var(--md-color-error); }
+        .ov-banner { border-left: 4px solid var(--ind); }
+        .ov-dot    { background: var(--ind); box-shadow: 0 0 0 4px color-mix(in srgb, var(--ind) 25%, transparent); }
+        .ov-issue  { border-left: 2px solid var(--ind); }
     </style>
 </head>
 
 <body class="min-h-screen flex bg-surface text-on-surface">
 
+    {{template "skip-link"}}
     {{template "mobile-overlay"}}
     {{template "sidebar"}}
 
-    <main class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
+    <main id="main-content" tabindex="-1" class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
         {{template "bubbles"}}
 
-        <div class="px-8 py-10 relative z-10">
+        <div class="px-4 md:px-8 py-10 relative z-10">
 
             <!-- Header -->
             <div class="flex flex-wrap items-start justify-between gap-4 mb-8">
                 <div>
-                    <h2 class="text-3xl font-bold text-on-surface mb-2"><span id="greeting"></span>, <span class="gradient-text">{{.Username}}</span></h2>
+                    <h2 class="text-2xl md:text-3xl font-bold text-on-surface mb-2"><span id="greeting"></span>, <span class="gradient-text">{{.Username}}</span></h2>
                     <p class="text-on-surface-variant text-sm">Voici l'état de votre infrastructure en un coup d'œil.</p>
                 </div>
                 <div class="flex items-center gap-3 flex-wrap">
+                    {{/* Fraîcheur des données : sur un tableau de bord d'astreinte,
+                         « tout est vert » et « le backend ne répond plus » ne doivent
+                         jamais se ressembler. */}}
+                    <p id="ov-freshness" aria-live="polite"
+                        class="text-xs font-medium px-3 py-1.5 rounded-full border border-outline-variant bg-surface-container text-on-surface-variant">
+                        mis à jour à l'instant
+                    </p>
                     <div class="text-right hidden sm:block mr-1">
                         <p class="text-primary text-xs font-medium uppercase tracking-widest" id="clock-date">—</p>
-                        <p class="text-2xl font-bold text-on-surface tracking-tight leading-none" id="clock-time">--:--</p>
+                        <p class="text-xl md:text-2xl font-bold text-on-surface tracking-tight leading-none" id="clock-time">--:--</p>
                     </div>
                     {{template "report-pdf-btn"}}
                     {{template "top-actions"}}
@@ -38,43 +56,43 @@
             </div>
 
             <!-- Global health banner -->
-            {{$hc := "#22c55e"}}{{$hl := "Tous les systèmes sont opérationnels"}}
-            {{if eq .InfraHealth "Critique"}}{{$hc = "#ef4444"}}{{$hl = "Attention requise — un ou plusieurs indicateurs critiques"}}{{else if eq .InfraHealth "Dégradé"}}{{$hc = "#f59e0b"}}{{$hl = "État dégradé — à surveiller"}}{{end}}
-            <div id="ov-banner" class="mb-8 rounded-xl border border-outline-variant bg-surface-container px-5 py-4 flex items-center gap-4" style="border-left:4px solid {{$hc}};">
-                <span id="ov-banner-dot" class="inline-flex w-3 h-3 rounded-full" style="background:{{$hc}};box-shadow:0 0 0 4px color-mix(in srgb, {{$hc}} 25%, transparent);"></span>
+            {{$ind := "ind-ok"}}{{$hl := "Tous les systèmes sont opérationnels"}}
+            {{if eq .InfraHealth "Critique"}}{{$ind = "ind-err"}}{{$hl = "Attention requise — un ou plusieurs indicateurs critiques"}}{{else if eq .InfraHealth "Dégradé"}}{{$ind = "ind-warn"}}{{$hl = "État dégradé — à surveiller"}}{{end}}
+            <div id="ov-banner" class="ov-banner {{$ind}} mb-8 rounded-xl border border-outline-variant bg-surface-container px-5 py-4 flex items-center gap-4">
+                <span id="ov-banner-dot" class="ov-dot inline-flex w-3 h-3 rounded-full"></span>
                 <div class="min-w-0">
                     <p class="text-sm font-semibold text-on-surface">Infrastructure : <span id="ov-health-text">{{.InfraHealth}}</span></p>
                     <p id="ov-health-sub" class="text-sm text-on-surface-variant">{{$hl}}</p>
                     <div id="ov-issues" class="flex flex-wrap gap-2 mt-2 {{if not .HealthIssues}}hidden{{end}}">
-                        {{range .HealthIssues}}<span class="ov-issue text-xs px-2.5 py-0.5 rounded-full bg-surface-container-high text-on-surface border border-outline-variant" style="border-left:2px solid {{$hc}};">{{.}}</span>{{end}}
+                        {{range .HealthIssues}}<span class="ov-issue text-xs px-2.5 py-0.5 rounded-full bg-surface-container-high text-on-surface border border-outline-variant">{{.}}</span>{{end}}
                     </div>
                 </div>
             </div>
 
             <!-- KPI strip -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <a href="/applications" class="bg-surface-container border border-outline-variant rounded-xl p-4 hover:border-primary/50 transition-colors" style="border-left:3px solid #22c55e;">
+                <a href="/applications" class="bg-surface-container border border-outline-variant rounded-xl p-4 hover:border-primary/50 transition-colors" style="border-left:3px solid var(--md-color-success);">
                     <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold">Services en ligne</p>
-                    <p id="ov-svc-val" class="text-2xl font-bold text-on-surface mt-1"><span class="text-green-400">{{.AppsUp}}</span><span class="text-on-surface-variant text-lg">/{{.AppsTotal}}</span></p>
-                    <p id="ov-svc-sub" class="text-xs mt-0.5 {{if gt .AppsDown 0}}text-red-400{{else}}text-on-surface-variant{{end}}">{{if gt .AppsDown 0}}{{.AppsDown}} hors ligne{{else}}aucun incident{{end}}</p>
+                    <p id="ov-svc-val" class="text-xl md:text-2xl font-bold text-on-surface mt-1"><span class="text-success">{{.AppsUp}}</span><span class="text-on-surface-variant text-lg">/{{.AppsTotal}}</span></p>
+                    <p id="ov-svc-sub" class="text-xs mt-0.5 {{if gt .AppsDown 0}}text-error{{else}}text-on-surface-variant{{end}}">{{if gt .AppsDown 0}}{{.AppsDown}} hors ligne{{else}}aucun incident{{end}}</p>
                 </a>
                 <a href="/proxmox" class="bg-surface-container border border-outline-variant rounded-xl p-4 hover:border-primary/50 transition-colors" style="border-left:3px solid var(--md-color-primary);">
                     <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold">VMs / LXC actives</p>
                     {{if .ProxmoxConfigured}}
-                    <p id="ov-vms-val" class="text-2xl font-bold text-primary mt-1">{{.VMsRunning}}</p>
+                    <p id="ov-vms-val" class="text-xl md:text-2xl font-bold text-primary mt-1">{{.VMsRunning}}</p>
                     <p id="ov-vms-sub" class="text-xs text-on-surface-variant mt-0.5">{{.VMsStopped}} arrêtées</p>
                     {{else}}<p class="text-lg font-semibold text-on-surface-variant mt-1">—</p><p class="text-xs text-on-surface-variant mt-0.5">non configuré</p>{{end}}
                 </a>
-                <a href="/wazuh" class="bg-surface-container border border-outline-variant rounded-xl p-4 hover:border-primary/50 transition-colors" style="border-left:3px solid #38bdf8;">
+                <a href="/wazuh" class="bg-surface-container border border-outline-variant rounded-xl p-4 hover:border-primary/50 transition-colors" style="border-left:3px solid var(--md-color-info);">
                     <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold">Agents Wazuh</p>
                     {{if .WazuhConfigured}}
-                    <p id="ov-wz-val" class="text-2xl font-bold text-on-surface mt-1"><span class="text-green-400">{{.WazuhActive}}</span> actifs</p>
-                    <p id="ov-wz-sub" class="text-xs mt-0.5 {{if gt .WazuhDisconnected 0}}text-red-400{{else}}text-on-surface-variant{{end}}">{{if gt .WazuhDisconnected 0}}{{.WazuhDisconnected}} déconnectés{{else}}tous connectés{{end}}</p>
+                    <p id="ov-wz-val" class="text-xl md:text-2xl font-bold text-on-surface mt-1"><span class="text-success">{{.WazuhActive}}</span> actifs</p>
+                    <p id="ov-wz-sub" class="text-xs mt-0.5 {{if gt .WazuhDisconnected 0}}text-error{{else}}text-on-surface-variant{{end}}">{{if gt .WazuhDisconnected 0}}{{.WazuhDisconnected}} déconnectés{{else}}tous connectés{{end}}</p>
                     {{else}}<p class="text-lg font-semibold text-on-surface-variant mt-1">—</p><p class="text-xs text-on-surface-variant mt-0.5">non configuré</p>{{end}}
                 </a>
-                <a href="/soar" class="bg-surface-container border border-outline-variant rounded-xl p-4 hover:border-primary/50 transition-colors" style="border-left:3px solid #f59e0b;">
+                <a href="/soar" class="bg-surface-container border border-outline-variant rounded-xl p-4 hover:border-primary/50 transition-colors" style="border-left:3px solid var(--md-color-warning);">
                     <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold">Alertes 24h</p>
-                    {{if .Alerts24hKnown}}<p id="ov-alerts-val" class="text-2xl font-bold {{if gt .Alerts24h 0}}text-amber-400{{else}}text-on-surface{{end}} mt-1">{{.Alerts24h}}</p><p class="text-xs text-on-surface-variant mt-0.5">dernières 24 heures</p>
+                    {{if .Alerts24hKnown}}<p id="ov-alerts-val" class="text-xl md:text-2xl font-bold {{if gt .Alerts24h 0}}text-warning{{else}}text-on-surface{{end}} mt-1">{{.Alerts24h}}</p><p class="text-xs text-on-surface-variant mt-0.5">dernières 24 heures</p>
                     {{else}}<p class="text-lg font-semibold text-on-surface-variant mt-1">—</p><p class="text-xs text-on-surface-variant mt-0.5">non configuré</p>{{end}}
                 </a>
             </div>
@@ -91,15 +109,15 @@
                     <div class="space-y-4">
                         <div>
                             <div class="flex justify-between text-sm mb-1"><span class="text-on-surface-variant">CPU</span><span class="font-semibold text-on-surface"><span id="ov-cpu-val">{{.CPU}}</span>%</span></div>
-                            <div class="bar-track"><div id="ov-cpu-bar" class="bar-fill" style="width:{{.CPU}}%;background:{{if ge .CPU 90}}#ef4444{{else if ge .CPU 75}}#f59e0b{{else}}#22c55e{{end}};"></div></div>
+                            <div class="bar-track"><div id="ov-cpu-bar" class="bar-fill" style="width:{{.CPU}}%;background:{{if ge .CPU 90}}var(--md-color-error){{else if ge .CPU 75}}var(--md-color-warning){{else}}var(--md-color-success){{end}};"></div></div>
                         </div>
                         <div>
                             <div class="flex justify-between text-sm mb-1"><span class="text-on-surface-variant">RAM</span><span class="font-semibold text-on-surface"><span id="ov-ram-val">{{.RAM}}</span>% <span id="ov-ram-detail" class="text-on-surface-variant font-normal">({{.RAMUsedStr}} / {{.RAMTotalStr}})</span></span></div>
-                            <div class="bar-track"><div id="ov-ram-bar" class="bar-fill" style="width:{{.RAM}}%;background:{{if ge .RAM 90}}#ef4444{{else if ge .RAM 75}}#f59e0b{{else}}#22c55e{{end}};"></div></div>
+                            <div class="bar-track"><div id="ov-ram-bar" class="bar-fill" style="width:{{.RAM}}%;background:{{if ge .RAM 90}}var(--md-color-error){{else if ge .RAM 75}}var(--md-color-warning){{else}}var(--md-color-success){{end}};"></div></div>
                         </div>
                         <div>
                             <div class="flex justify-between text-sm mb-1"><span class="text-on-surface-variant">Stockage</span><span class="font-semibold text-on-surface"><span id="ov-storage-val">{{.Storage}}</span>%</span></div>
-                            <div class="bar-track"><div id="ov-storage-bar" class="bar-fill" style="width:{{.Storage}}%;background:{{if ge .Storage 90}}#ef4444{{else if ge .Storage 75}}#f59e0b{{else}}#22c55e{{end}};"></div></div>
+                            <div class="bar-track"><div id="ov-storage-bar" class="bar-fill" style="width:{{.Storage}}%;background:{{if ge .Storage 90}}var(--md-color-error){{else if ge .Storage 75}}var(--md-color-warning){{else}}var(--md-color-success){{end}};"></div></div>
                         </div>
                     </div>
                     {{else}}<p class="text-sm text-on-surface-variant">Proxmox n'est pas encore configuré. <a href="/parametres/services" class="text-primary hover:underline">Configurer</a></p>{{end}}
@@ -121,7 +139,7 @@
             {{if .Favorites}}
             <div class="mb-2 flex items-center justify-between">
                 <h3 class="font-semibold text-on-surface flex items-center gap-2">
-                    <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                    <svg class="w-5 h-5 text-warning" fill="currentColor" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
                     Accès rapide
                 </h3>
                 <a href="/applications" class="text-sm text-primary hover:underline">Toutes les applications →</a>
@@ -135,8 +153,8 @@
                     <div class="min-w-0">
                         <p class="font-medium text-on-surface truncate">{{.Name}}</p>
                         <p class="text-xs flex items-center gap-1">
-                            {{if eq .HealthStatus "up"}}<span class="w-1.5 h-1.5 rounded-full bg-green-400"></span><span class="text-on-surface-variant">en ligne</span>
-                            {{else if eq .HealthStatus "down"}}<span class="w-1.5 h-1.5 rounded-full bg-red-400"></span><span class="text-red-400">hors ligne</span>
+                            {{if eq .HealthStatus "up"}}<span class="w-1.5 h-1.5 rounded-full bg-success"></span><span class="text-on-surface-variant">en ligne</span>
+                            {{else if eq .HealthStatus "down"}}<span class="w-1.5 h-1.5 rounded-full bg-error"></span><span class="text-error">hors ligne</span>
                             {{else}}<span class="w-1.5 h-1.5 rounded-full bg-outline-variant"></span><span class="text-on-surface-variant">—</span>{{end}}
                         </p>
                     </div>
@@ -148,9 +166,22 @@
         </div>
     </main>
 
+    {{template "toast-host"}}
+
     <script src="/static/theme.js"></script>
     <script src="/static/csrf.js"></script>
+    <script src="/static/ui.js"></script>
+    <script src="/static/search.js"></script>
     <script>
+        // Échappement HTML. Les compteurs et les libellés d'incident viennent
+        // d'/api/overview/data, qui agrège Proxmox et Wazuh : données de machines
+        // supervisées, donc jamais interpolées brutes dans innerHTML.
+        function escapeHtml(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
         // Greeting by time of day
         (function () {
             var h = new Date().getHours();
@@ -175,14 +206,16 @@
                 .then(function (r) { return r.json(); })
                 .then(function (d) {
                     if (!d.configured) { box.innerHTML = '<p class="text-on-surface-variant">Sauvegardes non configurées. <a href="/backups" class="text-primary hover:underline">Configurer</a></p>'; return; }
-                    var col = d.coverage >= 90 ? "#22c55e" : d.coverage >= 60 ? "#f59e0b" : "#ef4444";
+                    // Borné et recoercé en nombre : la valeur alimente un attribut style=.
+                    var cov = Math.max(0, Math.min(100, Number(d.coverage) || 0));
+                    var col = cov >= 90 ? "var(--md-color-success)" : cov >= 60 ? "var(--md-color-warning)" : "var(--md-color-error)";
                     var risk = d.atRisk > 0
-                        ? '<p class="text-xs text-red-400 mt-2">' + d.atRisk + ' cible(s) à risque</p>'
+                        ? '<p class="text-xs text-error mt-2">' + escapeHtml(d.atRisk) + ' cible(s) à risque</p>'
                         : '<p class="text-xs text-on-surface-variant mt-2">toutes les cibles couvertes</p>';
                     box.innerHTML =
-                        '<div class="flex items-end justify-between mb-2"><span class="text-3xl font-bold" style="color:' + col + '">' + d.coverage + '%</span>' +
-                        '<span class="text-sm text-on-surface-variant">' + d.ok + '/' + d.total + ' OK</span></div>' +
-                        '<div class="bar-track"><div class="bar-fill" style="width:' + d.coverage + '%;background:' + col + '"></div></div>' + risk;
+                        '<div class="flex items-end justify-between mb-2"><span class="text-3xl font-bold" style="color:' + col + '">' + cov + '%</span>' +
+                        '<span class="text-sm text-on-surface-variant">' + escapeHtml(d.ok) + '/' + escapeHtml(d.total) + ' OK</span></div>' +
+                        '<div class="bar-track"><div class="bar-fill" style="width:' + cov + '%;background:' + col + '"></div></div>' + risk;
                 })
                 .catch(function () { box.innerHTML = '<p class="text-on-surface-variant">Indisponible pour le moment.</p>'; });
         }
@@ -190,7 +223,7 @@
 
         // Live refresh of the status tiles (no full page reload). Polls the same
         // caches the page rendered from, every 60s (aligned on the fastest worker).
-        function usageColor(v) { return v >= 90 ? "#ef4444" : v >= 75 ? "#f59e0b" : "#22c55e"; }
+        function usageColor(v) { return v >= 90 ? "var(--md-color-error)" : v >= 75 ? "var(--md-color-warning)" : "var(--md-color-success)"; }
         function setText(id, txt) { var el = document.getElementById(id); if (el) el.textContent = txt; }
         function setBar(id, v) { var el = document.getElementById(id); if (el) { el.style.width = v + "%"; el.style.background = usageColor(v); } }
 
@@ -200,9 +233,9 @@
                 .then(function (d) {
                     // Services
                     var svc = document.getElementById("ov-svc-val");
-                    if (svc) svc.innerHTML = '<span class="text-green-400">' + d.appsUp + '</span><span class="text-on-surface-variant text-lg">/' + d.appsTotal + '</span>';
+                    if (svc) svc.innerHTML = '<span class="text-success">' + escapeHtml(d.appsUp) + '</span><span class="text-on-surface-variant text-lg">/' + escapeHtml(d.appsTotal) + '</span>';
                     var svcSub = document.getElementById("ov-svc-sub");
-                    if (svcSub) { svcSub.textContent = d.appsDown > 0 ? d.appsDown + " hors ligne" : "aucun incident"; svcSub.className = "text-xs mt-0.5 " + (d.appsDown > 0 ? "text-red-400" : "text-on-surface-variant"); }
+                    if (svcSub) { svcSub.textContent = d.appsDown > 0 ? d.appsDown + " hors ligne" : "aucun incident"; svcSub.className = "text-xs mt-0.5 " + (d.appsDown > 0 ? "text-error" : "text-on-surface-variant"); }
                     // VMs
                     if (d.proxmoxConfigured) {
                         setText("ov-vms-val", d.vmsRunning);
@@ -215,20 +248,21 @@
                     // Wazuh
                     if (d.wazuhConfigured) {
                         var wz = document.getElementById("ov-wz-val");
-                        if (wz) wz.innerHTML = '<span class="text-green-400">' + d.wazuhActive + '</span> actifs';
+                        if (wz) wz.innerHTML = '<span class="text-success">' + escapeHtml(d.wazuhActive) + '</span> actifs';
                         var wzSub = document.getElementById("ov-wz-sub");
-                        if (wzSub) { wzSub.textContent = d.wazuhDisconnected > 0 ? d.wazuhDisconnected + " déconnectés" : "tous connectés"; wzSub.className = "text-xs mt-0.5 " + (d.wazuhDisconnected > 0 ? "text-red-400" : "text-on-surface-variant"); }
+                        if (wzSub) { wzSub.textContent = d.wazuhDisconnected > 0 ? d.wazuhDisconnected + " déconnectés" : "tous connectés"; wzSub.className = "text-xs mt-0.5 " + (d.wazuhDisconnected > 0 ? "text-error" : "text-on-surface-variant"); }
                     }
                     // Alerts
                     if (d.alerts24hKnown) {
                         var al = document.getElementById("ov-alerts-val");
-                        if (al) { al.textContent = d.alerts24h; al.className = "text-2xl font-bold mt-1 " + (d.alerts24h > 0 ? "text-amber-400" : "text-on-surface"); }
+                        if (al) { al.textContent = d.alerts24h; al.className = "text-xl md:text-2xl font-bold mt-1 " + (d.alerts24h > 0 ? "text-warning" : "text-on-surface"); }
                     }
-                    // Global health banner
-                    var hc = d.health === "Critique" ? "#ef4444" : d.health === "Dégradé" ? "#f59e0b" : "#22c55e";
+                    // Global health banner : la classe ind-* pose --ind sur la
+                    // bannière, dont héritent la pastille et les puces d'incident.
+                    var ind = d.health === "Critique" ? "ind-err" : d.health === "Dégradé" ? "ind-warn" : "ind-ok";
                     var hl = d.health === "Critique" ? "Attention requise — un ou plusieurs indicateurs critiques" : d.health === "Dégradé" ? "État dégradé — à surveiller" : "Tous les systèmes sont opérationnels";
-                    var banner = document.getElementById("ov-banner"); if (banner) banner.style.borderLeftColor = hc;
-                    var dot = document.getElementById("ov-banner-dot"); if (dot) { dot.style.background = hc; dot.style.boxShadow = "0 0 0 4px color-mix(in srgb, " + hc + " 25%, transparent)"; }
+                    var banner = document.getElementById("ov-banner");
+                    if (banner) { banner.classList.remove("ind-ok", "ind-warn", "ind-err"); banner.classList.add(ind); }
                     setText("ov-health-text", d.health);
                     setText("ov-health-sub", hl);
                     var iss = document.getElementById("ov-issues");
@@ -236,14 +270,64 @@
                         if (d.issues && d.issues.length) {
                             iss.classList.remove("hidden");
                             iss.innerHTML = d.issues.map(function (t) {
-                                return '<span class="ov-issue text-xs px-2.5 py-0.5 rounded-full bg-surface-container-high text-on-surface border border-outline-variant" style="border-left:2px solid ' + hc + '">' + t + '</span>';
+                                return '<span class="ov-issue text-xs px-2.5 py-0.5 rounded-full bg-surface-container-high text-on-surface border border-outline-variant">' + escapeHtml(t) + '</span>';
                             }).join("");
                         } else { iss.classList.add("hidden"); iss.innerHTML = ""; }
                     }
+                    lastRefreshAt = Date.now();
+                    consecutiveFailures = 0;
+                    renderFreshness();
                 })
-                .catch(function () { /* transient error: keep last values */ });
+                .catch(function () {
+                    // Les anciennes valeurs restent affichées — mais l'indicateur de
+                    // fraîcheur dit désormais depuis quand, et bascule en « données
+                    // non actualisées » au bout de trois échecs d'affilée.
+                    consecutiveFailures++;
+                    renderFreshness();
+                });
         }
-        setInterval(refreshOverview, 60000);
+
+        // --- Fraîcheur des données -------------------------------------------
+        var lastRefreshAt = Date.now();
+        var consecutiveFailures = 0;
+        var FAILURES_BEFORE_STALE = 3;
+
+        function renderFreshness() {
+            var el = document.getElementById("ov-freshness");
+            if (!el) return;
+            var base = "text-xs font-medium px-3 py-1.5 rounded-full border ";
+            if (consecutiveFailures >= FAILURES_BEFORE_STALE) {
+                el.textContent = "⚠ données non actualisées — serveur injoignable";
+                el.className = base + "bg-error/10 text-error border-error/30";
+                return;
+            }
+            var secs = Math.floor((Date.now() - lastRefreshAt) / 1000);
+            el.textContent = secs < 60
+                ? "mis à jour à l'instant"
+                : "mis à jour il y a " + Math.floor(secs / 60) + " min";
+            el.className = base + (secs > 180
+                ? "bg-warning/10 text-warning border-warning/30"
+                : "bg-surface-container text-on-surface-variant border-outline-variant");
+        }
+
+        // Premier appel immédiat : sans lui, la page vivait une minute entière sur
+        // le seul rendu serveur, sans jamais dire qu'elle n'avait rien revérifié.
+        refreshOverview();
+        setInterval(renderFreshness, 15000);
+
+        // Le rafraîchissement s'interrompt quand l'onglet est en arrière-plan et
+        // reprend immédiatement au retour : inutile d'interroger le serveur toutes
+        // les minutes pour un écran que personne ne regarde.
+        var refreshTimer = setInterval(refreshOverview, 60000);
+        document.addEventListener("visibilitychange", function () {
+            if (document.hidden) {
+                clearInterval(refreshTimer);
+                refreshTimer = null;
+            } else if (!refreshTimer) {
+                refreshOverview();
+                refreshTimer = setInterval(refreshOverview, 60000);
+            }
+        });
     </script>
     {{template "sidebar-js"}}
 </body>

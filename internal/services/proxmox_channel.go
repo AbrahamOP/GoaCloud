@@ -2,9 +2,12 @@ package services
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"goacore/internal/config"
@@ -12,17 +15,24 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 )
 
-// ProxmoxChannel is the client for the read-only "goabackup" helper that runs on
-// the Proxmox host. The helper is exposed over SSH with a forced-command: the
-// string we send via session.Output(op) becomes the operation, and the helper
-// replies with a single line of JSON. We never run arbitrary shell here — the
-// host side decides what each op maps to.
+// ProxmoxChannel is the client for the "goabackup" helper that runs on the Proxmox
+// host. The helper is exposed over SSH with a forced-command: the string we send via
+// session.Output(op) becomes the operation, and the helper replies with a single line
+// of JSON. We never run arbitrary shell here — the host side decides what each op
+// maps to.
 //
-// HostKeyCallback: we use InsecureIgnoreHostKey on purpose. The channel targets a
-// fixed internal Proxmox host over the management VLAN with a pinned key file we
-// control; there is no TOFU store wired for this service, and a failed host-key
-// check would silently degrade the (optional) restore-test feature. The risk
-// surface (internal-only, key-auth, read-only forced command) is acceptable.
+// Scope of the channel: it is NOT a strictly read-only access. Most ops only read
+// (disk-free, ping, healthcheck, cryptcheck, rclone-remotes, rclone-about), but
+// rclone-push writes off-site AND deletes the local vzdump archive it just pushed
+// when the caller asks not to keep it (RclonePush keepLocal=false). Describe it as a
+// forced-command channel, never as "read-only" — the UI wording must match.
+//
+// HostKeyCallback: the channel carries the PROOF of restorability (the cryptcheck and
+// healthcheck verdicts), so a machine-in-the-middle able to answer for the Proxmox
+// host forges the proof itself. The host identity is therefore verified against the
+// persisted TOFU store shared with the SSH console (table ssh_host_keys): pinned on
+// first contact — in practice the install-time probe — and an explicit hard failure on
+// any later change. See ChannelHostKeys.
 type ProxmoxChannel struct {
 	host string
 	user string
@@ -34,6 +44,67 @@ type ProxmoxChannel struct {
 	// used only when keyPEM is empty. Exactly one of the two is the live source.
 	keyPEM  []byte
 	keyFile string
+
+	// hostKeys is the TOFU store this channel verifies the Proxmox host against. nil
+	// means "use the package default" (SetDefaultChannelHostKeys); when both are nil
+	// run() refuses rather than dialling an unverified host.
+	hostKeys ChannelHostKeys
+}
+
+// ChannelHostKeys is the persisted Trust-On-First-Use store the channel verifies the
+// Proxmox host key against. The single implementation is *SSHService, whose
+// SSHHostKeyCallback pins into the shared ssh_host_keys table — the very store the
+// console and the key deployment already use. Sharing it is deliberate: GoaCore keeps
+// ONE source of truth on host identity, so the fingerprint pinned when the admin
+// installs the channel is the one every later verdict is read through.
+type ChannelHostKeys interface {
+	// SSHHostKeyCallback returns a callback that pins the host key on first contact
+	// and refuses the connection once a pinned key changes.
+	SSHHostKeyCallback(ip string) gossh.HostKeyCallback
+}
+
+// Compile-time proof that the shared SSH TOFU store satisfies the channel's needs.
+var _ ChannelHostKeys = (*SSHService)(nil)
+
+// ErrNoChannelHostKeys signals a wiring error: no TOFU store was registered, so the
+// Proxmox host identity cannot be verified. Operations refuse rather than fall back to
+// an unauthenticated host — a forged verdict is worse than a missing one.
+var ErrNoChannelHostKeys = errors.New("no host-key store registered: cannot verify the Proxmox host identity")
+
+var (
+	defaultChannelHostKeysMu sync.RWMutex
+	defaultChannelHostKeys   ChannelHostKeys
+)
+
+// SetDefaultChannelHostKeys registers the TOFU store used by every channel built
+// without an explicit WithChannelHostKeys option (the boot/env channel and the
+// registry's hot-reload path). Call it ONCE at startup with the *SSHService — it is
+// the channel counterpart of SetDefaultHostKeyStore for Ansible.
+func SetDefaultChannelHostKeys(store ChannelHostKeys) {
+	defaultChannelHostKeysMu.Lock()
+	defer defaultChannelHostKeysMu.Unlock()
+	defaultChannelHostKeys = store
+}
+
+// channelHostKeyStore returns the registered default store (nil when none).
+func channelHostKeyStore() ChannelHostKeys {
+	defaultChannelHostKeysMu.RLock()
+	defer defaultChannelHostKeysMu.RUnlock()
+	return defaultChannelHostKeys
+}
+
+// ChannelOption configures a channel at construction time.
+type ChannelOption func(*ProxmoxChannel)
+
+// WithChannelHostKeys pins the TOFU store this channel verifies the Proxmox host
+// against, overriding the package default. A nil store is ignored so callers can pass
+// an optional dependency without branching.
+func WithChannelHostKeys(store ChannelHostKeys) ChannelOption {
+	return func(c *ProxmoxChannel) {
+		if store != nil {
+			c.hostKeys = store
+		}
+	}
 }
 
 // NewProxmoxChannel builds a channel client from config (the env/file path). It is
@@ -41,27 +112,33 @@ type ProxmoxChannel struct {
 // channel is not configured (missing host/key), so the restore-test feature degrades
 // gracefully. This is the retro-compat constructor that keeps reading the key from
 // GOABACKUP_SSH_KEY_FILE — the HomeLab instance must NOT regress.
-func NewProxmoxChannel(cfg *config.Config) *ProxmoxChannel {
-	if cfg == nil {
-		return &ProxmoxChannel{}
+func NewProxmoxChannel(cfg *config.Config, opts ...ChannelOption) *ProxmoxChannel {
+	c := &ProxmoxChannel{}
+	if cfg != nil {
+		c.host = normalizeChannelHost(cfg.GoabackupSSHHost)
+		c.user = cfg.GoabackupSSHUser
+		c.keyFile = cfg.GoabackupSSHKeyFile
 	}
-	return &ProxmoxChannel{
-		host:    normalizeChannelHost(cfg.GoabackupSSHHost),
-		user:    cfg.GoabackupSSHUser,
-		keyFile: cfg.GoabackupSSHKeyFile,
+	for _, opt := range opts {
+		opt(c)
 	}
+	return c
 }
 
 // NewProxmoxChannelFromKey builds a channel client holding the private key IN MEMORY
 // (the in-app-generated ed25519 key decrypted from the DB row). The PEM never lands
 // on disk: run() parses it directly. user empties to "goabackup" at run time. This is
 // the DB-first path; pass an empty host to publish an unconfigured (degraded) channel.
-func NewProxmoxChannelFromKey(host, user string, keyPEM []byte) *ProxmoxChannel {
-	return &ProxmoxChannel{
+func NewProxmoxChannelFromKey(host, user string, keyPEM []byte, opts ...ChannelOption) *ProxmoxChannel {
+	c := &ProxmoxChannel{
 		host:   normalizeChannelHost(host),
 		user:   user,
 		keyPEM: keyPEM,
 	}
+	for _, opt := range opts {
+		opt(c)
+	}
+	return c
 }
 
 // normalizeChannelHost appends the default SSH port when the host carries none, so
@@ -74,11 +151,42 @@ func normalizeChannelHost(host string) string {
 	return host
 }
 
+// channelHostOnly strips the SSH port from the dial target so the TOFU store is keyed
+// by the BARE host — the same key the console and the key deployment pin under, so a
+// host already trusted there is not re-pinned (nor silently re-trusted) here. A target
+// without a port is returned unchanged.
+func channelHostOnly(hostPort string) string {
+	h, _, err := net.SplitHostPort(hostPort)
+	if err != nil {
+		return hostPort
+	}
+	return h
+}
+
 // Configured reports whether the channel has the minimum settings to operate: a host
 // plus a usable key (the in-memory PEM OR the fallback key file). The DB-first path
 // (keyPEM) and the env path (keyFile) are both accepted.
 func (c *ProxmoxChannel) Configured() bool {
 	return c != nil && c.host != "" && (len(c.keyPEM) > 0 || c.keyFile != "")
+}
+
+// hostKeyCallback resolves the TOFU verification for this channel: the store pinned at
+// construction, else the package default. First contact pins the Proxmox host key in
+// ssh_host_keys (keyed by the BARE host, shared with the console); any later change is
+// a hard, explicit failure.
+//
+// No store at all is a wiring error, NOT a licence to skip the check: the cryptcheck and
+// healthcheck answers this channel carries ARE the restorability proof, so a host that
+// can be impersonated is a proof that can be forged. We refuse instead.
+func (c *ProxmoxChannel) hostKeyCallback() (gossh.HostKeyCallback, error) {
+	store := c.hostKeys
+	if store == nil {
+		store = channelHostKeyStore()
+	}
+	if store == nil {
+		return nil, fmt.Errorf("proxmox channel: %w", ErrNoChannelHostKeys)
+	}
+	return store.SSHHostKeyCallback(channelHostOnly(c.host)), nil
 }
 
 // run sends a single operation over a fresh SSH session and returns the raw
@@ -89,6 +197,13 @@ func (c *ProxmoxChannel) run(op string, timeout time.Duration) (string, error) {
 	}
 	if c.host == "" || (len(c.keyPEM) == 0 && c.keyFile == "") {
 		return "", fmt.Errorf("proxmox channel: not configured (missing host or key)")
+	}
+
+	// Resolve the host-key verification FIRST: an unverifiable host is a refusal, and
+	// there is no point reading a private key we would not be allowed to use.
+	hostKeyCB, err := c.hostKeyCallback()
+	if err != nil {
+		return "", err
 	}
 
 	// Key source precedence: the in-memory PEM (DB-provisioned, never on disk) wins;
@@ -106,12 +221,6 @@ func (c *ProxmoxChannel) run(op string, timeout time.Duration) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("proxmox channel: parse private key: %w", err)
 	}
-
-	// HostKeyCallback: InsecureIgnoreHostKey by design and documented on the
-	// ProxmoxChannel type — a fixed internal Proxmox host over the management VLAN,
-	// key-based auth, restricted to a read-only forced command. No TOFU store is
-	// wired for this optional feature.
-	hostKeyCB := gossh.InsecureIgnoreHostKey() //nolint:gosec // internal host, pinned key, read-only forced command
 
 	user := c.user
 	if user == "" {

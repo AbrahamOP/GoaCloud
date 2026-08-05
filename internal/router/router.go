@@ -41,6 +41,23 @@ func New(h *handlers.Handler, store *sessions.CookieStore, db *sql.DB, cookieSec
 	// Logout is POST-only (CSRF-protected) so it can't be forced via <img src=/logout>.
 	r.Post("/logout", h.HandleLogout)
 
+	// Observability. Unauthenticated because a probe (Docker HEALTHCHECK, Traefik,
+	// an orchestrator) carries no session cookie, and outside every group so the
+	// OnboardingGate can never turn a health check into a 303 to /onboarding on a
+	// fresh instance. The payload is two fixed words — see handlers/health.go, which
+	// also documents why no /metrics endpoint is exposed here.
+	r.Get("/healthz", h.HandleHealthz)
+	r.Get("/readyz", h.HandleReadyz)
+
+	// Channel installer script — PUBLIC on purpose, authenticated by a single-use
+	// token minted in-app (?t=...) and burned on first use. The admin runs the curl
+	// from a Proxmox root shell that has no GoaCore session: behind the session gate
+	// curl -L would follow the 303 to /login, get the login page with a 200 (so -f
+	// never trips) and pipe HTML into bash. See HandleOnboardingChannelInstallerToken.
+	// The Admin-only preview route (/api/onboarding/canal/installer.sh) serves the
+	// same bytes to a logged-in browser.
+	r.Get("/canal/installer.sh", h.HandleOnboardingChannelInstallerToken)
+
 	// Authenticated routes (any logged-in user, incl. Viewer — read-only surface)
 	r.Group(func(r chi.Router) {
 		r.Use(func(next http.Handler) http.Handler {
@@ -58,8 +75,6 @@ func New(h *handlers.Handler, store *sessions.CookieStore, db *sql.DB, cookieSec
 		r.Get("/api/overview/data", h.HandleOverviewData)
 		r.Get("/api/overview/backups", h.HandleOverviewBackups)
 		r.Get("/report", h.HandleReport)
-		r.Get("/add", h.HandleAddApp)
-		r.Post("/add", h.HandleAddApp)
 
 		// Proxmox — read-only views
 		r.Get("/proxmox", h.HandleProxmox)
@@ -91,6 +106,9 @@ func New(h *handlers.Handler, store *sessions.CookieStore, db *sql.DB, cookieSec
 		r.Post("/api/profile/update", h.HandleUpdateProfile)
 		r.Post("/api/profile/github", h.HandleUpdateGithub)
 		r.Get("/api/me", h.HandleMe)
+		// Revokes EVERY session of the caller (epoch bump), including a stolen cookie.
+		// Self-service by design: it acts on the caller's OWN account only.
+		r.Post("/logout-all", h.HandleLogoutAll)
 
 		// MFA (self-service)
 		r.Get("/api/mfa/setup", h.HandleSetupMFA)
@@ -100,11 +118,8 @@ func New(h *handlers.Handler, store *sessions.CookieStore, db *sql.DB, cookieSec
 		// Search
 		r.Get("/api/search", h.HandleSearch)
 
-		// Apps management
-		r.Post("/api/apps/pin", h.HandleTogglePin)
-		r.Post("/api/apps/update", h.HandleUpdateApp)
-		r.Post("/api/apps/reorder", h.HandleReorderApps)
-		r.Delete("/api/apps/delete", h.HandleDeleteApp)
+		// NB: the apps catalogue is READ-ONLY here. Every mutation on it lives in the
+		// Admin-only group below — see the comment there.
 	})
 
 	// Admin-only routes (infra-sensitive: shell, VM control, keys, users, exec).
@@ -114,6 +129,11 @@ func New(h *handlers.Handler, store *sessions.CookieStore, db *sql.DB, cookieSec
 		r.Use(func(next http.Handler) http.Handler {
 			return appMiddleware.AuthMiddleware(store, db, next)
 		})
+		// Audit trail, mounted BEFORE AdminOnly on purpose: a Viewer poking an admin
+		// route leaves an "HTTP 403" entry instead of no entry at all. It records only
+		// state-changing methods, and only "METHOD /path" + outcome — never the query
+		// string or the body, which carry TOTP codes, API tokens and private keys.
+		r.Use(appMiddleware.AuditTrail(store, appMiddleware.DBAuditSink(db)))
 		r.Use(func(next http.Handler) http.Handler {
 			return appMiddleware.AdminOnly(store, db, next)
 		})
@@ -228,6 +248,28 @@ func New(h *handlers.Handler, store *sessions.CookieStore, db *sql.DB, cookieSec
 		r.Get("/api/backups/available-guests", h.HandleBackupAvailableGuests)
 		r.Post("/api/backups/targets", h.HandleBackupAddTarget)
 
+		// Applications catalogue — MUTATIONS.
+		//
+		// The `apps` table is GLOBAL: it has no user_id, so every row is the shared
+		// catalogue of the instance. Editing one is therefore an administrative act,
+		// not a personal preference, and it is a sharp one: rewriting the external_url
+		// of "Proxmox" turns the dashboard's own link into a credential-harvesting
+		// page for every user. These routes used to sit in the authenticated group,
+		// which let a Viewer — the role a small company gives a trainee or a
+		// contractor — wipe or rewrite the whole catalogue while the product promised
+		// Viewers were read-only.
+		//
+		// /api/apps/pin is here for the same reason: `UPDATE apps SET is_pinned` has
+		// no per-user dimension either, so pinning is a change to everyone's dashboard,
+		// not a favourite. It moves back to the authenticated group the day pins get
+		// their own (user_id, app_id) table.
+		r.Get("/add", h.HandleAddApp)
+		r.Post("/add", h.HandleAddApp)
+		r.Post("/api/apps/pin", h.HandleTogglePin)
+		r.Post("/api/apps/update", h.HandleUpdateApp)
+		r.Post("/api/apps/reorder", h.HandleReorderApps)
+		r.Delete("/api/apps/delete", h.HandleDeleteApp)
+
 		// User management & audit trail. /users is a legacy alias for the hub
 		// Utilisateurs section.
 		r.Get("/users", h.HandleSettingsUtilisateurs)
@@ -235,6 +277,10 @@ func New(h *handlers.Handler, store *sessions.CookieStore, db *sql.DB, cookieSec
 		r.Post("/api/users/add", h.HandleAddUser)
 		r.Post("/api/users/delete", h.HandleDeleteUser)
 		r.Post("/api/users/update", h.HandleUpdateUser)
+		// Lost phone, or a SESSION_SECRET rotation that left every stored TOTP secret
+		// undecipherable: without this the only way back into an account was a manual
+		// UPDATE in the database. Also bumps the target's session epoch.
+		r.Post("/api/users/reset-mfa", h.HandleResetUserMFA)
 	})
 
 	return r

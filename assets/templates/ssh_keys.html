@@ -5,7 +5,6 @@
     {{template "head-common" .}}
     <title>GoaCore - Clés SSH</title>
     <style>
-        body { font-family: 'Outfit', sans-serif; }
         select.themed {
             appearance: none; -webkit-appearance: none; -moz-appearance: none;
             background-image: linear-gradient(45deg, transparent 50%, var(--md-color-on-surface-variant) 50%), linear-gradient(135deg, var(--md-color-on-surface-variant) 50%, transparent 50%);
@@ -21,21 +20,22 @@
 
 <body class="min-h-screen flex bg-surface text-on-surface">
 
+    {{template "skip-link"}}
     {{template "mobile-overlay" .}}
 
     {{template "sidebar" .}}
 
     <!-- Main Content -->
-    <main class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
+    <main id="main-content" tabindex="-1" class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
         {{template "bubbles"}}
 
         <!-- Content -->
-        <div class="px-8 py-10 relative z-10">
+        <div class="px-4 md:px-8 py-10 relative z-10">
 
             <!-- Header -->
             <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
                 <div>
-                    <h2 class="text-3xl font-bold text-on-surface mb-2">Gestion <span class="gradient-text">Clés SSH</span></h2>
+                    <h2 class="text-2xl md:text-3xl font-bold text-on-surface mb-2">Gestion <span class="gradient-text">Clés SSH</span></h2>
                     <p class="text-on-surface-variant text-sm">Générez, déployez et gérez vos clés SSH en toute sécurité.</p>
                 </div>
                 <div class="flex items-center gap-3 flex-wrap">
@@ -47,15 +47,15 @@
             <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
                 <div class="bg-surface-container border border-outline-variant rounded-xl p-4">
                     <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold">Clés SSH</p>
-                    <p class="text-2xl font-bold text-cyan-400 mt-1">{{len .Keys}}</p>
+                    <p class="text-xl md:text-2xl font-bold text-cyan-400 mt-1">{{len .Keys}}</p>
                 </div>
                 <div class="bg-surface-container border border-outline-variant rounded-xl p-4">
                     <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold">VMs disponibles</p>
-                    <p class="text-2xl font-bold text-primary mt-1">{{len .VMs}}</p>
+                    <p class="text-xl md:text-2xl font-bold text-primary mt-1">{{len .VMs}}</p>
                 </div>
                 <div class="bg-surface-container border border-outline-variant rounded-xl p-4">
                     <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold">Type par défaut</p>
-                    <p class="text-2xl font-bold text-green-400 mt-1">ED25519</p>
+                    <p class="text-xl md:text-2xl font-bold text-success mt-1">ED25519</p>
                 </div>
             </div>
 
@@ -63,7 +63,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                 <!-- Generate Key Card -->
                 <div class="bg-surface-container border border-outline-variant rounded-xl shadow-xl overflow-hidden">
-                    <div class="px-6 py-3 border-b border-outline-variant"
+                    <div class="px-3 md:px-6 py-3 border-b border-outline-variant"
                          style="background: linear-gradient(135deg, rgba(6,182,212,0.12) 0%, var(--md-color-surface-container) 70%);">
                         <h3 class="font-semibold text-on-surface flex items-center gap-2">
                             <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -88,10 +88,10 @@
 
                 <!-- Manual Install Card -->
                 <div class="bg-surface-container border border-outline-variant rounded-xl shadow-xl overflow-hidden lg:col-span-2">
-                    <div class="px-6 py-3 border-b border-outline-variant"
+                    <div class="px-3 md:px-6 py-3 border-b border-outline-variant"
                          style="background: linear-gradient(135deg, rgba(34,197,94,0.12) 0%, var(--md-color-surface-container) 70%);">
                         <h3 class="font-semibold text-on-surface flex items-center gap-2">
-                            <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <svg class="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                             </svg>
@@ -114,7 +114,7 @@
                             </div>
                             <div class="relative bg-surface rounded-lg p-3 border border-outline-variant">
                                 <code id="manual-command-display"
-                                    class="block text-green-400 font-mono text-xs break-all whitespace-pre-wrap select-all min-h-[3rem] flex items-center">Veuillez sélectionner une clé ci-dessus...</code>
+                                    class="block text-success font-mono text-xs break-all whitespace-pre-wrap select-all min-h-[3rem] flex items-center">Veuillez sélectionner une clé ci-dessus...</code>
                                 <button onclick="copyManualCommand(this)"
                                     class="absolute top-2 right-2 p-1.5 bg-surface-container-high hover:bg-surface-container-highest rounded text-on-surface-variant hover:text-on-surface transition">
                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -130,7 +130,7 @@
 
             <!-- Keys List -->
             <div class="bg-surface-container border border-outline-variant rounded-xl overflow-hidden shadow-xl">
-                <div class="px-6 py-4 border-b border-outline-variant flex justify-between items-center"
+                <div class="px-3 md:px-6 py-4 border-b border-outline-variant flex justify-between items-center"
                      style="background: linear-gradient(135deg, rgba(124,58,237,0.10) 0%, var(--md-color-surface-container) 70%);">
                     <h3 class="font-semibold text-on-surface flex items-center gap-2">
                         <svg class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
@@ -142,22 +142,22 @@
                     <table class="w-full text-left text-sm text-on-surface-variant">
                         <thead class="bg-surface-container-high text-xs uppercase font-medium text-on-surface-variant">
                             <tr>
-                                <th class="px-6 py-3">Nom</th>
-                                <th class="px-6 py-3">Type</th>
-                                <th class="px-6 py-3">Utilisée sur (Probable)</th>
-                                <th class="px-6 py-3">Fingerprint</th>
-                                <th class="px-6 py-3">Créée le</th>
-                                <th class="px-6 py-3 text-right">Actions</th>
+                                <th class="px-3 md:px-6 py-3">Nom</th>
+                                <th class="px-3 md:px-6 py-3">Type</th>
+                                <th class="px-3 md:px-6 py-3">Utilisée sur (Probable)</th>
+                                <th class="px-3 md:px-6 py-3">Fingerprint</th>
+                                <th class="px-3 md:px-6 py-3">Créée le</th>
+                                <th class="px-3 md:px-6 py-3 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-outline-variant">
                             {{range .Keys}}
                             <tr class="hover:bg-outline-variant/30 transition group">
-                                <td class="px-6 py-4 font-medium text-on-surface key-name">{{.Name}}</td>
-                                <td class="px-6 py-4"><span
-                                        class="bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded text-xs border border-blue-500/20">{{.KeyType}}</span>
+                                <td class="px-3 md:px-6 py-4 font-medium text-on-surface key-name">{{.Name}}</td>
+                                <td class="px-3 md:px-6 py-4"><span
+                                        class="bg-info/10 text-info px-2 py-0.5 rounded text-xs border border-info/20">{{.KeyType}}</span>
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-3 md:px-6 py-4">
                                     <div class="flex items-center gap-2">
                                         <div class="flex flex-wrap gap-2 key-usage" data-key-name="{{.Name}}"
                                             data-associated="{{.AssociatedVMs}}">
@@ -174,9 +174,9 @@
                                         </button>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 font-mono text-xs text-on-surface-variant">{{.Fingerprint}}</td>
-                                <td class="px-6 py-4">{{.CreatedAt.Format "02/01/2006 15:04"}}</td>
-                                <td class="px-6 py-4 text-right">
+                                <td class="px-3 md:px-6 py-4 font-mono text-xs text-on-surface-variant">{{.Fingerprint}}</td>
+                                <td class="px-3 md:px-6 py-4">{{.CreatedAt.Format "02/01/2006 15:04"}}</td>
+                                <td class="px-3 md:px-6 py-4 text-right">
                                     <div class="flex items-center justify-end gap-1">
                                         <button data-name="{{.Name}}" data-key="{{.PublicKey}}"
                                             onclick="openViewModal(this.dataset.name, this.dataset.key)"
@@ -195,7 +195,7 @@
                             </tr>
                             {{else}}
                             <tr>
-                                <td colspan="6" class="px-6 py-8 text-center text-on-surface-variant">Aucune clé SSH générée.</td>
+                                <td colspan="6" class="px-3 md:px-6 py-8 text-center text-on-surface-variant">Aucune clé SSH générée.</td>
                             </tr>
                             {{end}}
                         </tbody>
@@ -207,16 +207,17 @@
     </main>
 
     <!-- View Key Modal -->
-    <div id="view-modal"
+    <div id="view-modal" role="dialog" aria-modal="true" aria-labelledby="view-modal-title" tabindex="-1"
+        data-modal-dismiss
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center">
         <div
             class="bg-surface-container border border-outline-variant w-full max-w-2xl p-6 rounded-xl shadow-2xl transform transition-all scale-100">
             <div class="flex justify-between items-center mb-6">
                 <div>
-                    <h3 class="text-lg font-bold text-on-surface">Clé Publique</h3>
+                    <h3 id="view-modal-title" class="text-lg font-bold text-on-surface">Clé Publique</h3>
                     <p class="text-xs text-on-surface-variant font-mono mt-1" id="view-modal-key-name">Nom de la clé</p>
                 </div>
-                <button onclick="closeViewModal()" class="text-on-surface-variant hover:text-on-surface transition">
+                <button type="button" onclick="closeViewModal()" aria-label="Fermer" class="text-on-surface-variant hover:text-on-surface transition">
                     <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M6 18L18 6M6 6l12 12" />
@@ -237,13 +238,13 @@
     </div>
 
     <!-- Deploy Key Modal -->
-    <div id="deploy-modal"
+    <div id="deploy-modal" role="dialog" aria-modal="true" aria-labelledby="deploy-modal-title" tabindex="-1"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center">
         <div
             class="bg-surface-container border border-outline-variant w-full max-w-md p-6 rounded-xl shadow-2xl transform transition-all scale-100">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-lg font-bold text-on-surface" id="deploy-modal-title">Déployer la clé</h3>
-                <button onclick="closeDeployModal()" class="text-on-surface-variant hover:text-on-surface transition">
+                <button type="button" onclick="closeDeployModal()" aria-label="Fermer" class="text-on-surface-variant hover:text-on-surface transition">
                     <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M6 18L18 6M6 6l12 12" />
@@ -318,11 +319,11 @@
     </div>
 
     <!-- Edit Usage Modal -->
-    <div id="edit-usage-modal"
+    <div id="edit-usage-modal" role="dialog" aria-modal="true" aria-labelledby="edit-usage-modal-title" tabindex="-1"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center">
         <div
             class="bg-surface-container border border-outline-variant w-full max-w-lg p-6 rounded-xl shadow-2xl transform transition-all scale-100">
-            <h3 class="text-lg font-bold text-on-surface mb-4">Modifier l'utilisation</h3>
+            <h3 id="edit-usage-modal-title" class="text-lg font-bold text-on-surface mb-4">Modifier l'utilisation</h3>
             <p class="text-sm text-on-surface-variant mb-4">Sélectionnez les machines qui utilisent cette clé (<span
                     id="edit-usage-key-name" class="font-bold text-on-surface"></span>).</p>
 
@@ -332,8 +333,10 @@
                 <input type="hidden" name="vms" id="edit-usage-vms">
 
                 <div class="mb-6 relative">
-                    <label class="block text-sm font-medium text-on-surface-variant mb-2">Machines associées</label>
+                    <span id="vm-dropdown-legend" class="block text-sm font-medium text-on-surface-variant mb-2">Machines associées</span>
                     <button type="button" onclick="toggleVMDropdown()" id="vm-dropdown-btn"
+                        aria-haspopup="true" aria-expanded="false" aria-controls="vm-dropdown-menu"
+                        aria-labelledby="vm-dropdown-legend vm-dropdown-label"
                         class="w-full bg-transparent border border-outline rounded-xs px-4 py-3 text-left text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition flex justify-between items-center">
                         <span id="vm-dropdown-label">Sélectionner des VMs...</span>
                         <svg class="w-4 h-4 text-on-surface-variant transition-transform" id="vm-dropdown-arrow" fill="none"
@@ -362,11 +365,11 @@
     </div>
 
     <!-- Delete Key Modal -->
-    <div id="delete-modal"
+    <div id="delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title" tabindex="-1"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center">
         <div
             class="bg-surface-container border border-outline-variant w-full max-w-md p-6 rounded-xl shadow-2xl transform transition-all scale-100 border-error/20">
-            <h3 class="text-xl font-bold text-on-surface mb-4">Supprimer la clé ?</h3>
+            <h3 id="delete-modal-title" class="text-xl font-bold text-on-surface mb-4">Supprimer la clé ?</h3>
             <p class="text-on-surface-variant mb-6">
                 Êtes-vous sûr de vouloir supprimer la clé <span id="delete-modal-key-name"
                     class="font-mono text-on-surface font-bold"></span> ?
@@ -382,10 +385,22 @@
             </div>
         </div>
     </div>
+    {{template "toast-host"}}
+
     <script src="/static/theme.js"></script>
     <script src="/static/csrf.js"></script>
+    <script src="/static/ui.js"></script>
     <script src="/static/search.js"></script>
     <script>
+        // Échappement HTML. OBLIGATOIRE pour tout champ de VM venant de Proxmox
+        // (nom, VMID) : l'hôte est une frontière de confiance distincte, un nom de
+        // VM peut contenir du balisage.
+        function escapeHtml(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
         // Inject VMs from Backend
         // Inject VMs from Backend (Safe fallback)
         let vmListData = {{.VMs | json}};
@@ -417,8 +432,8 @@
                     };
 
                     div.innerHTML = `
-                        <input type="checkbox" id="vm-${vm.ID}" value="${vm.Name}" onchange="updateDropdownLabel()" class="w-4 h-4 text-primary bg-surface-container border-outline-variant rounded focus:ring-primary focus:ring-2 cursor-pointer">
-                        <label for="vm-${vm.ID}" class="ml-3 w-full text-sm font-medium text-on-surface cursor-pointer select-none">${vm.Name}</label>
+                        <input type="checkbox" id="vm-${escapeHtml(vm.ID)}" value="${escapeHtml(vm.Name)}" onchange="updateDropdownLabel()" class="w-4 h-4 text-primary bg-surface-container border-outline-variant rounded focus:ring-primary focus:ring-2 cursor-pointer">
+                        <label for="vm-${escapeHtml(vm.ID)}" class="ml-3 w-full text-sm font-medium text-on-surface cursor-pointer select-none">${escapeHtml(vm.Name)}</label>
                      `;
                     container.appendChild(div);
                 });
@@ -440,6 +455,7 @@
                 const menu = document.getElementById('vm-dropdown-menu');
                 if (btn && menu && !btn.contains(e.target) && !menu.contains(e.target)) {
                     menu.classList.add('hidden');
+                    btn.setAttribute('aria-expanded', 'false');
                     const arrow = document.getElementById('vm-dropdown-arrow');
                     if (arrow) arrow.classList.remove('rotate-180');
                 }
@@ -449,9 +465,11 @@
         function toggleVMDropdown() {
             const menu = document.getElementById('vm-dropdown-menu');
             const arrow = document.getElementById('vm-dropdown-arrow');
+            const btn = document.getElementById('vm-dropdown-btn');
             if (menu && arrow) {
-                menu.classList.toggle('hidden');
-                arrow.classList.toggle('rotate-180');
+                const opened = menu.classList.toggle('hidden') === false;
+                arrow.classList.toggle('rotate-180', opened);
+                if (btn) btn.setAttribute('aria-expanded', String(opened));
             }
         }
 
@@ -495,9 +513,9 @@
 
                 if (matches.length > 0) {
                     cell.innerHTML = matches.map(vm =>
-                        `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20" title="ID: ${vm.ID}">
+                        `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-success/10 text-success border border-success/20" title="ID: ${escapeHtml(vm.ID)}">
                             <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"/></svg>
-                            ${vm.Name}
+                            ${escapeHtml(vm.Name)}
                         </span>`
                     ).join('');
                 } else {
@@ -525,11 +543,11 @@
             }
             updateDropdownLabel();
 
-            document.getElementById('edit-usage-modal').classList.remove('hidden');
+            GoaUI.openModal('edit-usage-modal');
         }
 
         function closeEditUsageModal() {
-            document.getElementById('edit-usage-modal').classList.add('hidden');
+            GoaUI.closeModal('edit-usage-modal');
         }
 
         // ... existing functions ...
@@ -543,11 +561,11 @@
                 const cmd = `mkdir -p ~/.ssh && echo "${pubKey}" >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys`;
                 display.innerText = cmd;
                 display.classList.remove('text-on-surface-variant');
-                display.classList.add('text-green-400');
+                display.classList.add('text-success');
             } else {
                 display.innerText = "Veuillez sélectionner une clé ci-dessus...";
                 display.classList.add('text-on-surface-variant');
-                display.classList.remove('text-green-400');
+                display.classList.remove('text-success');
             }
         }
 
@@ -559,7 +577,7 @@
 
             // Function to show success feedback
             const showSuccess = () => {
-                btn.innerHTML = `<svg class="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`;
+                btn.innerHTML = `<svg class="w-4 h-4 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`;
                 setTimeout(() => {
                     btn.innerHTML = originalHTML;
                 }, 2000);
@@ -590,8 +608,7 @@
                 document.body.removeChild(textArea);
                 if (onSuccess) onSuccess();
             } catch (err) {
-                console.error('Fallback copy failed', err);
-                alert("Impossible de copier automatiquement. Veuillez sélectionner et copier le texte manuellement.");
+                notify('warning', "La copie automatique est bloquée par le navigateur. Sélectionnez le texte puis copiez-le manuellement.");
             }
         }
 
@@ -635,16 +652,15 @@
                 });
 
                 if (res.ok) {
-                    closeDeployModal();
-                    alert('Clé déployée avec succès !');
+                    GoaUI.closeModal('deploy-modal');
+                    notify('success', 'La clé a été déployée sur la machine sélectionnée.');
                 } else {
                     const txt = await res.text();
                     errorDiv.textContent = "Erreur: " + txt;
                     errorDiv.classList.remove('hidden');
                 }
             } catch (e) {
-                console.error(e);
-                errorDiv.textContent = "Erreur réseau";
+                errorDiv.textContent = GoaUI.describeError(e, "Le déploiement a échoué");
                 errorDiv.classList.remove('hidden');
             } finally {
                 btn.innerHTML = originalText;
@@ -668,8 +684,7 @@
                     document.body.removeChild(textArea);
                     showCopyFeedback(btn);
                 } catch (fallbackErr) {
-                    console.error('Copy failed', fallbackErr);
-                    alert("Impossible de copier automatiquement. Veuillez sélectionner et copier le texte manuellement.");
+                    notify('warning', "La copie automatique est bloquée par le navigateur. Sélectionnez le texte puis copiez-le manuellement.");
                 }
             }
         }
@@ -677,10 +692,10 @@
         function showCopyFeedback(btn) {
             const originalText = btn.innerText;
             btn.innerText = 'Copié !';
-            btn.classList.add('bg-green-500/20', 'text-green-200');
+            btn.classList.add('bg-success/20', 'text-success');
             setTimeout(() => {
                 btn.innerText = originalText;
-                btn.classList.remove('bg-green-500/20', 'text-green-200');
+                btn.classList.remove('bg-success/20', 'text-success');
             }, 2000);
         }
 
@@ -690,11 +705,11 @@
         function openViewModal(name, publicKey) {
             document.getElementById('view-modal-content').value = publicKey;
             document.getElementById('view-modal-key-name').innerText = name;
-            document.getElementById('view-modal').classList.remove('hidden');
+            GoaUI.openModal('view-modal');
         }
 
         function closeViewModal() {
-            document.getElementById('view-modal').classList.add('hidden');
+            GoaUI.closeModal('view-modal');
         }
 
         // Custom Modal Logic
@@ -703,12 +718,12 @@
         function openDeleteModal(id, name) {
             keyToDeleteId = id;
             document.getElementById('delete-modal-key-name').innerText = name;
-            document.getElementById('delete-modal').classList.remove('hidden');
+            GoaUI.openModal('delete-modal');
         }
 
         function closeDeleteModal() {
             keyToDeleteId = null;
-            document.getElementById('delete-modal').classList.add('hidden');
+            GoaUI.closeModal('delete-modal');
         }
 
         async function confirmDelete() {
@@ -727,13 +742,13 @@
                     window.location.reload();
                 } else {
                     const txt = await res.text();
-                    alert("Erreur lors de la suppression: " + txt);
+                    notify('error', "La clé n'a pas pu être supprimée : " + (txt.trim() || "le serveur a refusé la demande."));
                     closeDeleteModal();
                     btn.disabled = false;
                     btn.innerHTML = originalText;
                 }
             } catch (err) {
-                alert("Erreur réseau: " + err.message);
+                notifyError(err, "La suppression de la clé a échoué");
                 closeDeleteModal();
                 btn.disabled = false;
                 btn.innerHTML = originalText;

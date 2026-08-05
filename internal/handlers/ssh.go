@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -9,7 +10,19 @@ import (
 	"goacore/internal/middleware"
 	"goacore/internal/models"
 	"goacore/internal/services"
+	gossh "golang.org/x/crypto/ssh"
 )
+
+// publicKeyFingerprint returns the SHA256 fingerprint of an authorized_keys line,
+// so the audit trail can name WHICH key was deployed without ever copying key
+// material into the log.
+func publicKeyFingerprint(authorizedKey string) string {
+	pub, _, _, _, err := gossh.ParseAuthorizedKey([]byte(authorizedKey))
+	if err != nil {
+		return "empreinte indisponible"
+	}
+	return gossh.FingerprintSHA256(pub)
+}
 
 // HandleSSHManager handles the SSH key manager page (GET) and key generation/update (POST).
 func (h *Handler) HandleSSHManager(w http.ResponseWriter, r *http.Request) {
@@ -31,6 +44,9 @@ func (h *Handler) HandleSSHManager(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "DB Save Error: "+err.Error(), http.StatusInternalServerError)
 				return
 			}
+			// A new credential for the whole fleet: trace it by name and fingerprint.
+			go services.LogAudit(h.DB, 0, middleware.GetSessionUser(r, h.SessionStore), "SSHKeyGenerate",
+				fmt.Sprintf("Clé %s « %s » générée (%s)", key.KeyType, key.Name, key.Fingerprint), middleware.RealIP(r))
 		} else if action == "update_usage" {
 			idStr := r.FormValue("id")
 			vms := r.FormValue("vms")
@@ -103,11 +119,24 @@ func (h *Handler) HandleSSHDeploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Deploying a key grants a durable foothold on the guest: the trail must name
+	// the target and the key (by fingerprint — the material itself never lands in
+	// the log), on success as well as on failure.
+	actor := middleware.GetSessionUser(r, h.SessionStore)
+	ip := middleware.RealIP(r)
+	target := fmt.Sprintf("%s #%d", req.Type, req.VMID)
+	fingerprint := publicKeyFingerprint(req.PublicKey)
+
 	if err := h.SSHService.DeployKeyToProxmox(req.VMID, req.Type, req.PublicKey); err != nil {
 		slog.Error("SSH Deploy Error", "error", err)
+		go services.LogAudit(h.DB, 0, actor, "SSHKeyDeployFailed",
+			fmt.Sprintf("Échec du déploiement de la clé %s sur %s", fingerprint, target), ip)
 		http.Error(w, "Deployment Failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	go services.LogAudit(h.DB, 0, actor, "SSHKeyDeploy",
+		fmt.Sprintf("Clé publique %s déployée sur %s", fingerprint, target), ip)
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
@@ -135,10 +164,20 @@ func (h *Handler) HandleSSHDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Read the key before it is gone: an id alone tells a later reader nothing
+	// about which credential was revoked.
+	label := fmt.Sprintf("#%d", id)
+	if key, err := h.SSHService.GetSSHKeyByID(id); err == nil {
+		label = fmt.Sprintf("« %s » (#%d, %s)", key.Name, key.ID, key.Fingerprint)
+	}
+
 	if err := h.SSHService.DeleteSSHKey(id); err != nil {
 		http.Error(w, "Delete Error: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	go services.LogAudit(h.DB, 0, middleware.GetSessionUser(r, h.SessionStore), "SSHKeyDelete",
+		fmt.Sprintf("Clé SSH %s supprimée", label), middleware.RealIP(r))
 
 	w.WriteHeader(http.StatusOK)
 }

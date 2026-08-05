@@ -146,6 +146,13 @@ func (h *Handler) HandleAnsibleRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// A playbook runs arbitrary tasks on a fleet machine, often with become: the
+	// trail names the playbook and its target. Logged BEFORE the run so an execution
+	// that hangs or dies mid-stream still leaves its intent behind.
+	go services.LogAudit(h.DB, 0, middleware.GetSessionUser(r, h.SessionStore), "AnsibleRun",
+		fmt.Sprintf("Playbook « %s » exécuté sur la machine #%d (%s) en tant que %s (become=%t)",
+			req.Playbook, req.VMID, targetIP, req.User, req.Become), middleware.RealIP(r))
+
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Transfer-Encoding", "chunked")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -236,6 +243,11 @@ func (h *Handler) HandleAnsibleUpload(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error saving file content", http.StatusInternalServerError)
 		return
 	}
+
+	// The name only — a playbook body may embed credentials and has no place in
+	// a table admins read all day.
+	go services.LogAudit(h.DB, 0, middleware.GetSessionUser(r, h.SessionStore), "AnsibleUpload",
+		fmt.Sprintf("Playbook « %s » déposé", filename), middleware.RealIP(r))
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "Playbook uploaded successfully")
@@ -334,6 +346,12 @@ func (h *Handler) HandleAnsiblePlaybookUpdate(w http.ResponseWriter, r *http.Req
 		http.Error(w, "Error writing playbook", http.StatusInternalServerError)
 		return
 	}
+
+	// Rewriting a playbook changes what will run as root on the fleet at the next
+	// execution — the name only, never the content (see AnsibleUpload).
+	go services.LogAudit(h.DB, 0, middleware.GetSessionUser(r, h.SessionStore), "AnsibleEdit",
+		fmt.Sprintf("Playbook « %s » modifié (%d octets)", req.Name, len(req.Content)), middleware.RealIP(r))
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]any{"ok": true})
 }

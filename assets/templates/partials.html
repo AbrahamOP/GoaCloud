@@ -2,13 +2,44 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/png" href="/static/favicon.png">
+<script>
+    // Le thème doit être posé AVANT les feuilles de style. theme.js est chargé en
+    // fin de <body> : le thème sombre par défaut s'appliquait donc en premier et
+    // les utilisateurs en thème clair voyaient un flash sombre plein écran à
+    // chaque navigation.
+    (function () {
+        try {
+            document.documentElement.setAttribute('data-theme',
+                localStorage.getItem('goacloud-theme') || 'dark');
+        } catch (e) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    })();
+</script>
 <link rel="stylesheet" href="/static/tailwind.min.css">
 <link rel="stylesheet" href="/static/theme.css">
+{{end}}
+
+{{define "skip-link"}}
+{{/* Premier élément focusable de la page : permet d'atteindre le contenu sans
+     traverser les 9 liens de navigation à chaque changement de page. */}}
+<a href="#main-content"
+    class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[300] focus:px-4 focus:py-2 focus:rounded-full focus:bg-primary focus:text-on-primary focus:font-semibold focus:shadow-lg">
+    Aller au contenu principal
+</a>
 {{end}}
 
 {{define "mobile-overlay"}}
 <div id="mobile-overlay"
     class="fixed inset-0 bg-scrim/50 z-40 hidden md:hidden transition-opacity"></div>
+{{end}}
+
+{{define "toast-host"}}
+{{/* Conteneur unique des notifications (assets/static/ui.js). Remplace les
+     alert() natifs et les toasts recopiés page par page. */}}
+<div id="goa-toast-host"
+    class="fixed bottom-6 right-6 z-[200] flex flex-col items-end gap-2 pointer-events-none"
+    aria-live="polite" aria-atomic="false"></div>
 {{end}}
 
 {{define "bubbles"}}
@@ -23,11 +54,14 @@
 {{end}}
 
 {{define "sidebar"}}
-<aside id="sidebar"
-    class="fixed inset-y-0 left-0 z-50 w-64 overflow-y-auto bg-surface-container-low border-r border-outline-variant flex flex-col justify-between transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
+{{/* `invisible md:visible` + l'attribut `inert` posé par sidebar-js : hors
+     desktop, le tiroir fermé ne doit pas rester dans l'ordre de tabulation —
+     sinon on tabule dans 9 liens invisibles avant d'atteindre le contenu. */}}
+<aside id="sidebar" aria-label="Navigation principale"
+    class="fixed inset-y-0 left-0 z-50 w-64 overflow-y-auto bg-surface-container-low border-r border-outline-variant flex flex-col justify-between transform -translate-x-full invisible md:translate-x-0 md:visible transition-transform duration-300 ease-in-out">
     <div>
         <div class="p-8">
-            <h1 class="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <h1 class="text-xl md:text-2xl font-bold tracking-tight flex items-center gap-2">
                 <div class="w-3 h-3 rounded-full bg-primary"></div>
                 <span class="gradient-text">GoaCore</span>
             </h1>
@@ -53,7 +87,7 @@
             </a>
             <a href="/proxmox"
                 class="sidebar-link flex items-center px-4 py-3 text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors duration-200">
-                <svg class="w-5 h-5 mr-3 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="w-5 h-5 mr-3 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
@@ -61,15 +95,15 @@
             </a>
             <a href="/wazuh"
                 class="sidebar-link flex items-center px-4 py-3 text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors duration-200">
-                <svg class="w-5 h-5 mr-3 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="w-5 h-5 mr-3 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
-                Securite (Wazuh)
+                Sécurité (Wazuh)
             </a>
             <a href="/soar"
                 class="sidebar-link flex items-center px-4 py-3 text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors duration-200">
-                <svg class="w-5 h-5 mr-3 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="w-5 h-5 mr-3 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
@@ -82,11 +116,11 @@
                         d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z">
                     </path>
                 </svg>
-                Cles SSH
+                Clés SSH
             </a>
             <a href="/ansible"
                 class="sidebar-link flex items-center px-4 py-3 text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors duration-200">
-                <svg class="w-5 h-5 mr-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="w-5 h-5 mr-3 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
                     </path>
@@ -95,7 +129,7 @@
             </a>
             <a href="/console"
                 class="sidebar-link flex items-center px-4 py-3 text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors duration-200">
-                <svg class="w-5 h-5 mr-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="w-5 h-5 mr-3 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
                     </path>
@@ -114,7 +148,7 @@
     </div>
 
     <div class="p-4 border-t border-outline-variant flex items-center justify-around">
-        <button id="theme-toggle" onclick="toggleTheme()" title="Changer le theme"
+        <button id="theme-toggle" onclick="toggleTheme()" title="Changer le thème" aria-label="Changer le thème"
             class="block p-2 text-on-surface-variant hover:text-on-surface rounded-full hover:bg-secondary-container transition-colors duration-200">
             <svg class="icon-moon w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
@@ -140,7 +174,7 @@
             </svg>
         </a>
         <form action="/logout" method="POST">
-            <button type="submit" title="Deconnexion"
+            <button type="submit" title="Déconnexion" aria-label="Déconnexion"
                 class="block p-2 text-error hover:text-on-error-container rounded-full hover:bg-error-container transition-colors duration-200">
                 <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -158,6 +192,7 @@
     document.querySelectorAll('.sidebar-link').forEach(link => {
         if (link.getAttribute('href') === window.location.pathname) {
             link.classList.add('active');
+            link.setAttribute('aria-current', 'page');
         }
     });
     // GitHub profile link
@@ -167,20 +202,60 @@
             if (link) { link.href = data.github_url; link.target = '_blank'; link.title = 'Mon profil GitHub'; }
         }
     }).catch(() => {});
-    // Mobile menu toggle
+    // Mobile menu toggle — le tiroir se comporte comme un dialogue : il annonce
+    // son état, prend le focus à l'ouverture, se ferme avec Échap et le rend au
+    // bouton hamburger. Fermé, il sort de l'ordre de tabulation (`inert`).
     document.addEventListener('DOMContentLoaded', function() {
         const btn = document.getElementById('mobile-menu-btn');
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('mobile-overlay');
-        if (btn && sidebar && overlay) {
-            function toggleMenu() {
-                const isClosed = sidebar.classList.contains('-translate-x-full');
-                if (isClosed) { sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden'); }
-                else { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden'); }
-            }
-            btn.addEventListener('click', toggleMenu);
-            overlay.addEventListener('click', toggleMenu);
+        if (!btn || !sidebar || !overlay) return;
+
+        const isDesktop = () => window.matchMedia('(min-width: 768px)').matches;
+
+        function syncInert() {
+            // Sur desktop le tiroir est permanent : jamais inerte.
+            const closed = sidebar.classList.contains('-translate-x-full');
+            sidebar.inert = closed && !isDesktop();
         }
+
+        function openMenu() {
+            sidebar.classList.remove('-translate-x-full', 'invisible');
+            overlay.classList.remove('hidden');
+            btn.setAttribute('aria-expanded', 'true');
+            syncInert();
+            const first = sidebar.querySelector('.sidebar-link');
+            if (first) first.focus();
+        }
+
+        function closeMenu(restoreFocus) {
+            sidebar.classList.add('-translate-x-full');
+            overlay.classList.add('hidden');
+            btn.setAttribute('aria-expanded', 'false');
+            syncInert();
+            // `invisible` n'arrive qu'en fin de glissement pour ne pas escamoter
+            // l'animation de fermeture.
+            setTimeout(function () {
+                if (sidebar.classList.contains('-translate-x-full')) sidebar.classList.add('invisible');
+            }, 300);
+            if (restoreFocus) btn.focus();
+        }
+
+        function toggleMenu() {
+            if (sidebar.classList.contains('-translate-x-full')) openMenu();
+            else closeMenu(true);
+        }
+
+        btn.addEventListener('click', toggleMenu);
+        overlay.addEventListener('click', function () { closeMenu(true); });
+        document.addEventListener('keydown', function (e) {
+            if ((e.key === 'Escape' || e.key === 'Esc') && btn.getAttribute('aria-expanded') === 'true') {
+                closeMenu(true);
+            }
+        });
+        // Le passage mobile → desktop doit rendre le tiroir navigable à nouveau.
+        window.addEventListener('resize', syncInert);
+        syncInert();
     });
 </script>
 {{end}}
@@ -194,9 +269,10 @@
             d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
 </a>
-<button id="mobile-menu-btn"
+<button id="mobile-menu-btn" type="button" aria-label="Ouvrir le menu de navigation"
+    aria-expanded="false" aria-controls="sidebar"
     class="md:hidden bg-surface-container text-on-surface-variant p-2 rounded-full border border-outline-variant">
-    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
     </svg>
 </button>

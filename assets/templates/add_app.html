@@ -4,11 +4,6 @@
 <head>
     {{template "head-common"}}
     <title>GoaCore - Ajouter une Application</title>
-    <style>
-        body {
-            font-family: 'Outfit', sans-serif;
-        }
-    </style>
 </head>
 
 <body class="bg-surface text-on-surface min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
@@ -23,7 +18,7 @@
         </a>
 
         <div class="bg-surface-container p-8 md:p-10 rounded-xl border border-outline-variant shadow-lg">
-            <h2 class="text-3xl font-bold mb-2">Nouvelle <span class="gradient-text">Application</span></h2>
+            <h2 class="text-2xl md:text-3xl font-bold mb-2">Nouvelle <span class="gradient-text">Application</span></h2>
             <p class="text-on-surface-variant mb-8">Ajoutez un service externe à votre dashboard.</p>
 
             <form action="/add" method="POST" class="space-y-6">
@@ -95,8 +90,11 @@
             </form>
         </div>
     </div>
+    {{template "toast-host"}}
+
     <script src="/static/theme.js"></script>
     <script src="/static/csrf.js"></script>
+    <script src="/static/ui.js"></script>
 </body>
 
 </html>
