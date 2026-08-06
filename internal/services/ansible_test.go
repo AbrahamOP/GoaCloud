@@ -87,11 +87,11 @@ func isolatedTmp(t *testing.T) func() []string {
 func TestKnownHostsContent(t *testing.T) {
 	stored, authorized := newPinnedHostKey(t)
 
-	got, err := knownHostsContent("192.168.20.11", []string{stored})
+	got, err := knownHostsContent("172.16.0.11", []string{stored})
 	if err != nil {
 		t.Fatalf("knownHostsContent: %v", err)
 	}
-	want := "192.168.20.11 " + authorized + "\n"
+	want := "172.16.0.11 " + authorized + "\n"
 	if got != want {
 		t.Fatalf("known_hosts inattendu :\n got %q\nwant %q", got, want)
 	}
@@ -118,7 +118,7 @@ func TestRunPlaybookRefusesUnpinnedHost(t *testing.T) {
 	leftovers := isolatedTmp(t)
 	fakeAnsibleBin(t, "#!/bin/sh\necho 'ne devrait jamais tourner'\n")
 
-	_, _, err := RunPlaybook("playbooks/test.yml", "192.168.20.11", "PRIVATE", "claude", true,
+	_, _, err := RunPlaybook("playbooks/test.yml", "172.16.0.11", "PRIVATE", "claude", true,
 		WithHostKeyStore(ansibleFakeStore{}))
 	if !errors.Is(err, ErrHostNotPinned) {
 		t.Fatalf("erreur attendue ErrHostNotPinned, obtenu : %v", err)
@@ -135,7 +135,7 @@ func TestRunPlaybookRefusesUnpinnedHost(t *testing.T) {
 // connexion non vérifiée.
 func TestRunPlaybookRefusesWithoutHostKeyStore(t *testing.T) {
 	SetDefaultHostKeyStore(nil)
-	_, _, err := RunPlaybook("playbooks/test.yml", "192.168.20.11", "PRIVATE", "claude", false)
+	_, _, err := RunPlaybook("playbooks/test.yml", "172.16.0.11", "PRIVATE", "claude", false)
 	if !errors.Is(err, ErrNoHostKeyStore) {
 		t.Fatalf("erreur attendue ErrNoHostKeyStore, obtenu : %v", err)
 	}
@@ -146,7 +146,7 @@ func TestRunPlaybookUsesDefaultHostKeyStore(t *testing.T) {
 	SetDefaultHostKeyStore(ansibleFakeStore{})
 	t.Cleanup(func() { SetDefaultHostKeyStore(nil) })
 
-	_, _, err := RunPlaybook("playbooks/test.yml", "192.168.20.11", "PRIVATE", "claude", false)
+	_, _, err := RunPlaybook("playbooks/test.yml", "172.16.0.11", "PRIVATE", "claude", false)
 	if !errors.Is(err, ErrHostNotPinned) {
 		t.Fatalf("le magasin par défaut doit être consulté, erreur obtenue : %v", err)
 	}
@@ -173,9 +173,9 @@ echo "KNOWNHOSTS: $(cat "$dir/known_hosts")"
 `)
 
 	stored, authorized := newPinnedHostKey(t)
-	store := ansibleFakeStore{keys: map[string][]string{"192.168.20.11": {stored}}}
+	store := ansibleFakeStore{keys: map[string][]string{"172.16.0.11": {stored}}}
 
-	out, cleanup, err := RunPlaybook("playbooks/test.yml", "192.168.20.11", "MA-CLE-PRIVEE", "claude", true,
+	out, cleanup, err := RunPlaybook("playbooks/test.yml", "172.16.0.11", "MA-CLE-PRIVEE", "claude", true,
 		WithHostKeyStore(store))
 	if err != nil {
 		t.Fatalf("RunPlaybook: %v", err)
@@ -196,7 +196,7 @@ echo "KNOWNHOSTS: $(cat "$dir/known_hosts")"
 		"KEYMODE: 600",
 		"DIRMODE: 700",
 		"KEY: MA-CLE-PRIVEE",
-		"KNOWNHOSTS: 192.168.20.11 " + authorized,
+		"KNOWNHOSTS: 172.16.0.11 " + authorized,
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("sortie sans %q :\n%s", want, got)
@@ -219,9 +219,9 @@ func TestRunPlaybookTimeoutKillsProcessGroup(t *testing.T) {
 	fakeAnsibleBin(t, "#!/bin/sh\necho demarre\nsleep 60 &\nsleep 60\n")
 
 	stored, _ := newPinnedHostKey(t)
-	store := ansibleFakeStore{keys: map[string][]string{"192.168.20.11": {stored}}}
+	store := ansibleFakeStore{keys: map[string][]string{"172.16.0.11": {stored}}}
 
-	out, cleanup, err := RunPlaybook("playbooks/test.yml", "192.168.20.11", "PRIVATE", "claude", false,
+	out, cleanup, err := RunPlaybook("playbooks/test.yml", "172.16.0.11", "PRIVATE", "claude", false,
 		WithHostKeyStore(store), WithTimeout(500*time.Millisecond))
 	if err != nil {
 		t.Fatalf("RunPlaybook: %v", err)

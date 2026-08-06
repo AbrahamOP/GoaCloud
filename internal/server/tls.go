@@ -69,7 +69,7 @@ type CertConfig struct {
 //	TLS_CERT_FILE / TLS_KEY_FILE  operator-provided pair (set both, or neither)
 //	TLS_DIR                       directory of the generated pair (default "certs")
 //	TLS_HOSTS                     comma/space separated DNS names and IPs added to
-//	                              the SANs, e.g. "goacore.example.com,192.168.20.11"
+//	                              the SANs, e.g. "goacore.example.com,192.0.2.10"
 func CertConfigFromEnv() CertConfig {
 	certFile := strings.TrimSpace(os.Getenv("TLS_CERT_FILE"))
 	keyFile := strings.TrimSpace(os.Getenv("TLS_KEY_FILE"))

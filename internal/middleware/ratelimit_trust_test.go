@@ -37,13 +37,13 @@ func TestRealIP_UntrustedPeerHeadersIgnored(t *testing.T) {
 }
 
 // TestRealIP_HeadersHonouredFromTrustedProxy is the counterpart: behind a declared
-// reverse proxy (Traefik at 192.168.20.13), the forwarded client IP is the one to
+// reverse proxy (Traefik), the forwarded client IP is the one to
 // rate-limit on — otherwise every user of the LAN shares the proxy's single bucket.
 func TestRealIP_HeadersHonouredFromTrustedProxy(t *testing.T) {
-	withTrustedProxies(t, "192.168.20.13/32")
+	withTrustedProxies(t, "172.16.0.13/32")
 
 	r := httptest.NewRequest("GET", "/login", nil)
-	r.RemoteAddr = "192.168.20.13:51000"
+	r.RemoteAddr = "172.16.0.13:51000"
 	r.Header.Set("X-Forwarded-For", "198.51.100.1")
 
 	if got := RealIP(r); got != "198.51.100.1" {
@@ -55,21 +55,21 @@ func TestRealIP_HeadersHonouredFromTrustedProxy(t *testing.T) {
 // header's presence: the same forged request from outside the declared block stays
 // keyed on its own address, so an attacker cannot borrow the proxy's authority.
 func TestRealIP_TrustIsPerPeer(t *testing.T) {
-	withTrustedProxies(t, "192.168.20.0/24")
+	withTrustedProxies(t, "172.16.0.0/24")
 
 	inside := httptest.NewRequest("GET", "/login", nil)
-	inside.RemoteAddr = "192.168.20.13:51000"
+	inside.RemoteAddr = "172.16.0.13:51000"
 	inside.Header.Set("X-Forwarded-For", "198.51.100.1")
 
 	outside := httptest.NewRequest("GET", "/login", nil)
-	outside.RemoteAddr = "192.168.30.9:51000"
+	outside.RemoteAddr = "172.16.1.9:51000"
 	outside.Header.Set("X-Forwarded-For", "198.51.100.1")
 
 	if got := RealIP(inside); got != "198.51.100.1" {
 		t.Fatalf("trusted peer: RealIP() = %q, want 198.51.100.1", got)
 	}
-	if got := RealIP(outside); got != "192.168.30.9" {
-		t.Fatalf("untrusted peer: RealIP() = %q, want its own address 192.168.30.9", got)
+	if got := RealIP(outside); got != "172.16.1.9" {
+		t.Fatalf("untrusted peer: RealIP() = %q, want its own address 172.16.1.9", got)
 	}
 }
 
@@ -90,10 +90,10 @@ func TestSetTrustedProxies_Forms(t *testing.T) {
 		t.Error("192.0.2.8 must NOT be trusted (a bare IP is a single host, not a range)")
 	}
 
-	if err := SetTrustedProxies([]string{"192.168.20.13", "not-an-ip"}); err == nil {
+	if err := SetTrustedProxies([]string{"172.16.0.13", "not-an-ip"}); err == nil {
 		t.Fatal("a malformed entry must be an error")
 	}
-	if isTrustedProxy("192.168.20.13") {
+	if isTrustedProxy("172.16.0.13") {
 		t.Error("a rejected list must not be installed, not even partially")
 	}
 }

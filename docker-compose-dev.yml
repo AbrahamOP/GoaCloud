@@ -1,4 +1,5 @@
-# GoaCore — stack de DÉVELOPPEMENT (devdash.goacloud.fr, port 8444).
+# GoaCore — stack de DÉVELOPPEMENT (port 8444). Renseignez TLS_HOSTS avec le nom que
+# vous utilisez réellement pour que le certificat auto-signé le couvre.
 # Elle reprend le durcissement de la prod (rootfs en lecture seule, capacités
 # retirées, limites) : un environnement de dev qui tourne dans des conditions plus
 # permissives que la prod ne prouve rien.
@@ -21,7 +22,7 @@ services:
       - SESSION_SECRET=${SESSION_SECRET}
       - SESSION_SECRET_FILE=${SESSION_SECRET_FILE:-}
       # Noms/IP couverts par le certificat auto-signé (persisté dans goacore_tls_dev).
-      - TLS_HOSTS=${TLS_HOSTS:-devcore.goacloud.fr}
+      - TLS_HOSTS=${TLS_HOSTS:-}
       - PROXMOX_URL=${PROXMOX_URL}
       - PROXMOX_NODE=${PROXMOX_NODE:-pve}
       - PROXMOX_TOKEN_ID=${PROXMOX_TOKEN_ID}

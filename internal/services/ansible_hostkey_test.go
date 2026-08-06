@@ -273,8 +273,8 @@ func TestPinHostKeyRefusesToOverwriteAnotherKey(t *testing.T) {
 // TestHostNotPinnedErrorExplainsTheBootstrap : le message doit dire précisément quoi
 // faire — c'est lui que l'exploitant lit quand une planification s'arrête.
 func TestHostNotPinnedErrorExplainsTheBootstrap(t *testing.T) {
-	msg := hostNotPinnedError("192.168.20.11").Error()
-	for _, needle := range []string{"192.168.20.11", "Épingler", "empreinte", "ssh-keygen -lf"} {
+	msg := hostNotPinnedError("172.16.0.11").Error()
+	for _, needle := range []string{"172.16.0.11", "Épingler", "empreinte", "ssh-keygen -lf"} {
 		if !strings.Contains(msg, needle) {
 			t.Errorf("le message d'erreur ne mentionne pas %q : %s", needle, msg)
 		}

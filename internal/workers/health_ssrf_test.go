@@ -64,7 +64,7 @@ func TestForbiddenIP_PrivateRangesFollowTheSwitch(t *testing.T) {
 	// The deliberate default: a homelab/PME dashboard monitors applications that
 	// ARE on private addresses. Blocking them out of the box would not harden the
 	// product, it would delete the feature.
-	private := []string{"192.168.20.11", "10.0.0.5", "172.16.3.4", "100.64.0.1", "fd00::1"}
+	private := []string{"172.16.0.11", "10.0.0.5", "172.16.3.4", "100.64.0.1", "fd00::1"}
 	for _, raw := range private {
 		ip := net.ParseIP(raw)
 		if ip == nil {
@@ -90,14 +90,14 @@ func TestCheckHealthTarget(t *testing.T) {
 		url     string
 		wantErr bool
 	}{
-		{"plain http on a LAN host", "http://192.168.20.11:8080/", false},
-		{"https on a name", "https://grafana.goacloud.fr/", false},
+		{"plain http on a LAN host", "http://172.16.0.11:8080/", false},
+		{"https on a name", "https://grafana.example.com/", false},
 		{"metadata service by IP", "http://169.254.169.254/latest/meta-data/", true},
 		{"loopback by IP", "http://127.0.0.1:8443/", true},
 		{"loopback with a port and path", "https://127.0.0.1:9200/_cat/indices", true},
 		{"IPv6 loopback literal", "http://[::1]:8080/", true},
 		{"file scheme", "file:///etc/passwd", true},
-		{"gopher scheme", "gopher://192.168.20.11:70/", true},
+		{"gopher scheme", "gopher://172.16.0.11:70/", true},
 		{"no host", "http:///relative", true},
 		{"empty", "", true},
 	}
@@ -117,7 +117,7 @@ func TestCheckHealthTarget(t *testing.T) {
 }
 
 func TestAllowDialTarget(t *testing.T) {
-	if err := allowDialTarget("tcp", "192.168.20.11:8080", false); err != nil {
+	if err := allowDialTarget("tcp", "172.16.0.11:8080", false); err != nil {
 		t.Fatalf("a LAN target must be dialable by default: %v", err)
 	}
 	for _, addr := range []string{"169.254.169.254:80", "127.0.0.1:8443", "[::1]:80"} {

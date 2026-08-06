@@ -17,7 +17,7 @@ var trustedProxies atomic.Pointer[[]*net.IPNet]
 
 // SetTrustedProxies installs the list of proxy addresses whose X-Forwarded-For /
 // X-Real-IP headers RealIP may trust (env TRUSTED_PROXIES — see config.Config).
-// Each entry is a CIDR block ("192.168.20.13/32", "10.0.0.0/8") or a bare IP,
+// Each entry is a CIDR block ("192.0.2.1/32", "10.0.0.0/8") or a bare IP,
 // which is read as a single-host block.
 //
 // A malformed entry is an error and NOTHING is installed: a typo must never

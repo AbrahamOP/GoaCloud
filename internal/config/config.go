@@ -104,7 +104,7 @@ type Config struct {
 	// is trusted and the limiter keys on the real r.RemoteAddr.
 	//
 	// Set it ONLY to the address(es) of the reverse proxy actually in front of the
-	// app, e.g. TRUSTED_PROXIES=192.168.20.13/32 (Traefik) or 10.0.0.0/8. The list
+	// app, e.g. TRUSTED_PROXIES=192.0.2.1/32 (Traefik) or 10.0.0.0/8. The list
 	// is installed into the middleware at boot (main.go) and a malformed entry is
 	// fatal — a typo must never silently widen or void the trust boundary.
 	TrustedProxies []string
