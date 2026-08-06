@@ -1,6 +1,6 @@
 module goacore
 
-go 1.22
+go 1.25.0
 
 require (
 	github.com/bwmarrin/discordgo v0.29.0
@@ -9,11 +9,11 @@ require (
 	github.com/gorilla/sessions v1.2.2
 	github.com/gorilla/websocket v1.5.3
 	github.com/pquerna/otp v1.4.0
-	golang.org/x/crypto v0.31.0
+	golang.org/x/crypto v0.52.0
 )
 
 require (
 	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
 )
