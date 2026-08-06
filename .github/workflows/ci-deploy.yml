@@ -11,9 +11,9 @@ jobs:
     name: Build & Test
     runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: '1.22'
 
@@ -42,7 +42,7 @@ jobs:
     name: Validate goabackup helper
     runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Bash syntax (bash -n)
         run: bash -n deploy/goabackup/goabackup-runner.sh
@@ -99,7 +99,7 @@ jobs:
     runs-on: self-hosted
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # The Portainer webhook re-pulls the repo then runs compose pull -> build -> up.
       # The app service is build-only (no pinned `image:` registry tag — see
@@ -136,7 +136,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
