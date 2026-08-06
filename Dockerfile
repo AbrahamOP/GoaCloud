@@ -33,7 +33,7 @@ ARG TARGETARCH
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -o goacloud ./cmd/server
 
 # Final Stage
-FROM alpine:3.21
+FROM alpine:3.24
 
 WORKDIR /app
 
