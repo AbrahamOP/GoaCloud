@@ -15,7 +15,10 @@ jobs:
 
       - uses: actions/setup-go@v7
         with:
-          go-version: '1.22'
+          # Suit go.mod plutot qu'une version figee : le pin a 1.22 faisait
+          # echouer toute montee de dependance exigeant un Go plus recent
+          # (GOTOOLCHAIN=local interdit de telecharger un toolchain).
+          go-version-file: go.mod
 
       - name: Download dependencies
         run: go mod download
