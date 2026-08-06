@@ -460,7 +460,7 @@ jobs:
             }" || true
           fi
 
-  # Publication de l'image publique ghcr.io/abrahamop/goacore DANS LE MÊME RUN que la
+  # Publication de l'image publique ghcr.io/goacloud/goacore DANS LE MÊME RUN que la
   # release. Le tag créé ci-dessus l'est avec GITHUB_TOKEN : GitHub ne redéclenche
   # aucun workflow sur un événement produit par GITHUB_TOKEN, donc publish-image.yml
   # (sur `push: tags`) ne partait jamais — l'image GHCR était figée plusieurs semaines
@@ -502,7 +502,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
         with:
-          images: ghcr.io/abrahamop/goacore
+          images: ghcr.io/goacloud/goacore
           tags: |
             type=semver,pattern={{version}},value=${{ needs.release.outputs.tag }}
             type=semver,pattern={{major}}.{{minor}},value=${{ needs.release.outputs.tag }}

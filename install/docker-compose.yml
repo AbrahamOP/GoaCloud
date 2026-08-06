@@ -2,8 +2,8 @@
 #
 # Démarrage :
 #   1. Récupérer ce fichier et le .env.example voisin :
-#        curl -O https://raw.githubusercontent.com/AbrahamOP/GoaCore/main/install/docker-compose.yml
-#        curl -o .env https://raw.githubusercontent.com/AbrahamOP/GoaCore/main/install/.env.example
+#        curl -O https://raw.githubusercontent.com/GoaCloud/GoaCore/main/install/docker-compose.yml
+#        curl -o .env https://raw.githubusercontent.com/GoaCloud/GoaCore/main/install/.env.example
 #   2. Éditer .env : générer SESSION_SECRET (openssl rand -hex 32) et définir des mots
 #      de passe MySQL forts. Le reste (Proxmox, Wazuh, Discord, IA) est OPTIONNEL et se
 #      configure ensuite depuis l'interface web.
@@ -29,14 +29,14 @@
 #   0 3 * * *  cd /opt/goacore && ./backup.sh dump && ./backup.sh prune
 #
 # backup.sh est fourni à côté de ce fichier :
-#   curl -O https://raw.githubusercontent.com/AbrahamOP/GoaCore/main/install/backup.sh && chmod +x backup.sh
+#   curl -O https://raw.githubusercontent.com/GoaCloud/GoaCore/main/install/backup.sh && chmod +x backup.sh
 # ────────────────────────────────────────────────────────────────────────────────
 services:
   app:
     # Pour un parc en production, épinglez une version (GOACORE_TAG=v1.4.0) plutôt
     # que « latest » : une mise à jour doit être une décision, pas un effet de bord
     # du prochain `compose pull`.
-    image: ghcr.io/abrahamop/goacore:${GOACORE_TAG:-latest}
+    image: ghcr.io/goacloud/goacore:${GOACORE_TAG:-latest}
     container_name: goacore_app
     ports:
       - "8443:8443"
