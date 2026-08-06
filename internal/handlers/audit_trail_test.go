@@ -70,17 +70,16 @@ func TestAudit_MFAEnableIsRecorded(t *testing.T) {
 	rig := newAuthRig(t)
 	rig.fake.addUser(&authFakeUser{id: 1, passwordHash: authTestHash(t, "pw"), role: "Admin"}, "alice")
 
-	key, err := totp.Generate(totp.GenerateOpts{Issuer: "GoaCore", AccountName: "alice"})
-	if err != nil {
-		t.Fatalf("totp.Generate: %v", err)
-	}
-	code, err := totp.GenerateCode(key.Secret(), time.Now())
+	// The candidate secret is minted server-side by /api/mfa/setup and committed by
+	// /api/mfa/verify, which only ever receives the 6-digit code.
+	secret, cookie := rig.startEnrolment(t, rig.authSessionCookie(t, "alice"))
+	code, err := totp.GenerateCode(secret, time.Now())
 	if err != nil {
 		t.Fatalf("GenerateCode: %v", err)
 	}
 
-	body := fmt.Sprintf(`{"code":%q,"secret":%q}`, code, key.Secret())
-	if rec := rig.postJSON(t, rig.h.HandleVerifyMFA, "/api/mfa/verify", body, rig.authSessionCookie(t, "alice")); rec.Code != http.StatusOK {
+	body := fmt.Sprintf(`{"code":%q}`, code)
+	if rec := rig.postJSON(t, rig.h.HandleVerifyMFA, "/api/mfa/verify", body, cookie); rec.Code != http.StatusOK {
 		t.Fatalf("status %d, want 200: %s", rec.Code, rec.Body.String())
 	}
 
@@ -88,7 +87,7 @@ func TestAudit_MFAEnableIsRecorded(t *testing.T) {
 	if got := fmt.Sprint(e.args[1]); got != "alice" {
 		t.Errorf("actor = %q, want %q", got, "alice")
 	}
-	assertNoAuditLeak(t, rig.fake, key.Secret(), "the TOTP secret")
+	assertNoAuditLeak(t, rig.fake, secret, "the TOTP secret")
 	assertNoAuditLeak(t, rig.fake, code, "the TOTP code")
 }
 

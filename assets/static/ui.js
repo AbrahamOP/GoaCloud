@@ -138,7 +138,14 @@
     ].join(",");
 
     // Pile : une modale peut en ouvrir une autre (ex. sauvegardes → confirmation).
+    // C'est la SEULE pile de couches de l'application : la palette Ctrl+K
+    // (search.js) s'y empile elle aussi, faute de quoi les deux se disputaient
+    // Échap et le focus.
     var stack = [];
+
+    // Délai pendant lequel une seconde demande de fermeture est acceptée sans
+    // nouvel avertissement (fermeture « à confirmer », cf. requestClose).
+    var DISCARD_WINDOW_MS = 6000;
 
     function resolve(target) {
         return typeof target === "string" ? document.getElementById(target) : target;
@@ -164,6 +171,8 @@
         if (!el || stack.indexOf(el) !== -1) return null;
 
         el._goaOpener = document.activeElement;
+        el._goaDirty = false;
+        el._goaDiscardArmed = 0;
         clearTimeout(el._goaHideTimer);
         el.classList.remove("hidden");
         el.removeAttribute("aria-hidden");
@@ -191,6 +200,8 @@
         var idx = stack.indexOf(el);
         if (idx !== -1) stack.splice(idx, 1);
         if (!stack.length) document.documentElement.classList.remove("modal-open");
+        el._goaDirty = false;
+        el._goaDiscardArmed = 0;
 
         // Inerte dès la demande de fermeture : pendant l'animation de sortie, la
         // modale reste visible mais ne doit plus capter ni le focus ni les clics.
@@ -239,6 +250,55 @@
         }
     }
 
+    // ---- Garde « saisie non enregistrée » -------------------------------------
+    //
+    // Échap fermait n'importe quelle modale sur-le-champ, y compris l'éditeur de
+    // playbook : une frappe malheureuse et vingt minutes de YAML disparaissaient
+    // sans un mot. On marque donc une modale comme MODIFIÉE dès que l'utilisateur y
+    // saisit quelque chose, et une fermeture « par geste » (Échap, clic sur le fond)
+    // demande alors confirmation.
+    //
+    // Le marquage écoute input/change plutôt que de comparer une empreinte prise à
+    // l'ouverture : les pages remplissent très souvent leurs champs APRÈS l'ouverture
+    // (l'éditeur charge son contenu en fetch), une empreinte serait immédiatement
+    // périmée et TOUTES les modales seraient réputées sales. Un `el.value = …` en
+    // JavaScript ne déclenche pas ces événements ; un humain, si — d'où le test
+    // `isTrusted`, qui écarte aussi les événements synthétisés par le code.
+    //
+    // Opt-out : `data-modal-discardable` sur la racine, pour les modales dont la
+    // saisie est par nature jetable (la palette de recherche Ctrl+K).
+    function markDirty(event) {
+        if (!stack.length || !event.isTrusted) return;
+        for (var i = stack.length - 1; i >= 0; i--) {
+            if (stack[i].contains(event.target)) {
+                stack[i]._goaDirty = true;
+                return;
+            }
+        }
+    }
+    document.addEventListener("input", markDirty, true);
+    document.addEventListener("change", markDirty, true);
+
+    /**
+     * Fermeture demandée par un geste (Échap, clic sur le fond). Ferme directement
+     * une modale intacte ; sur une modale modifiée, avertit une première fois et
+     * n'obéit qu'à la répétition du geste — pas de boîte de dialogue native
+     * bloquante, et pas de touche Échap devenue inerte non plus.
+     */
+    function requestClose(el) {
+        if (!el._goaDirty || el.hasAttribute("data-modal-discardable")) {
+            closeModal(el);
+            return;
+        }
+        var now = Date.now();
+        if (el._goaDiscardArmed && now - el._goaDiscardArmed < DISCARD_WINDOW_MS) {
+            closeModal(el);
+            return;
+        }
+        el._goaDiscardArmed = now;
+        notify("warning", "Modifications non enregistrées. Répétez l'action pour fermer sans les enregistrer.");
+    }
+
     // Capture : la modale la plus haute de la pile intercepte Échap et Tab avant
     // les handlers de page (console.html gère déjà Échap pour son terminal).
     document.addEventListener("keydown", function (event) {
@@ -247,7 +307,7 @@
         if (event.key === "Escape" || event.key === "Esc") {
             event.preventDefault();
             event.stopPropagation();
-            closeModal(top);
+            requestClose(top);
         } else if (event.key === "Tab") {
             trapFocus(event, top);
         }
@@ -259,7 +319,7 @@
         if (!stack.length) return;
         var top = stack[stack.length - 1];
         if (event.target === top && top.hasAttribute("data-modal-dismiss")) {
-            closeModal(top);
+            requestClose(top);
         }
     });
 

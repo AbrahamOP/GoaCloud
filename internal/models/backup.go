@@ -4,15 +4,21 @@ import "time"
 
 // BackupTarget represents an entity (VM/LXC/app) managed and verified by GoaBackup.
 type BackupTarget struct {
-	ID                int
-	Name              string
-	TargetType        string // "qemu", "lxc", "app"
-	SourceRef         string // VMID (e.g. "110") or path for app backups
-	Storage           string // Proxmox storage holding the dumps (e.g. "local")
-	Enabled           bool
-	RPOHours          int    // freshness threshold (hours) before an RPO breach
-	ScheduleCron      string // optional cron expression for backups (informational)
-	RetentionCount    int    // number of backups to keep
+	ID             int
+	Name           string
+	TargetType     string // "qemu", "lxc", "app"
+	SourceRef      string // VMID (e.g. "110") or path for app backups
+	Storage        string // Proxmox storage holding the dumps (e.g. "local")
+	Enabled        bool
+	RPOHours       int    // freshness threshold (hours) before an RPO breach
+	ScheduleCron   string // optional cron expression for backups (informational)
+	RetentionCount int    // number of backups to keep
+	// RetentionEnabled is the explicit opt-in switch for archive rotation. It is
+	// FALSE by default (schema + migration 4) because RetentionCount inherits a
+	// value nobody chose: purging on it would destroy archives GoaCore never
+	// produced. Only BackupService.UpdateTargetRetention flips it, and the UI must
+	// present that as the destructive gesture it is.
+	RetentionEnabled  bool
 	HealthcheckType   string // "none", "port", "service", "sql"
 	HealthcheckTarget string // port / service name / SQL command, per HealthcheckType
 	CreatedAt         time.Time

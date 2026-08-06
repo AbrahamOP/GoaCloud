@@ -34,7 +34,11 @@ jobs:
 
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
-          go-version: '1.22'
+          # Suit la directive `go` de go.mod plutôt qu'une version figée ici : une
+          # version épinglée en dur diverge silencieusement du module (le runner
+          # télécharge alors le toolchain manquant et la CI ne teste plus ce que
+          # l'image construit, qui est en GOTOOLCHAIN=local).
+          go-version-file: go.mod
 
       - name: Download dependencies
         run: go mod download
@@ -63,19 +67,78 @@ jobs:
       - name: Test (race detector)
         run: go test ./... -race
 
-      # TODO(sécurité) : retirer `continue-on-error` dès que la mise à jour des
-      # dépendances est mergée. govulncheck remonte aujourd'hui des vulnérabilités
-      # effectivement appelées ; l'étape est volontairement non bloquante pour ne pas
-      # geler la CI avant ce correctif, mais elle DOIT devenir bloquante ensuite —
-      # sans quoi elle ne sert à rien.
+      # Étape BLOQUANTE. La dette est résorbée (x/crypto v0.52.0, chi v5.2.2,
+      # toolchain go1.25.12) : `govulncheck ./...` ne remonte plus aucune
+      # vulnérabilité effectivement appelée. La garder non bloquante reviendrait à
+      # laisser la prochaine repasser inaperçue.
       - name: Vulnérabilités (govulncheck)
-        continue-on-error: true
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
           "$(go env GOPATH)/bin/govulncheck" ./...
 
       - name: Build
         run: CGO_ENABLED=0 go build -o bin/goacloud ./cmd/server
+
+      # Construit réellement l'image (sans la pousser). `go build` seul ne dit rien
+      # du Dockerfile : c'est cette étape qui attrape une incohérence entre le
+      # builder épinglé et la directive `go` de go.mod, ou une étape de build CSS
+      # cassée — deux pannes qui, sinon, ne se voient qu'au déploiement.
+      - name: Build de l'image conteneur
+        run: docker build -t goacore:ci .
+
+  # Migrations de schéma sur une VRAIE base. Le job `build` ci-dessus n'exerce que
+  # la logique pure (classification d'erreurs, plan d'index) : les tests qui
+  # rejouent la montée de version d'une base cliente existante — schéma d'avant le
+  # versionnement, ancienne clé unique, doublons de VMID — étaient `t.Skip` faute de
+  # DSN, donc jamais exécutés. C'est pourtant le chemin le plus risqué du produit :
+  # il tourne chez le client, sans surveillance, au premier démarrage après une mise
+  # à jour, sur des données qu'on ne peut pas recréer.
+  #
+  # TOUJOURS sur un runner GitHub jetable, PR comme push (contrairement à `build`
+  # qui bascule sur le self-hosted) : `services:` publie 3306 sur l'hôte du runner,
+  # et le self-hosted fait tourner de vraies bases. On ne lui pose pas un MySQL de
+  # test sur un port qu'il utilise peut-être déjà, pour un job qui n'a besoin
+  # d'aucun accès au LAN. Le code d'une PR de fork n'y est donc jamais un problème
+  # non plus (cf. bandeau sécurité en tête de fichier).
+  db-tests:
+    name: Migrations (MySQL réel)
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        # Tag et non digest, à la différence de docker-compose.yml : ici on veut
+        # justement tester contre le MySQL 8.0 courant, pas contre une version
+        # figée. La prod, elle, reste épinglée.
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: goacore-ci
+          MYSQL_DATABASE: goacore_test
+        ports:
+          - 3306:3306
+        # Sans health-check, les étapes démarrent avant que MySQL n'accepte les
+        # connexions et le job échoue au premier Ping.
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -pgoacore-ci --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+          --health-start-period=20s
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: go.mod
+
+      # -count=1 : jamais de résultat mis en cache pour un test dont tout l'intérêt
+      # est de toucher un serveur externe.
+      # GOACORE_REQUIRE_DB_TESTS : transforme un DSN manquant en ÉCHEC au lieu d'un
+      # skip. Sans ce verrou, retirer le service MySQL ci-dessus repasserait la CI
+      # au vert avec zéro test exécuté — exactement l'angle mort qu'on répare ici.
+      - name: Migrations sur une base MySQL réelle
+        env:
+          GOACORE_TEST_DSN: root:goacore-ci@tcp(127.0.0.1:3306)/goacore_test?parseTime=true
+          GOACORE_REQUIRE_DB_TESTS: "1"
+        run: go test ./internal/database/ -race -count=1 -v
 
   # The goabackup SSH helper is the AUTHORITATIVE security boundary on the Proxmox
   # host (forced-command, closed op set, the readonly 9500-9599 sandbox VMID guard).
@@ -110,7 +173,7 @@ jobs:
 
   deploy-dev:
     name: Deploy DEV
-    needs: [build, helper]
+    needs: [build, helper, db-tests]
     runs-on: self-hosted
     if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     steps:
@@ -174,7 +237,7 @@ jobs:
 
   deploy-prod:
     name: Deploy PROD
-    needs: [build, helper]
+    needs: [build, helper, db-tests]
     runs-on: self-hosted
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
@@ -458,7 +521,7 @@ jobs:
 
   notify-pr:
     name: PR Check
-    needs: [build, helper]
+    needs: [build, helper, db-tests]
     runs-on: ubuntu-latest
     # Une PR de fork n'a de toute façon pas accès aux secrets : le webhook serait
     # vide et l'étape échouerait bruyamment pour rien. On ne notifie que les PR

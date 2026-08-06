@@ -78,28 +78,54 @@ func TestSetup_SecondAdminRefused(t *testing.T) {
 }
 
 // TestSetup_RateLimited: /setup is public by necessity (no account exists yet), so
-// its POST is rate limited like /login — an attacker cannot hammer the window
-// between `docker compose up` and the operator's first visit. Five rejected
-// attempts is well above what a real first install needs.
+// a blocked IP is turned away before anything is created. The block is driven
+// straight through the limiter here — see TestSetup_FormTyposDoNotLockOut for WHY
+// a mistyped form is no longer what puts an IP there.
 func TestSetup_RateLimited(t *testing.T) {
 	rig := newAuthRig(t)
 
-	bad := url.Values{"username": {"root"}, "password": {"install-me-please"}, "confirm_password": {"mismatch"}}
+	const installerIP = "198.51.100.200" // the peer address setupPost dials from
 	for i := 0; i < 5; i++ {
-		if rec := rig.setupPost(t, bad); rec.Code != http.StatusOK {
-			t.Fatalf("attempt %d: status %d, want 200 (form with an error)", i+1, rec.Code)
-		}
+		rig.h.RateLimiter.RecordFailure(installerIP)
 	}
-	rec := rig.setupPost(t, bad)
-	if rec.Code != http.StatusTooManyRequests {
-		t.Fatalf("6th attempt: status %d, want 429", rec.Code)
-	}
-	// A blocked IP cannot sneak a valid creation through either.
+
 	good := url.Values{"username": {"root"}, "password": {"install-me-please"}, "confirm_password": {"install-me-please"}}
 	if rec := rig.setupPost(t, good); rec.Code != http.StatusTooManyRequests {
 		t.Fatalf("blocked IP with a valid form: status %d, want 429", rec.Code)
 	}
 	if _, ok := rig.fake.user("root"); ok {
 		t.Fatal("an account was created while the IP was blocked")
+	}
+}
+
+// TestSetup_FormTyposDoNotLockOut is the regression test for "the first install
+// locks itself out": every rejected FORM (empty field, short password, mismatched
+// confirmation) used to count as a rate-limiting failure, so five typos blocked the
+// operator's own IP for 15 minutes — on a brand-new instance with no account to
+// recover from and no other way in. Only abuse is charged now; a typo is free.
+func TestSetup_FormTyposDoNotLockOut(t *testing.T) {
+	rig := newAuthRig(t)
+
+	typos := []url.Values{
+		{"username": {""}, "password": {""}, "confirm_password": {""}},
+		{"username": {"root"}, "password": {"short"}, "confirm_password": {"short"}},
+		{"username": {"root"}, "password": {"install-me-please"}, "confirm_password": {"mismatch"}},
+	}
+	for round := 0; round < 3; round++ {
+		for i, form := range typos {
+			if rec := rig.setupPost(t, form); rec.Code != http.StatusOK {
+				t.Fatalf("round %d typo %d: status %d, want 200 (form re-rendered with an error)", round, i, rec.Code)
+			}
+		}
+	}
+
+	// Nine mistyped forms later, the install must still be possible.
+	good := url.Values{"username": {"root"}, "password": {"install-me-please"}, "confirm_password": {"install-me-please"}}
+	rec := rig.setupPost(t, good)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("install after typos: status %d, want 303 — form errors must not block the first install", rec.Code)
+	}
+	if _, ok := rig.fake.user("root"); !ok {
+		t.Fatal("the admin account was not created after the corrected form")
 	}
 }

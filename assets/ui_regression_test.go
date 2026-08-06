@@ -377,7 +377,8 @@ func TestNavigationLabelsAccented(t *testing.T) {
 // TestBubblesNotDuplicated : le bloc décoratif est un partial ; setup.html en
 // gardait une copie mot pour mot.
 func TestBubblesNotDuplicated(t *testing.T) {
-	marker := `<div class="absolute top-0 left-0 w-96 h-96 bg-purple-500/20`
+	// Le bloc a été migré vers les tokens sémantiques : le marqueur suit.
+	marker := `<div class="absolute top-0 left-0 w-96 h-96 bg-primary/20`
 	for _, f := range templateFiles(t) {
 		if filepath.Base(f) == "partials.html" || filepath.Base(f) == "login.html" {
 			continue

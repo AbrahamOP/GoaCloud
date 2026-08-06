@@ -221,6 +221,17 @@ func New(h *handlers.Handler, store *sessions.CookieStore, db *sql.DB, cookieSec
 		r.Post("/api/ssh/deploy", h.HandleSSHDeploy)
 		r.Delete("/api/ssh/delete", h.HandleSSHDelete)
 
+		// Host-key pinning — the bootstrap path of the SSH TOFU store.
+		// RunPlaybook refuses any target whose host key is not pinned, so without
+		// these an Ansible schedule on a never-pinned host stays broken forever, and
+		// a reinstalled host (mismatch) is a dead end. scan only READS and displays
+		// the presented SHA256 fingerprint; pin writes only if the operator's
+		// confirmed fingerprint matches; delete un-pins (the sole exit from a
+		// mismatch). Admin-only: pinning an identity commits every later SSH access.
+		r.Post("/api/ssh/host-keys/scan", h.HandleSSHHostKeyScan)
+		r.Post("/api/ssh/host-keys/pin", h.HandleSSHHostKeyPin)
+		r.Delete("/api/ssh/host-keys", h.HandleSSHHostKeyDelete)
+
 		// Console — opens a root SSH shell on guests
 		r.Get("/console", h.HandleConsolePage)
 		r.Get("/api/ssh/ws", h.HandleSSHWebSocket)

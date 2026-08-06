@@ -199,6 +199,60 @@ func TestLoginMFA_WrongCodeIsRejected(t *testing.T) {
 	}
 }
 
+// TestLoginMFA_FailedCredentialStepBurnsPendingState: a half-finished login must
+// not outlive the step that opened it. Left in place, the "password already
+// verified" marker stayed redeemable for its whole 5-minute TTL — a bare TOTP code
+// could then complete a login the browser had just failed to start again.
+func TestLoginMFA_FailedCredentialStepBurnsPendingState(t *testing.T) {
+	rig := newAuthRig(t)
+	const password = "correct horse battery"
+	secret := rig.addMFAUser(t, "alice", authTestHash(t, password))
+
+	rig.post(t, url.Values{"username": {"alice"}, "password": {password}})
+	if _, pending := rig.session(t).Values[sessionMFAPendingUser]; !pending {
+		t.Fatal("step 1 did not open a pre-auth state")
+	}
+
+	rig.post(t, url.Values{"username": {"alice"}, "password": {"wrong"}})
+	if _, pending := rig.session(t).Values[sessionMFAPendingUser]; pending {
+		t.Fatal("the pre-auth state survived a FAILED credentials step")
+	}
+
+	code, err := totp.GenerateCode(secret, time.Now())
+	if err != nil {
+		t.Fatalf("GenerateCode: %v", err)
+	}
+	rig.post(t, url.Values{"mfa_code": {code}})
+	if rig.isAuthenticated(t) {
+		t.Fatal("a code alone finished a login whose password step had just failed")
+	}
+}
+
+// TestLoginMFA_ExhaustedAttemptsBurnPendingState: retries are allowed inside the
+// window, but once the limiter blocks the IP the failure is definitive and the
+// half-login is consumed rather than left redeemable until its TTL expires.
+func TestLoginMFA_ExhaustedAttemptsBurnPendingState(t *testing.T) {
+	rig := newAuthRig(t)
+	const password = "correct horse battery"
+	secret := rig.addMFAUser(t, "alice", authTestHash(t, password))
+
+	rig.post(t, url.Values{"username": {"alice"}, "password": {password}})
+
+	valid, err := totp.GenerateCode(secret, time.Now())
+	if err != nil {
+		t.Fatalf("GenerateCode: %v", err)
+	}
+	wrong := firstInvalidCode(t, valid, secret)
+	for i := 0; i < 5; i++ {
+		if rec := rig.post(t, url.Values{"mfa_code": {wrong}}); rec.Code != http.StatusOK {
+			t.Fatalf("attempt %d: status %d, want 200", i+1, rec.Code)
+		}
+	}
+	if _, pending := rig.session(t).Values[sessionMFAPendingUser]; pending {
+		t.Fatal("the pre-auth state survived the last allowed attempt — it stays replayable for the rest of its TTL")
+	}
+}
+
 // TestLoginMFA_CodeWithoutPendingStateRejected: knowing (or brute-forcing) a code
 // is useless without having passed the password step first — the identity lives
 // only in the server-side pre-auth state.

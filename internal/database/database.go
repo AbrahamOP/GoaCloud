@@ -160,6 +160,11 @@ func Migrate(db *sql.DB) error {
 			enabled BOOLEAN NOT NULL DEFAULT TRUE,
 			rpo_hours INT NOT NULL DEFAULT 24,
 			schedule_cron VARCHAR(100) NOT NULL DEFAULT '',
+			-- La rotation des archives est OPT-IN : retention_count n'a d'effet que si
+			-- l'exploitant a explicitement armé retention_enabled (migration 4). Sans
+			-- cet interrupteur, la valeur par défaut ci-dessous purgerait les archives
+			-- de toutes les cibles auto-découvertes sans que personne ne l'ait choisi.
+			retention_enabled BOOLEAN NOT NULL DEFAULT FALSE,
 			retention_count INT NOT NULL DEFAULT 3,
 			healthcheck_type VARCHAR(20) NOT NULL DEFAULT 'none',
 			healthcheck_target VARCHAR(255) NOT NULL DEFAULT '',
@@ -371,6 +376,18 @@ var schemaMigrations = []migration{
 		version: 3,
 		name:    "backup_targets_unique_source_ref",
 		fn:      migrateBackupTargetsUniqueKey,
+	},
+	{
+		version: 4,
+		name:    "backup_targets_retention_opt_in",
+		// La rotation des archives devient effective (services.applyRetention). Sur un
+		// parc déjà installé, retention_count vaut 3 par héritage du défaut du schéma —
+		// personne ne l'a choisi. Ajouter la colonne avec DEFAULT FALSE laisse donc
+		// TOUTES les lignes existantes en rotation désactivée : l'activation reste un
+		// geste explicite de l'exploitant (BackupService.UpdateTargetRetention).
+		stmts: []string{
+			"ALTER TABLE backup_targets ADD COLUMN retention_enabled BOOLEAN NOT NULL DEFAULT FALSE",
+		},
 	},
 }
 

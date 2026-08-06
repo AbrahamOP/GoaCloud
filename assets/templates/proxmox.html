@@ -50,6 +50,17 @@
                         </svg>
                         Rafraîchir
                     </button>
+                    <!-- Déclencheur explicite des notifications navigateur. Masqué
+                         par défaut : le script ne l'affiche que si la permission
+                         n'a été ni accordée ni refusée (cf. theme.js). Une demande
+                         de permission ne peut partir que d'un geste utilisateur. -->
+                    <button id="enable-notifs-btn" type="button" onclick="askForNotifications()" hidden
+                        class="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant text-sm text-on-surface transition">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        Activer les notifications
+                    </button>
                     <button onclick="openCreateModal()" class="flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-on-primary text-sm hover:opacity-90 transition">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -434,6 +445,23 @@
 
         // Enable VM status notifications on this page
         enableVMNotifications();
+
+        // …et de quoi les autoriser réellement : le bouton n'apparaît que tant que
+        // l'utilisateur n'a rien décidé, et disparaît une fois la question tranchée
+        // (accordée ou refusée). Sans lui, la permission restait à « default » à vie
+        // et sendLocalNotif ne pouvait jamais rien afficher.
+        (function wireNotificationOptIn() {
+            var btn = document.getElementById('enable-notifs-btn');
+            if (!btn) return;
+            btn.hidden = !canRequestNotifications();
+            window.askForNotifications = function () {
+                btn.disabled = true;
+                requestNotificationPermission().then(function () {
+                    btn.hidden = !canRequestNotifications();
+                    btn.disabled = false;
+                });
+            };
+        })();
 
         // SSE: real-time Proxmox stats updates
         onSSE('proxmox_stats', function(data) {
@@ -853,9 +881,13 @@
                 return `${x},${y}`;
             });
             const fillPoints = `0,${h} ${points.join(' ')} ${w},${h}`;
+            // fill/stroke sont posés en STYLE inline et non en attribut de
+            // présentation : var(--…) n'est pas résolu dans un attribut SVG, alors
+            // qu'il l'est dans une déclaration CSS — et il l'est à chaud, donc les
+            // courbes suivent le basculement de thème sans redessin.
             container.innerHTML = `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
-                <polygon points="${fillPoints}" fill="${color}" opacity="0.15"/>
-                <polyline points="${points.join(' ')}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <polygon points="${fillPoints}" style="fill:${color}" opacity="0.15"/>
+                <polyline points="${points.join(' ')}" style="fill:none;stroke:${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>`;
         }
 
@@ -864,9 +896,12 @@
             fetch('/api/proxmox/metrics?period=' + period)
                 .then(r => r.json())
                 .then(data => {
-                    drawSparkline('spark-cpu', data.map(p => p.cpu), '#c084fc');
-                    drawSparkline('spark-ram', data.map(p => p.ram), '#38bdf8');
-                    drawSparkline('spark-storage', data.map(p => p.storage), '#f97316');
+                    // Couleurs prises dans les tokens MD3 plutôt qu'en hex figé :
+                    // les trois sparklines restaient en teintes « dark » sur le
+                    // thème clair, seuls éléments non thémés de la page.
+                    drawSparkline('spark-cpu', data.map(p => p.cpu), 'var(--md-color-primary)');
+                    drawSparkline('spark-ram', data.map(p => p.ram), 'var(--md-color-info)');
+                    drawSparkline('spark-storage', data.map(p => p.storage), 'var(--md-color-warning)');
                 })
                 .catch(() => {});
         }

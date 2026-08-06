@@ -58,6 +58,10 @@ services:
       - SESSION_SECRET=${SESSION_SECRET}
       - SESSION_SECRET_FILE=${SESSION_SECRET_FILE:-}
       - COOKIE_SECURE=${COOKIE_SECURE:-true}
+      # Adresse du reverse proxy réellement en frontal (ex. Traefik). Vide = aucun
+      # en-tête X-Forwarded-For n'est cru : le rate-limiting et l'audit utilisent
+      # alors l'IP de la connexion. Ne jamais élargir au-delà du proxy réel.
+      - TRUSTED_PROXIES=${TRUSTED_PROXIES:-}
       - SKIP_TLS_VERIFY=${SKIP_TLS_VERIFY:-false}
       # --- TLS de l'interface ---
       # Noms/IP inclus dans le certificat auto-signé (séparés par des virgules).
@@ -164,7 +168,18 @@ services:
     cpus: 2.0
     pids_limit: 512
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      # Mot de passe lu dans les DEUX formes acceptées par l'image MySQL :
+      # MYSQL_ROOT_PASSWORD (environnement) ou MYSQL_ROOT_PASSWORD_FILE (secret par
+      # fichier, la forme recommandée dans .env.example). Ne sonder que la première
+      # laissait la base éternellement « unhealthy » avec un secret par fichier —
+      # donc `depends_on: service_healthy` bloquait le démarrage de l'app.
+      # Les `$$` sont l'échappement Compose : ils arrivent en `$` dans le conteneur.
+      test:
+        - CMD-SHELL
+        - >-
+          PW="$${MYSQL_ROOT_PASSWORD:-}";
+          [ -n "$$PW" ] || PW="$$(cat "$${MYSQL_ROOT_PASSWORD_FILE:-/dev/null}" 2>/dev/null)";
+          mysqladmin ping -h localhost -u root -p"$$PW" --silent
       interval: 10s
       timeout: 5s
       retries: 10

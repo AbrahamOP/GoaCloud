@@ -279,7 +279,14 @@ func (h *Handler) HandleBackupSettings(w http.ResponseWriter, r *http.Request) {
 // HandleBackupTargetSettings updates a single target's healthcheck + retention
 // (POST /api/backups/target-settings). Admin-only: gated at the router level,
 // with an inline defense-in-depth check. Accepts
-// {target_id, healthcheck_type, healthcheck_target, retention_count} as JSON.
+// {target_id, healthcheck_type, healthcheck_target, retention_count,
+// retention_enabled} as JSON.
+//
+// retention_enabled est le seul champ DESTRUCTIF de cette requête : il arme la
+// purge des archives (services.applyRetention). Il passe donc par
+// UpdateTargetRetention, distinct de UpdateTargetSettings, et son armement est
+// tracé dans le journal d'audit. Sans ce champ, le nombre d'archives à conserver
+// saisi dans l'interface était enregistré… et totalement inerte.
 func (h *Handler) HandleBackupTargetSettings(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -294,6 +301,7 @@ func (h *Handler) HandleBackupTargetSettings(w http.ResponseWriter, r *http.Requ
 		HealthcheckType   string `json:"healthcheck_type"`
 		HealthcheckTarget string `json:"healthcheck_target"`
 		RetentionCount    int    `json:"retention_count"`
+		RetentionEnabled  bool   `json:"retention_enabled"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "Invalid JSON body", http.StatusBadRequest)
@@ -308,6 +316,35 @@ func (h *Handler) HandleBackupTargetSettings(w http.ResponseWriter, r *http.Requ
 		slog.Error("backup: update target settings", "target_id", body.TargetID, "error", err)
 		http.Error(w, "Paramètres de cible invalides", http.StatusBadRequest)
 		return
+	}
+
+	// L'interrupteur de rotation s'écrit APRÈS le reste : si la validation des
+	// paramètres échoue, on n'a pas armé une purge sur une cible dont la
+	// configuration a été refusée.
+	if err := h.Backup.UpdateTargetRetention(body.TargetID, body.RetentionEnabled, body.RetentionCount); err != nil {
+		slog.Error("backup: update target retention", "target_id", body.TargetID,
+			"enabled", body.RetentionEnabled, "error", err)
+		// Message fixe : la seule erreur imputable à l'utilisateur est « activer
+		// en conservant 0 archive ». Le détail (erreur SQL) reste dans les journaux.
+		http.Error(w,
+			"Suppression automatique impossible : activer la rotation exige de conserver au moins 1 archive",
+			http.StatusBadRequest)
+		return
+	}
+
+	// Armer la rotation autorise GoaCore à supprimer des archives — y compris
+	// celles d'un job vzdump que le client gère lui-même. C'est un acte destructif
+	// différé : il doit être imputable à quelqu'un. Le désarmement, lui, ne
+	// détruit rien et n'a pas à alourdir le journal.
+	if body.RetentionEnabled {
+		session, _ := h.SessionStore.Get(r, "goacloud-session")
+		username, _ := session.Values["username"].(string)
+		if username == "" {
+			username = "manual"
+		}
+		go services.LogAudit(h.DB, 0, username, "BackupRetentionEnabled",
+			fmt.Sprintf("Suppression automatique des archives ARMÉE sur la cible #%d (conserver %d archive(s))",
+				body.TargetID, body.RetentionCount), middleware.RealIP(r))
 	}
 
 	w.Header().Set("Content-Type", "application/json")

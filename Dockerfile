@@ -9,8 +9,12 @@
 # Build Stage — exécuté sur l'arch NATIVE du runner, cross-compile le binaire Go vers
 # l'arch cible (TARGETOS/TARGETARCH injectés par buildx). Go cross-compile sans
 # émulation : les builds multi-arch (amd64/arm64) restent rapides.
-# golang:1.23-alpine3.21
-FROM --platform=$BUILDPLATFORM golang@sha256:4bb4be21ac98da06bc26437ee870c4973f8039f13e9a1a36971b4517632b0fc6 AS builder
+# golang:1.25-alpine (Go 1.25.12). Le digest DOIT porter un Go >= à la directive
+# `toolchain` de go.mod : les images officielles fixent GOTOOLCHAIN=local, donc un
+# builder trop ancien échoue au lieu de télécharger le toolchain manquant.
+# 1.25.12 est aussi le patch qui corrige les vulnérabilités de la bibliothèque
+# standard encore remontées par govulncheck sur les versions antérieures.
+FROM --platform=$BUILDPLATFORM golang@sha256:56961d79ea8129efddcc0b8643fd8a5416b4e6228cfd477e3fd61deb2672c587 AS builder
 
 WORKDIR /app
 
@@ -99,9 +103,19 @@ ENV ANSIBLE_HOME=/tmp/.ansible
 # de publié). 8080 n'est que la redirection HTTP→HTTPS interne, non exposée.
 EXPOSE 8443
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD wget -qO /dev/null https://localhost:8443/login --no-check-certificate || exit 1
+# Health check — sonde /readyz, PAS une page de l'interface.
+# /login répond 200 tant que le processus vit, base injoignable comprise : le
+# conteneur restait vert pendant une panne totale de MySQL, c'est-à-dire pendant
+# que toutes les pages utiles renvoyaient 500. /readyz renvoie 503 dans ce cas
+# (cf. internal/handlers/health.go), donc l'état du conteneur dit enfin quelque
+# chose d'exploitable — et c'est bien la READINESS qu'on veut ici : Docker ne
+# redémarre pas un conteneur « unhealthy », il le signale (et un orchestrateur ou
+# un proxy le sort de la rotation).
+# TLS auto-signé sur 8443 : --no-check-certificate reste indispensable.
+# start-period plus longue que pour /login : /readyz n'est vert qu'une fois la
+# connexion à la base établie, ce qui suit le démarrage de MySQL.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD wget -qO /dev/null https://localhost:8443/readyz --no-check-certificate || exit 1
 
 # Commande de démarrage
 ENTRYPOINT ["/usr/local/bin/goacore-entrypoint.sh"]

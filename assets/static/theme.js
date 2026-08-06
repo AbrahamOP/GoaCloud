@@ -98,9 +98,44 @@ function onSSEState(callback) {
 }
 
 // ---- Browser Notifications ----
-// Aucune demande de permission spontanée : le navigateur ne doit afficher la
-// popup que sur un geste explicite de l'utilisateur. Tant que la permission n'est
-// pas accordée, les notifications sont simplement ignorées.
+// Aucune demande de permission SPONTANÉE : le navigateur ne doit afficher la popup
+// que sur un geste explicite de l'utilisateur (et Chrome ignore purement et
+// simplement une demande faite hors geste). Mais supprimer la demande sans la
+// remplacer laissait la fonctionnalité définitivement morte : la permission restant
+// à « default », sendLocalNotif n'affichait jamais rien et rien, nulle part, ne
+// permettait de l'accorder. D'où le déclencheur explicite ci-dessous, câblé sur un
+// bouton (voir proxmox.html).
+
+/**
+ * Indique si la page a intérêt à proposer l'activation des notifications :
+ * l'API existe et l'utilisateur n'a encore ni accordé ni refusé.
+ */
+function canRequestNotifications() {
+    return ('Notification' in window) && Notification.permission === 'default';
+}
+
+/**
+ * Demande la permission d'afficher des notifications navigateur.
+ * À N'APPELER QUE depuis un gestionnaire d'événement utilisateur (clic).
+ * @returns {Promise<string>} la permission résultante ('granted' | 'denied' | 'default')
+ */
+function requestNotificationPermission() {
+    if (!('Notification' in window)) {
+        if (window.notify) notify('warning', "Ce navigateur ne gère pas les notifications de bureau.");
+        return Promise.resolve('denied');
+    }
+    return Promise.resolve(Notification.requestPermission()).then(function(permission) {
+        if (window.notify) {
+            if (permission === 'granted') {
+                notify('success', 'Notifications activées : vous serez prévenu des changements d’état des VM.');
+            } else {
+                notify('info', 'Notifications non activées. Vous pouvez les autoriser plus tard dans les réglages du navigateur.');
+            }
+        }
+        return permission;
+    });
+}
+
 function sendLocalNotif(title, body) {
     if (!('Notification' in window)) return;
     if (Notification.permission === 'granted') {

@@ -189,14 +189,18 @@ func (c CertConfig) generate() error {
 		// and the browser, which would otherwise reject a brand new certificate.
 		NotBefore:             now.Add(-time.Hour),
 		NotAfter:              now.Add(certValidity),
-		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
-		// IsCA + CertSign: most trust stores only accept an imported certificate as
-		// an authority. Combined with a stable fingerprint, this is what lets the
-		// operator install the certificate ONCE and stop seeing the warning — the
-		// point of the whole persistence work above.
-		IsCA: true,
+		// Délibérément PAS une autorité de certification. Faire de ce certificat une CA
+		// permettrait d'importer sa clé privée — qui vit dans un volume, en clair — dans
+		// le magasin de confiance de l'exploitant, où elle signerait alors n'importe quel
+		// domaine : la commodité de « ne plus voir l'avertissement » se paierait d'une
+		// autorité de confiance dont la clé traîne sur le disque. Pour supprimer
+		// réellement l'avertissement, la voie est TLS_CERT_FILE/TLS_KEY_FILE avec un
+		// certificat d'une PKI interne ou de Let's Encrypt ; à défaut, l'exception par
+		// site dans le navigateur, que la persistance de l'empreinte rend durable.
+		IsCA: false,
 	}
 	for _, host := range hosts {
 		if ip := net.ParseIP(host); ip != nil {

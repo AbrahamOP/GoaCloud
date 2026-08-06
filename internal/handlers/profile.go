@@ -72,6 +72,19 @@ func (h *Handler) HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Changing the password must retire every cookie minted under the old one —
+	// including one an attacker may have stolen, which is the whole point of
+	// changing it. RotateSessionAfterCredentialChange bumps the revocation epoch and
+	// re-stamps THIS session, so the device doing the change stays signed in.
+	//
+	// The new hash is already written: a rotation failure cannot be undone, so it is
+	// reported to the user (their other sessions are still live) instead of being
+	// swallowed or turned into a 500 that would suggest nothing happened.
+	if err := h.RotateSessionAfterCredentialChange(w, r, username); err != nil {
+		http.Redirect(w, r, "/profile?error=Mot de passe modifié, mais les autres sessions n'ont pas pu être révoquées — utilisez « Déconnecter toutes mes sessions »", http.StatusSeeOther)
+		return
+	}
+
 	http.Redirect(w, r, "/profile?success=true", http.StatusSeeOther)
 }
 

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -89,6 +90,49 @@ func StartSoarWorker(
 // maxAlertLookback caps the indexer query window so a long outage cannot trigger
 // an unbounded (and expensive) range query when the worker recovers.
 const maxAlertLookback = 30 * time.Minute
+
+// alertDedupKey returns the deduplication key of one indexer alert.
+//
+// Wazuh's own alert id ("<epoch>.<offset>") is unique per alert, so it is the only
+// correct key during a burst: the previous key (agent.id:rule.id:timestamp) takes the
+// SAME value for a hundred SSH failures of the same second, and ninety-nine distinct
+// alerts were then discarded as "already seen" — precisely when the operator needs
+// them most.
+//
+// Fallback to the legacy composite key when the id is empty: an older indexer (or a
+// mapping that does not surface `id`) must still dedup, and the entries already
+// persisted in soar_alert_dedup before this fix are in that shape.
+func alertDedupKey(a services.WazuhAlert) string {
+	if id := strings.TrimSpace(a.ID); id != "" {
+		return id
+	}
+	return a.Agent.ID + ":" + a.Rule.ID + ":" + a.Timestamp
+}
+
+// nextAlertCursor computes where the alert cursor must land after one poll.
+//
+//   - Complete window: the whole window was read, so the cursor advances to the start
+//     of the poll (the pre-existing behaviour).
+//   - TRUNCATED window (hard cap reached during an attack peak, or an unusable sort):
+//     everything older than the last alert read has NOT been read. Advancing to
+//     pollStart would skip that tail for good — a security alert skipped is skipped
+//     forever — so the cursor stays on the oldest alert actually returned and the next
+//     tick resumes there.
+//
+// If that timestamp is unusable (empty window, unparsable format), we fall back to
+// pollStart: without a reliable marker, keeping the previous behaviour is better than
+// inventing a position (and a cursor stuck in the past would re-post the same window
+// at every tick).
+func nextAlertCursor(win services.AlertWindow, pollStart time.Time) time.Time {
+	if !win.Truncated {
+		return pollStart
+	}
+	t, ok := win.OldestReturnedTime()
+	if !ok {
+		return pollStart
+	}
+	return t
+}
 
 // maxConcurrentEnrichments bounds how many AI (Ollama) enrichments run at once.
 // A single tick can fan out one `go sendEnrichedAlert(...)` per state change and
@@ -335,18 +379,32 @@ func checkSoarEvents(
 			slog.Warn("SOAR lookback capped — alerts older than the cap may have been missed", "cap", maxAlertLookback)
 		}
 
-		alerts, err := wazuhIndexer.GetRecentAlerts(lookback)
+		win, err := wazuhIndexer.GetRecentAlertsWindow(lookback)
 		if err != nil {
 			slog.Error("SOAR Worker Error (Indexer)", "error", err)
 		} else {
-			*lastAlertPoll = pollStart
+			// Le curseur ne dépasse JAMAIS ce qui a réellement été lu : sur une
+			// fenêtre tronquée (plafond atteint pendant un pic), il reste sur la
+			// plus ancienne alerte lue pour que le tick suivant reprenne la queue
+			// de fenêtre au lieu de la perdre définitivement.
+			cursor := nextAlertCursor(win, pollStart)
+			if win.Truncated {
+				// Signal d'exploitation : une troncature dit que le pic dépasse ce
+				// qu'un tick peut absorber. On la journalise explicitement, avec le
+				// point de reprise, plutôt que de la laisser deviner.
+				slog.Warn("SOAR : fenêtre d'alertes tronquée — reprise au tick suivant depuis la plus ancienne alerte lue",
+					"alertes_lues", len(win.Alerts),
+					"total_indexeur", win.TotalReported,
+					"curseur", cursor.Format(time.RFC3339))
+			}
+			*lastAlertPoll = cursor
 			// Persist the cursor so a restart resumes where this poll ended
 			// instead of re-reading (and re-posting) the lookback window.
-			if serr := saveSoarState(db, "last_alert_poll", pollStart.Format(time.RFC3339)); serr != nil {
+			if serr := saveSoarState(db, "last_alert_poll", cursor.Format(time.RFC3339)); serr != nil {
 				slog.Error("SOAR state persistence failed", "error", serr)
 			}
-			for _, alert := range alerts {
-				alertKey := alert.Agent.ID + ":" + alert.Rule.ID + ":" + alert.Timestamp
+			for _, alert := range win.Alerts {
+				alertKey := alertDedupKey(alert)
 				if _, loaded := alertDedup.Load(alertKey); !loaded {
 					// Store mémoire tout de suite (empêche un double fan-out dans le
 					// même process) mais persistance DB seulement APRÈS un post

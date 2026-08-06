@@ -81,7 +81,13 @@ func main() {
 	defer db.Close()
 	slog.Info("Connected to MySQL database")
 
-	database.Migrate(db)
+	// Une base qui n'a pas pu être amenée au schéma attendu (privilège ALTER manquant,
+	// verrou, disque plein) doit interrompre le démarrage plutôt que de servir des 500
+	// dispersées à l'usage : c'est tout l'intérêt du retour d'erreur de Migrate.
+	if err := database.Migrate(db); err != nil {
+		slog.Error("Migration de schéma impossible — refus de démarrer", "error", err)
+		os.Exit(1)
+	}
 
 	// Templates
 	tmpl := template.New("").Funcs(handlers.TemplateFuncMap())
@@ -112,6 +118,14 @@ func main() {
 		cfg.SkipTLSVerify,
 	)
 	sshService.MigrateEncryptSSHKeys()
+
+	// Enregistre le magasin TOFU partagé comme source de vérité pour les deux chemins
+	// qui ne construisent pas leur propre client SSH : le canal GoaBackup (vérification
+	// des clés d'hôte de l'hyperviseur) et l'exécution Ansible (known_hosts temporaire).
+	// Les deux sont fail-closed sans magasin enregistré — sans ces deux lignes, le canal
+	// et les playbooks refusent toute connexion.
+	services.SetDefaultChannelHostKeys(sshService)
+	services.SetDefaultHostKeyStore(sshService)
 
 	// Connection store (DB persistence of in-app infra creds) + ConfigStore (live,
 	// concurrency-safe Proxmox connection, atomic.Pointer swap on reload).
@@ -385,6 +399,23 @@ func main() {
 		slog.Info("All workers stopped")
 	case <-ctx.Done():
 		slog.Warn("Timeout waiting for workers to stop")
+	}
+
+	// Draine les orchestrations longues (vzdump, tests de restauration). Contrairement
+	// aux workers, elles ne sont JAMAIS annulées en vol : couper un test de restauration
+	// en cours empêcherait le defer qui détruit le sandbox de s'exécuter, et laisserait
+	// un clone démarré de la VM de production sur l'hyperviseur du client. Le budget est
+	// volontairement distinct de celui de l'arrêt HTTP — un test de restauration le
+	// dépasse par nature — et son expiration est un AVERTISSEMENT de fuite, pas un échec.
+	// Un exploitant qui lance des tests longs doit relever `stop_grace_period` en face.
+	const backupDrainTimeout = 60 * time.Second
+	drainCtx, drainCancel := context.WithTimeout(context.Background(), backupDrainTimeout)
+	defer drainCancel()
+	if err := backupService.Wait(drainCtx); err != nil {
+		slog.Warn("Sauvegarde ou test de restauration encore en cours à l'arrêt — un invité sandbox peut survivre sur l'hyperviseur ; il sera purgé au prochain démarrage",
+			"error", err)
+	} else {
+		slog.Info("Sauvegardes et tests de restauration drainés")
 	}
 
 	slog.Info("Server stopped gracefully")

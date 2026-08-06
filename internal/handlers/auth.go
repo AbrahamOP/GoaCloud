@@ -93,6 +93,7 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		bcrypt.CompareHashAndPassword([]byte(dummyBcryptHash), []byte(password))
 		n, blocked := h.RateLimiter.RecordFailure(clientIP)
 		go h.notifyLoginFailure(clientIP, username, "Utilisateur inconnu", n, blocked)
+		h.dropMFAPending(w, r)
 		h.renderLogin(w, loginPageData("Identifiants invalides", username, false))
 		return
 	}
@@ -100,6 +101,7 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if err = bcrypt.CompareHashAndPassword([]byte(user.passwordHash), []byte(password)); err != nil {
 		n, blocked := h.RateLimiter.RecordFailure(clientIP)
 		go h.notifyLoginFailure(clientIP, username, "Mot de passe incorrect", n, blocked)
+		h.dropMFAPending(w, r)
 		h.renderLogin(w, loginPageData("Identifiants invalides", username, false))
 		return
 	}
@@ -164,6 +166,13 @@ func (h *Handler) finishMFALogin(w http.ResponseWriter, r *http.Request, clientI
 	if !totp.Validate(mfaCode, h.mfaSecretOf(user.mfaSecret.String)) {
 		n, blocked := h.RateLimiter.RecordFailure(clientIP)
 		go h.notifyLoginFailure(clientIP, pendingUser, "Code MFA invalide", n, blocked)
+		if blocked {
+			// Out of attempts: the failure is definitive, so the half-login dies
+			// with it instead of staying redeemable for the rest of its TTL.
+			h.clearMFAPending(w, r, session)
+			h.renderLogin(w, loginPageData("Code MFA invalide, veuillez recommencer la connexion", "", false))
+			return
+		}
 		// Keep the pending state so the user can retry within the same TTL window.
 		h.renderLogin(w, loginPageData("Code MFA invalide", "", true))
 		return
@@ -190,6 +199,23 @@ func mfaPending(session *sessions.Session) (string, bool) {
 	return username, true
 }
 
+// dropMFAPending consumes any half-finished login carried by the request.
+//
+// A pre-auth state must not outlive the step that created it: left in place, a
+// FAILED credentials step would keep the previous "password already verified"
+// marker redeemable for the rest of its TTL, so a bare TOTP code could still
+// finish the login the browser just failed to start again.
+func (h *Handler) dropMFAPending(w http.ResponseWriter, r *http.Request) {
+	session, err := h.SessionStore.Get(r, "goacloud-session")
+	if err != nil {
+		return
+	}
+	if _, exists := session.Values[sessionMFAPendingUser]; !exists {
+		return
+	}
+	h.clearMFAPending(w, r, session)
+}
+
 // clearMFAPending drops the pre-auth state and persists the session.
 func (h *Handler) clearMFAPending(w http.ResponseWriter, r *http.Request, session *sessions.Session) {
 	delete(session.Values, sessionMFAPendingUser)
@@ -208,9 +234,13 @@ func (h *Handler) establishSession(w http.ResponseWriter, r *http.Request, usern
 		oldSession.Save(r, w)
 	}
 	session, _ := h.SessionStore.New(r, "goacloud-session")
-	// New() re-decodes the incoming cookie, so the pre-auth keys must go explicitly.
+	// New() re-decodes the incoming cookie, so the transient MFA state (pre-auth
+	// login AND pending enrolment) must go explicitly, or it would survive into the
+	// fresh session and stay redeemable.
 	delete(session.Values, sessionMFAPendingUser)
 	delete(session.Values, sessionMFAPendingExp)
+	delete(session.Values, sessionMFAEnrollSecret)
+	delete(session.Values, sessionMFAEnrollExp)
 	session.Values["authenticated"] = true
 	session.Values["username"] = username
 	session.Values[sessionEpochKey] = epoch
@@ -355,10 +385,12 @@ func (h *Handler) HandleSetup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == http.MethodPost {
-		// Same budget as /login: a first install takes one POST, so five rejected
-		// attempts before a 15-minute pause never gets in a legitimate admin's way,
-		// while it does stop an attacker hammering the window between `docker compose
-		// up` and the operator's first visit.
+		// Same budget as /login against someone hammering the window between
+		// `docker compose up` and the operator's first visit — but ONLY abuse is
+		// counted. A typo in the install form (empty field, short password,
+		// mismatched confirmation) is not an attack: counting it used to lock the
+		// operator's own IP out of their brand-new instance for 15 minutes, at the
+		// one moment there is no account to recover from.
 		clientIP := middleware.RealIP(r)
 		if h.RateLimiter.IsBlocked(clientIP) {
 			http.Error(w, middleware.BlockedMessage(), http.StatusTooManyRequests)
@@ -369,21 +401,27 @@ func (h *Handler) HandleSetup(w http.ResponseWriter, r *http.Request) {
 		password := r.FormValue("password")
 		confirm := r.FormValue("confirm_password")
 
-		setupFailed := func(msg string) {
+		// invalidForm re-renders the form WITHOUT charging the rate limiter.
+		invalidForm := func(msg string) {
+			h.renderError(w, "setup.html", msg)
+		}
+		// setupAbuse is the other kind of failure: a POST that had no business
+		// succeeding (the instance is already installed, or the write blew up).
+		setupAbuse := func(msg string) {
 			h.RateLimiter.RecordFailure(clientIP)
 			h.renderError(w, "setup.html", msg)
 		}
 
 		if username == "" || password == "" {
-			setupFailed("Tous les champs sont requis")
+			invalidForm("Tous les champs sont requis")
 			return
 		}
 		if len(password) < 8 {
-			setupFailed("Le mot de passe doit contenir au moins 8 caractères")
+			invalidForm("Le mot de passe doit contenir au moins 8 caractères")
 			return
 		}
 		if password != confirm {
-			setupFailed("Les mots de passe ne correspondent pas")
+			invalidForm("Les mots de passe ne correspondent pas")
 			return
 		}
 
@@ -396,7 +434,7 @@ func (h *Handler) HandleSetup(w http.ResponseWriter, r *http.Request) {
 		created, err := h.createFirstAdmin(username, string(hashedPassword))
 		if err != nil {
 			slog.Error("Error creating admin user", "error", err)
-			setupFailed("Erreur lors de la création du compte")
+			setupAbuse("Erreur lors de la création du compte")
 			return
 		}
 		if !created {

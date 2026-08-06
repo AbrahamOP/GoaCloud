@@ -137,7 +137,22 @@
                 et vérifie l'empreinte sha256 du helper embarqué.
             </p>
             <div class="pl-10">
-                <pre id="root-command" class="cmd p-3 rounded-lg bg-surface-container-high border border-outline text-xs text-on-surface select-all">curl -k -fsSL {{.InstallerURL}} -o /tmp/goabackup-install.sh &amp;&amp; less /tmp/goabackup-install.sh &amp;&amp; sudo bash /tmp/goabackup-install.sh</pre>
+                {{if .InstallCommand}}
+                {{/* La commande vient du serveur (channelRootCommand) : elle embarque le
+                     contrôle sha256 du script téléchargé. Ne jamais la réécrire en dur ici —
+                     c'est ce qui avait rendu la vérification d'empreinte inopérante. */}}
+                <pre id="root-command" class="cmd p-3 rounded-lg bg-surface-container-high border border-outline text-xs text-on-surface select-all whitespace-pre-wrap break-all">{{.InstallCommand}}</pre>
+                <p class="mt-2 text-[11px] text-on-surface-variant break-all">
+                    Empreinte attendue du script (affichée ici via le TLS vérifié de votre navigateur,
+                    et non téléchargée par la commande&nbsp;) :
+                    <code class="text-on-surface select-all">{{.InstallerSHA}}</code>
+                </p>
+                {{else}}
+                <p class="text-xs text-warning">
+                    Générez d'abord la clé du canal à l'étape&nbsp;1 : la commande d'installation
+                    n'est produite qu'une fois la clé provisionnée.
+                </p>
+                {{end}}
                 <div class="flex items-center gap-3 mt-2">
                     <button type="button" id="btn-copy"
                         class="px-3 py-1.5 rounded-full text-xs font-semibold bg-surface-container-high border border-outline text-on-surface hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface transition">

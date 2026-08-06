@@ -44,13 +44,13 @@
 
 {{define "bubbles"}}
 <!-- Decoration Gradients (sidebar palette) -->
-<div class="absolute top-0 left-0 w-96 h-96 bg-purple-500/20 rounded-full pointer-events-none blur-2xl"></div>
-<div class="absolute bottom-0 right-0 w-96 h-96 bg-cyan-600/5 rounded-full pointer-events-none blur-2xl"></div>
-<div class="absolute top-0 right-0 w-32 h-32 bg-red-500/20 rounded-full pointer-events-none blur-2xl"></div>
-<div class="absolute top-1/2 right-0 w-48 h-48 bg-orange-500/20 rounded-full pointer-events-none blur-2xl -translate-y-1/2"></div>
-<div class="absolute bottom-0 left-1/2 w-48 h-48 bg-yellow-500/20 rounded-full pointer-events-none blur-2xl -translate-x-1/2"></div>
-<div class="absolute top-1/2 left-0 w-32 h-32 bg-green-500/20 rounded-full pointer-events-none blur-2xl -translate-y-1/2"></div>
-<div class="absolute top-0 left-1/2 w-48 h-48 bg-blue-500/20 rounded-full pointer-events-none blur-2xl -translate-x-1/2"></div>
+<div class="absolute top-0 left-0 w-96 h-96 bg-primary/20 rounded-full pointer-events-none blur-2xl"></div>
+<div class="absolute bottom-0 right-0 w-96 h-96 bg-info/5 rounded-full pointer-events-none blur-2xl"></div>
+<div class="absolute top-0 right-0 w-32 h-32 bg-error/20 rounded-full pointer-events-none blur-2xl"></div>
+<div class="absolute top-1/2 right-0 w-48 h-48 bg-warning/20 rounded-full pointer-events-none blur-2xl -translate-y-1/2"></div>
+<div class="absolute bottom-0 left-1/2 w-48 h-48 bg-tertiary/20 rounded-full pointer-events-none blur-2xl -translate-x-1/2"></div>
+<div class="absolute top-1/2 left-0 w-32 h-32 bg-success/20 rounded-full pointer-events-none blur-2xl -translate-y-1/2"></div>
+<div class="absolute top-0 left-1/2 w-48 h-48 bg-info/20 rounded-full pointer-events-none blur-2xl -translate-x-1/2"></div>
 {{end}}
 
 {{define "sidebar"}}
@@ -79,7 +79,7 @@
             </a>
             <a href="/applications"
                 class="sidebar-link flex items-center px-4 py-3 text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors duration-200">
-                <svg class="w-5 h-5 mr-3 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="w-5 h-5 mr-3 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                 </svg>
@@ -111,7 +111,7 @@
             </a>
             <a href="/ssh"
                 class="sidebar-link flex items-center px-4 py-3 text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors duration-200">
-                <svg class="w-5 h-5 mr-3 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="w-5 h-5 mr-3 text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z">
                     </path>
@@ -138,7 +138,7 @@
             </a>
             <a href="/backups"
                 class="sidebar-link flex items-center px-4 py-3 text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors duration-200">
-                <svg class="w-5 h-5 mr-3 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="w-5 h-5 mr-3 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                 </svg>

@@ -156,11 +156,22 @@ func TestUniqueTargetPlan(t *testing.T) {
 // Skipped unless GOACORE_TEST_DSN points at a THROWAWAY database: these tests
 // create, alter and drop the application tables. Same convention as the SOAR
 // persistence tests (SOAR_TEST_DSN).
+//
+// These are the ONLY tests that exercise the upgrade path of an existing customer
+// database — the riskiest thing this product does. CI runs them for real (see the
+// `db-tests` job of .github/workflows/ci-deploy.yml). GOACORE_REQUIRE_DB_TESTS is
+// the anti-regression latch for that job: with it set, a missing DSN is a FAILURE
+// instead of a skip, so removing the MySQL service from CI breaks the build loudly
+// rather than quietly reverting to "0 tests run, all green".
 
 func integrationDB(t *testing.T) *sql.DB {
 	t.Helper()
 	dsn := os.Getenv("GOACORE_TEST_DSN")
 	if dsn == "" {
+		if os.Getenv("GOACORE_REQUIRE_DB_TESTS") != "" {
+			t.Fatal("GOACORE_REQUIRE_DB_TESTS is set but GOACORE_TEST_DSN is empty — " +
+				"the MySQL integration tests would be silently skipped; wire the database service back up")
+		}
 		t.Skip("GOACORE_TEST_DSN not set — MySQL integration test skipped")
 	}
 	db, err := sql.Open("mysql", dsn)

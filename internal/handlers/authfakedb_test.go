@@ -175,6 +175,13 @@ func (s authFakeStmt) Exec(args []driver.Value) (driver.Result, error) {
 			u.mfaEnabled = false
 			u.mfaSecret = nil
 		}
+		if strings.Contains(s.query, "mfa_enabled = true") {
+			u.mfaEnabled = true
+			u.mfaSecret = fmt.Sprint(args[0]) // the encrypted secret is the first bind
+		}
+		if strings.Contains(s.query, "password_hash = ?") {
+			u.passwordHash = fmt.Sprint(args[0])
+		}
 		return driver.RowsAffected(1), nil
 
 	case strings.HasPrefix(s.query, "insert into users"):
@@ -219,6 +226,13 @@ func (s authFakeStmt) Query(args []driver.Value) (driver.Rows, error) {
 			cols: []string{"password_hash", "mfa_enabled", "mfa_secret", "session_epoch"},
 			vals: [][]driver.Value{{u.passwordHash, u.mfaEnabled, u.mfaSecret, u.sessionEpoch}},
 		}, nil
+
+	case strings.Contains(s.query, "select password_hash from users where username"):
+		u, ok := s.f.users[argUser()]
+		if !ok {
+			return &authFakeRows{cols: []string{"password_hash"}}, nil
+		}
+		return &authFakeRows{cols: []string{"password_hash"}, vals: [][]driver.Value{{u.passwordHash}}}, nil
 
 	case strings.Contains(s.query, "select role from users where username"):
 		u, ok := s.f.users[argUser()]

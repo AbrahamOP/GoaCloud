@@ -108,6 +108,145 @@ func (s *SSHService) PinnedHostKeys(ip string) ([]string, error) {
 // errors.Is pour distinguer ce cas d'une vraie erreur d'exécution.
 var ErrHostNotPinned = errors.New("clé hôte SSH non épinglée")
 
+// ErrHostKeyMismatch signale que l'hôte présente une clé différente de celle déjà
+// épinglée : soit la machine a été réinstallée, soit quelqu'un s'interpose. GoaCore
+// ne remplace JAMAIS une clé épinglée tout seul.
+var ErrHostKeyMismatch = errors.New("la clé hôte SSH présentée diffère de la clé épinglée")
+
+// ErrHostKeyFingerprintMismatch signale que la clé présentée par l'hôte ne
+// correspond pas à l'empreinte que l'exploitant attendait : l'épinglage est refusé.
+var ErrHostKeyFingerprintMismatch = errors.New("l'empreinte présentée ne correspond pas à l'empreinte attendue")
+
+// hostKeyScanTimeout borne la poignée de main SSH d'un scan d'empreinte.
+const hostKeyScanTimeout = 10 * time.Second
+
+// ansibleSSHPort est le port sur lequel Ansible se connecte (et donc celui dont on
+// épingle la clé : le known_hosts généré par RunPlaybook utilise l'hôte nu, forme
+// réservée au port 22).
+const ansibleSSHPort = 22
+
+// HostKeyPinner est le chemin d'AMORÇAGE du TOFU : il permet d'épingler
+// délibérément l'identité d'un hôte, sans passer par une console SSH ni par un
+// déploiement de clé. Sans lui, le durcissement de RunPlaybook (refus de tout hôte
+// non épinglé) n'aurait aucune sortie : les planifications existantes resteraient
+// bloquées à jamais.
+//
+// L'unique implémentation est *SSHService.
+type HostKeyPinner interface {
+	// ScanHostKey ouvre une connexion vers ip:22, récupère la clé hôte présentée et
+	// renvoie son empreinte SHA256 SANS rien enregistrer.
+	ScanHostKey(ip string) (fingerprint string, err error)
+	// PinHostKey récupère la clé hôte de ip:22 et l'enregistre dans ssh_host_keys.
+	// expectedFingerprint, s'il est non vide, doit correspondre à l'empreinte
+	// présentée, sinon rien n'est enregistré (validation hors bande par
+	// l'exploitant). L'empreinte réellement épinglée est renvoyée pour affichage.
+	PinHostKey(ip, expectedFingerprint string) (fingerprint string, err error)
+}
+
+// scanHostKey ouvre une poignée de main SSH vers ip:port et renvoie la clé hôte
+// présentée. L'authentification n'est jamais tentée : la clé d'hôte est échangée
+// AVANT l'authentification, donc un « unable to authenticate » est un succès pour
+// nous tant qu'une clé a été capturée.
+func scanHostKey(ip string, port int) (gossh.PublicKey, error) {
+	if net.ParseIP(ip) == nil {
+		return nil, fmt.Errorf("adresse IP invalide : %s", ip)
+	}
+	addr := net.JoinHostPort(ip, fmt.Sprint(port))
+	conn, err := net.DialTimeout("tcp", addr, hostKeyScanTimeout)
+	if err != nil {
+		return nil, fmt.Errorf("connexion à %s impossible : %w", addr, err)
+	}
+	defer conn.Close()
+	if err := conn.SetDeadline(time.Now().Add(hostKeyScanTimeout)); err != nil {
+		return nil, fmt.Errorf("échéance de connexion : %w", err)
+	}
+
+	var captured gossh.PublicKey
+	cfg := &gossh.ClientConfig{
+		User: "goacore-hostkey-scan",
+		HostKeyCallback: func(_ string, _ net.Addr, key gossh.PublicKey) error {
+			captured = key
+			return nil
+		},
+		Timeout: hostKeyScanTimeout,
+	}
+	sshConn, chans, reqs, err := gossh.NewClientConn(conn, addr, cfg)
+	if err == nil {
+		go gossh.DiscardRequests(reqs)
+		go func() {
+			for ch := range chans {
+				_ = ch.Reject(gossh.Prohibited, "scan")
+			}
+		}()
+		sshConn.Close()
+	}
+	if captured == nil {
+		return nil, fmt.Errorf("clé hôte de %s non récupérée : %w", addr, err)
+	}
+	return captured, nil
+}
+
+// ScanHostKey implémente HostKeyPinner : lecture seule, aucune écriture en base.
+// C'est ce que l'UI affiche à l'exploitant pour qu'il compare l'empreinte avec
+// celle relevée sur la machine (`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`)
+// AVANT de confirmer l'épinglage.
+func (s *SSHService) ScanHostKey(ip string) (string, error) {
+	key, err := scanHostKey(ip, ansibleSSHPort)
+	if err != nil {
+		return "", err
+	}
+	return gossh.FingerprintSHA256(key), nil
+}
+
+// PinHostKey implémente HostKeyPinner : c'est LE geste d'amorçage explicite.
+//
+// Il récupère la clé hôte présentée par ip:22 et l'enregistre dans ssh_host_keys —
+// le magasin partagé avec la console et le déploiement de clés — puis renvoie son
+// empreinte SHA256 pour que l'appelant la restitue à l'exploitant.
+//
+//   - expectedFingerprint non vide : la clé présentée doit correspondre, sinon rien
+//     n'est écrit (ErrHostKeyFingerprintMismatch). C'est la voie recommandée :
+//     l'exploitant valide l'empreinte hors bande.
+//   - hôte déjà épinglé avec la MÊME clé : succès idempotent.
+//   - hôte déjà épinglé avec une clé DIFFÉRENTE : refus (ErrHostKeyMismatch). Une
+//     rotation légitime se règle en supprimant explicitement la ligne épinglée.
+func (s *SSHService) PinHostKey(ip, expectedFingerprint string) (string, error) {
+	return s.pinHostKeyOnPort(ip, ansibleSSHPort, expectedFingerprint)
+}
+
+// pinHostKeyOnPort porte la logique de PinHostKey avec un port explicite (les tests
+// montent un serveur SSH local sur un port éphémère).
+func (s *SSHService) pinHostKeyOnPort(ip string, port int, expectedFingerprint string) (string, error) {
+	key, err := scanHostKey(ip, port)
+	if err != nil {
+		return "", err
+	}
+	fingerprint := gossh.FingerprintSHA256(key)
+	if want := strings.TrimSpace(expectedFingerprint); want != "" && want != fingerprint {
+		return fingerprint, fmt.Errorf("%w pour %s : présentée %s, attendue %s",
+			ErrHostKeyFingerprintMismatch, ip, fingerprint, want)
+	}
+
+	keyB64 := base64.StdEncoding.EncodeToString(key.Marshal())
+	var stored string
+	err = s.db.QueryRow("SELECT host_key FROM ssh_host_keys WHERE ip = ?", ip).Scan(&stored)
+	switch {
+	case err == sql.ErrNoRows:
+		if _, ierr := s.db.Exec("INSERT INTO ssh_host_keys (ip, host_key) VALUES (?, ?)", ip, keyB64); ierr != nil {
+			return fingerprint, fmt.Errorf("enregistrement de la clé hôte de %s : %w", ip, ierr)
+		}
+		slog.Warn("ansible: clé hôte épinglée", "ip", ip, "fingerprint", fingerprint)
+		return fingerprint, nil
+	case err != nil:
+		return fingerprint, fmt.Errorf("lecture de la clé hôte épinglée pour %s : %w", ip, err)
+	case strings.TrimSpace(stored) == keyB64:
+		// Déjà épinglé à l'identique : rien à faire.
+		return fingerprint, nil
+	default:
+		return fingerprint, fmt.Errorf("%w pour %s (empreinte présentée : %s)", ErrHostKeyMismatch, ip, fingerprint)
+	}
+}
+
 // ErrNoHostKeyStore signale une erreur de câblage : aucun magasin de clés hôtes
 // n'a été fourni ni enregistré. On refuse d'exécuter plutôt que de se rabattre sur
 // une connexion non vérifiée.
@@ -115,8 +254,86 @@ var ErrNoHostKeyStore = errors.New("magasin de clés hôtes non configuré : imp
 
 func hostNotPinnedError(ip string) error {
 	return fmt.Errorf("%w pour %s : GoaCore n'a jamais vérifié l'identité de cet hôte. "+
-		"Ouvrez une console SSH vers %s (ou déployez-y une clé) depuis l'écran Clés SSH "+
-		"pour épingler son empreinte, puis relancez le playbook", ErrHostNotPinned, ip, ip)
+		"Épinglez-la (action « Épingler la clé hôte » de l'écran Clés SSH, ou "+
+		"SSHService.PinHostKey) : GoaCore affichera l'empreinte SHA256 présentée par %s, "+
+		"que vous comparerez à celle relevée sur la machine avec "+
+		"`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` avant de confirmer. "+
+		"Ouvrir une console SSH vers cet hôte (ou y déployer une clé) l'épingle aussi. "+
+		"Relancez ensuite le playbook", ErrHostNotPinned, ip, ip)
+}
+
+// UnpinnedScheduleHost décrit une planification Ansible dont l'hôte cible n'est pas
+// (encore) épinglé : elle échouera à sa prochaine exécution.
+type UnpinnedScheduleHost struct {
+	ScheduleID int
+	Playbook   string
+	VMID       int
+	IP         string
+}
+
+// unpinnedScheduleLister est le contrat interne permettant d'inventorier, au
+// démarrage, les planifications dont l'hôte n'est pas épinglé. Implémenté par
+// *SSHService (qui porte à la fois la base et le magasin de clés).
+type unpinnedScheduleLister interface {
+	UnpinnedScheduleHosts() ([]UnpinnedScheduleHost, error)
+}
+
+// UnpinnedScheduleHosts liste les planifications ACTIVÉES dont l'hôte cible n'a
+// aucune clé épinglée. Elles seront refusées par RunPlaybook tant que l'exploitant
+// n'aura pas épinglé l'hôte : mieux vaut le lui dire au démarrage que de le laisser
+// découvrir la panne au premier échec silencieux.
+func (s *SSHService) UnpinnedScheduleHosts() ([]UnpinnedScheduleHost, error) {
+	if s == nil || s.db == nil {
+		return nil, nil
+	}
+	rows, err := s.db.Query(`
+		SELECT a.id, a.playbook, a.vmid, COALESCE(v.ip_address, '')
+		FROM ansible_schedules a
+		LEFT JOIN vm_cache v ON v.vmid = a.vmid
+		WHERE a.enabled = TRUE
+		  AND (v.ip_address IS NULL OR v.ip_address NOT IN (SELECT ip FROM ssh_host_keys))
+		ORDER BY a.id`)
+	if err != nil {
+		return nil, fmt.Errorf("inventaire des planifications non épinglées : %w", err)
+	}
+	defer rows.Close()
+
+	var out []UnpinnedScheduleHost
+	for rows.Next() {
+		var u UnpinnedScheduleHost
+		if err := rows.Scan(&u.ScheduleID, &u.Playbook, &u.VMID, &u.IP); err != nil {
+			return nil, err
+		}
+		out = append(out, u)
+	}
+	return out, rows.Err()
+}
+
+// warnUnpinnedSchedules journalise l'inventaire ci-dessus. Best-effort : une erreur
+// de lecture ne doit jamais empêcher le démarrage.
+func warnUnpinnedSchedules(store HostKeyStore) {
+	lister, ok := store.(unpinnedScheduleLister)
+	if !ok {
+		return
+	}
+	pending, err := lister.UnpinnedScheduleHosts()
+	if err != nil {
+		slog.Warn("ansible: inventaire des planifications non épinglées impossible", "error", err)
+		return
+	}
+	if len(pending) == 0 {
+		return
+	}
+	slog.Warn("ansible: des planifications ciblent des hôtes NON épinglés — elles seront refusées tant que l'identité de l'hôte n'aura pas été épinglée (écran Clés SSH)",
+		"count", len(pending))
+	for _, p := range pending {
+		ip := p.IP
+		if ip == "" {
+			ip = "(IP inconnue du cache)"
+		}
+		slog.Warn("ansible: planification bloquée par le TOFU",
+			"schedule_id", p.ScheduleID, "playbook", p.Playbook, "vmid", p.VMID, "ip", ip)
+	}
 }
 
 // defaultPlaybookTimeout borne la durée d'un playbook quand GOACORE_ANSIBLE_TIMEOUT
@@ -153,10 +370,19 @@ var (
 // SetDefaultHostKeyStore enregistre le magasin utilisé par RunPlaybook quand
 // l'appelant ne lui en passe pas explicitement un (WithHostKeyStore). À appeler une
 // fois au démarrage avec le *SSHService.
+//
+// C'est aussi le point d'accroche de l'AVERTISSEMENT DE DÉMARRAGE : puisque le
+// magasin arrive ici une fois, au boot, on en profite pour inventorier les
+// planifications dont l'hôte n'est pas épinglé (donc qui échoueront) et les
+// journaliser. Best-effort, jamais bloquant.
 func SetDefaultHostKeyStore(store HostKeyStore) {
 	defaultHostKeysMu.Lock()
-	defer defaultHostKeysMu.Unlock()
 	defaultHostKeys = store
+	defaultHostKeysMu.Unlock()
+
+	if store != nil {
+		warnUnpinnedSchedules(store)
+	}
 }
 
 func defaultHostKeyStore() HostKeyStore {

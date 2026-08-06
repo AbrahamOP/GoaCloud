@@ -319,6 +319,13 @@ var defenseInDepth = []route{
 	{http.MethodPost, "/api/ssh/deploy"},
 	{http.MethodDelete, "/api/ssh/delete"},
 
+	// Host-key pinning (scan/pin/delete re-check inline). Épingler l'identité d'un
+	// hôte engage tous les accès SSH ultérieurs, et la supprimer rouvre la fenêtre
+	// TOFU : c'est une surface d'administration, jamais du self-service.
+	{http.MethodPost, "/api/ssh/host-keys/scan"},
+	{http.MethodPost, "/api/ssh/host-keys/pin"},
+	{http.MethodDelete, "/api/ssh/host-keys"},
+
 	// Ansible execution + playbook + schedules (all re-check inline).
 	{http.MethodPost, "/api/ansible/run"},
 	{http.MethodPost, "/api/ansible/upload"},

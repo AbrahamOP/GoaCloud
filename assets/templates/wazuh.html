@@ -58,8 +58,8 @@
                         <p class="text-3xl font-bold text-warning" id="cve-high">-</p>
                         <p class="text-xs text-on-surface-variant uppercase mt-1">High</p>
                     </div>
-                    <div class="bg-surface-container border border-outline-variant rounded-xl p-4 text-center border-l-4 border-warning">
-                        <p class="text-3xl font-bold text-warning" id="cve-medium">-</p>
+                    <div class="bg-surface-container border border-outline-variant rounded-xl p-4 text-center border-l-4 border-tertiary">
+                        <p class="text-3xl font-bold text-tertiary" id="cve-medium">-</p>
                         <p class="text-xs text-on-surface-variant uppercase mt-1">Medium</p>
                     </div>
                     <div class="bg-surface-container border border-outline-variant rounded-xl p-4 text-center border-l-4 border-info">
@@ -155,7 +155,7 @@
                                     {{end}}
                                     {{if gt .VulnSummary.Medium 0}}
                                     <span
-                                        class="px-2 py-1 text-xs font-bold rounded bg-warning/20 text-warning border border-warning/30"
+                                        class="px-2 py-1 text-xs font-bold rounded bg-tertiary/20 text-tertiary border border-tertiary/30"
                                         title="Moyenne">
                                         {{.VulnSummary.Medium}} M
                                     </span>
@@ -447,7 +447,7 @@
             data.sort((a, b) => b.count - a.count);
             tbody.innerHTML = data.slice(0, 20).map(d => {
                 const severity = d.count > 50 ? 'Critical' : d.count > 20 ? 'High' : d.count > 5 ? 'Medium' : 'Low';
-                const colors = { Critical: 'text-error bg-error/10', High: 'text-warning bg-warning/10', Medium: 'text-warning bg-warning/10', Low: 'text-info bg-info/10' };
+                const colors = { Critical: 'text-error bg-error/10', High: 'text-warning bg-warning/10', Medium: 'text-tertiary bg-tertiary/10', Low: 'text-info bg-info/10' };
                 return `<tr class="hover:bg-surface-container-high">
                     <td class="p-3 font-mono text-on-surface">${escapeHtml(d.ip)}</td>
                     <td class="p-3 text-on-surface font-bold">${escapeHtml(d.count)}</td>
@@ -660,11 +660,11 @@
 
         function setActiveSeverityFilter(sev) {
             const tints = {
-                all:      { text: 'text-primary',        border: 'border-primary' },
-                Critical: { text: 'text-error',        border: 'border-error' },
-                High:     { text: 'text-warning',     border: 'border-warning' },
-                Medium:   { text: 'text-warning',     border: 'border-warning' },
-                Low:      { text: 'text-info',       border: 'border-info' }
+                all:      { text: 'text-primary',  border: 'border-primary' },
+                Critical: { text: 'text-error',    border: 'border-error' },
+                High:     { text: 'text-warning',  border: 'border-warning' },
+                Medium:   { text: 'text-tertiary', border: 'border-tertiary' },
+                Low:      { text: 'text-info',     border: 'border-info' }
             };
             document.querySelectorAll('.sev-filter-btn').forEach(function (btn) {
                 const key = btn.getAttribute('data-sev-filter');
@@ -801,11 +801,16 @@
                 (groups[v.severity] || groups.Low).push(v);
             });
             const order = ['Critical', 'High', 'Medium', 'Low'];
+            // Quatre niveaux, quatre teintes DISTINCTES. High et Medium partageaient
+            // « warning » : deux groupes côte à côte rigoureusement identiques, donc
+            // une sévérité qu'il fallait lire pour la distinguer — exactement ce que
+            // la couleur est censée éviter. Medium passe sur « tertiary », qui n'est
+            // employé nulle part ailleurs dans cette page.
             const colors = {
                 Critical: { border: 'border-error/50',    bg: 'bg-error/10',    text: 'text-error',    label: 'Critical' },
-                High:     { border: 'border-warning/50', bg: 'bg-warning/10', text: 'text-warning', label: 'High' },
-                Medium:   { border: 'border-warning/50', bg: 'bg-warning/10', text: 'text-warning', label: 'Medium' },
-                Low:      { border: 'border-info/50',   bg: 'bg-info/10',   text: 'text-info',   label: 'Low' }
+                High:     { border: 'border-warning/50',  bg: 'bg-warning/10',  text: 'text-warning',  label: 'High' },
+                Medium:   { border: 'border-tertiary/50', bg: 'bg-tertiary/10', text: 'text-tertiary', label: 'Medium' },
+                Low:      { border: 'border-info/50',     bg: 'bg-info/10',     text: 'text-info',     label: 'Low' }
             };
 
             let html = '';
