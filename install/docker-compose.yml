@@ -2,8 +2,8 @@
 #
 # Démarrage :
 #   1. Récupérer ce fichier et le .env.example voisin :
-#        curl -O https://raw.githubusercontent.com/AbrahamOP/GoaCore/main/install/docker-compose.yml
-#        curl -o .env https://raw.githubusercontent.com/AbrahamOP/GoaCore/main/install/.env.example
+#        curl -O https://raw.githubusercontent.com/GoaCloud/GoaCore/main/install/docker-compose.yml
+#        curl -o .env https://raw.githubusercontent.com/GoaCloud/GoaCore/main/install/.env.example
 #   2. Éditer .env : générer SESSION_SECRET (openssl rand -hex 32) et définir des mots
 #      de passe MySQL forts. Le reste (Proxmox, Wazuh, Discord, IA) est OPTIONNEL et se
 #      configure ensuite depuis l'interface web.
@@ -14,7 +14,7 @@
 # Elle est servie en HTTPS (certificat auto-signé) — à placer derrière un reverse proxy.
 services:
   app:
-    image: ghcr.io/abrahamop/goacore:${GOACORE_TAG:-latest}
+    image: ghcr.io/goacloud/goacore:${GOACORE_TAG:-latest}
     container_name: goacore_app
     ports:
       - "8443:8443"

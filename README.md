@@ -4,7 +4,7 @@
 
 ![Go](https://img.shields.io/badge/Go-1.22-00ADD8?logo=go&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
-[![Image GHCR](https://img.shields.io/badge/ghcr.io-goacore-2496ED?logo=docker&logoColor=white)](https://github.com/AbrahamOP/GoaCore/pkgs/container/goacore)
+[![Image GHCR](https://img.shields.io/badge/ghcr.io-goacore-2496ED?logo=docker&logoColor=white)](https://github.com/GoaCloud/GoaCore/pkgs/container/goacore)
 ![Statut](https://img.shields.io/badge/Statut-pré--1.0-orange)
 ![License](https://img.shields.io/badge/License-AGPL--3.0-blue)
 [![Discord](https://img.shields.io/badge/Discord-Rejoindre%20la%20communauté-5865F2?logo=discord&logoColor=white)](https://discord.gg/pSW7kxJSjf)
@@ -98,15 +98,15 @@ l'image publique multi-arch (amd64 / arm64) est tirée depuis GitHub Container R
 
 ```bash
 mkdir goacore && cd goacore
-curl -O https://raw.githubusercontent.com/AbrahamOP/GoaCore/main/install/docker-compose.yml
-curl -o .env https://raw.githubusercontent.com/AbrahamOP/GoaCore/main/install/.env.example
+curl -O https://raw.githubusercontent.com/GoaCloud/GoaCore/main/install/docker-compose.yml
+curl -o .env https://raw.githubusercontent.com/GoaCloud/GoaCore/main/install/.env.example
 # Éditez .env : générez SESSION_SECRET (openssl rand -hex 32) + des mots de passe MySQL forts
 docker compose up -d
 ```
 
 Ouvrez ensuite `https://<hôte>:8443/setup` pour créer le compte administrateur. Proxmox,
 Wazuh, IA et Discord sont optionnels et se configurent depuis l'interface. L'image est
-publiée sur [`ghcr.io/abrahamop/goacore`](https://github.com/AbrahamOP/GoaCore/pkgs/container/goacore)
+publiée sur [`ghcr.io/goacloud/goacore`](https://github.com/GoaCloud/GoaCore/pkgs/container/goacore)
 à chaque version (`vX.Y.Z`) ; épinglez une version via `GOACORE_TAG` dans `.env`.
 
 ---

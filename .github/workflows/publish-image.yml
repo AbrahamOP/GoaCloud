@@ -1,6 +1,6 @@
 name: Publish image (GHCR)
 
-# Publie l'image Docker publique ghcr.io/abrahamop/goacore pour faciliter
+# Publie l'image Docker publique ghcr.io/goacloud/goacore pour faciliter
 # l'installation (docker compose up sans build). Déclenché par un tag de version
 # (vX.Y.Z) ou manuellement. Indépendant du CI de déploiement maison (ci-deploy.yml).
 on:
@@ -37,7 +37,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/abrahamop/goacore
+          images: ghcr.io/goacloud/goacore
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
