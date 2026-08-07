@@ -8,15 +8,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AbrahamOP/GoaCore.git"
+    "url": "git+https://github.com/GoaCloud/GoaCore.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/AbrahamOP/GoaCore/issues"
+    "url": "https://github.com/GoaCloud/GoaCore/issues"
   },
-  "homepage": "https://github.com/AbrahamOP/GoaCore#readme",
+  "homepage": "https://github.com/GoaCloud/GoaCore#readme",
   "dependencies": {
     "tailwindcss": "^3.4.19"
   }
