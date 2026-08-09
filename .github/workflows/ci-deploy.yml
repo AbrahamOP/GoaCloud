@@ -61,12 +61,6 @@ jobs:
       - name: Test
         run: go test ./...
 
-      # Le produit est concurrent (workers, scheduler, cache SOAR) : une data race
-      # non détectée se paie en production. Séparé du run normal pour distinguer
-      # « test cassé » de « race détectée » dans les logs.
-      - name: Test (race detector)
-        run: go test ./... -race
-
       # Étape BLOQUANTE. La dette est résorbée (x/crypto v0.52.0, chi v5.2.2,
       # toolchain go1.25.12) : `govulncheck ./...` ne remonte plus aucune
       # vulnérabilité effectivement appelée. La garder non bloquante reviendrait à
@@ -85,6 +79,27 @@ jobs:
       # cassée — deux pannes qui, sinon, ne se voient qu'au déploiement.
       - name: Build de l'image conteneur
         run: docker build -t goacore:ci .
+
+  # Détecteur de course, dans un job SÉPARÉ et sur un runner GitHub. `-race` exige
+  # cgo, donc un compilateur C : le runner self-hosted n'en a pas (CGO_ENABLED
+  # retombe à 0 et `go test -race` refuse de démarrer). Plutôt que d'installer une
+  # chaîne C sur le CT du runner pour un job qui n'a besoin d'aucun accès au LAN,
+  # on l'exécute là où gcc est fourni. Les déploiements en dépendent : une data
+  # race doit bloquer la mise en production, pas seulement teinter un log.
+  race:
+    name: Détecteur de course
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: go.mod
+
+      - name: Test (race detector)
+        env:
+          CGO_ENABLED: "1"
+        run: go test ./... -race
 
   # Migrations de schéma sur une VRAIE base. Le job `build` ci-dessus n'exerce que
   # la logique pure (classification d'erreurs, plan d'index) : les tests qui
@@ -173,7 +188,7 @@ jobs:
 
   deploy-dev:
     name: Deploy DEV
-    needs: [build, helper, db-tests]
+    needs: [build, race, helper, db-tests]
     runs-on: self-hosted
     if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     steps:
@@ -237,7 +252,7 @@ jobs:
 
   deploy-prod:
     name: Deploy PROD
-    needs: [build, helper, db-tests]
+    needs: [build, race, helper, db-tests]
     runs-on: self-hosted
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
@@ -521,7 +536,7 @@ jobs:
 
   notify-pr:
     name: PR Check
-    needs: [build, helper, db-tests]
+    needs: [build, race, helper, db-tests]
     runs-on: ubuntu-latest
     # Une PR de fork n'a de toute façon pas accès aux secrets : le webhook serait
     # vide et l'étape échouerait bruyamment pour rien. On ne notifie que les PR
