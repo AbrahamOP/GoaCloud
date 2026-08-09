@@ -237,20 +237,21 @@ func isNetKey(key string) bool {
 }
 
 // buildSandboxNetN derives the netN string to apply to a single sandbox guest
-// interface, forcing the given VLAN tag onto the given (sandbox) bridge. It
-// preserves the existing name/model fields when the current line is parseable, but
-// always REWRITES the bridge to the sandbox bridge — a restored prod NIC must never
-// keep its production bridge, even on the isolation VLAN. It is applied to every
-// netN key of the guest. bridge is resolved by the caller (pm.SandboxBridgeName() —
-// the dedicated sandbox attribute, never the creation bridge; hard vmbr1 fallback)
-// and is COUPLED to vlanTag.
+// interface, forcing the given VLAN tag onto the given (sandbox) bridge AND cutting
+// the carrier (link_down=1) whatever the guest type. It preserves the existing
+// name/model fields when the current line is parseable, but always REWRITES the
+// bridge to the sandbox bridge — a restored prod NIC must never keep its production
+// bridge, even on the isolation VLAN. It is applied to every netN key of the guest.
+// bridge is resolved by the caller (pm.SandboxBridgeName() — the dedicated sandbox
+// attribute, never the creation bridge; hard vmbr1 fallback) and is COUPLED to
+// vlanTag.
 func buildSandboxNetN(current, pveType string, vlanTag int, bridge string) string {
 	if bridge == "" {
 		bridge = defaultSandboxBridge
 	}
 	if current == "" {
 		if pveType == "lxc" {
-			return fmt.Sprintf("name=eth0,bridge=%s,tag=%d", bridge, vlanTag)
+			return fmt.Sprintf("name=eth0,bridge=%s,tag=%d,link_down=1", bridge, vlanTag)
 		}
 		return fmt.Sprintf("virtio,bridge=%s,tag=%d,link_down=1", bridge, vlanTag)
 	}
@@ -276,11 +277,10 @@ func buildSandboxNetN(current, pveType string, vlanTag int, bridge string) strin
 			out = append(out, fmt.Sprintf("tag=%d", vlanTag))
 			tagSet = true
 		case "link_down":
-			// QEMU only: force the carrier OFF. LXC has no link_down → drop the field.
-			if pveType != "lxc" {
-				out = append(out, "link_down=1")
-				linkSet = true
-			}
+			// Force the carrier OFF, whatever the archive carried. link_down belongs to
+			// BOTH schemas (qemu net[n] and pve-container net[n]), so LXC gets it too.
+			out = append(out, "link_down=1")
+			linkSet = true
 		case "bridge":
 			out = append(out, "bridge="+bridge)
 			hasBridge = true
@@ -294,13 +294,17 @@ func buildSandboxNetN(current, pveType string, vlanTag int, bridge string) strin
 	if !tagSet {
 		out = append(out, fmt.Sprintf("tag=%d", vlanTag))
 	}
-	// QEMU defense-in-depth: a restored firewall/router (e.g. OPNsense) tags VLANs
-	// internally and announces itself as gateway on every network; the isolation VLAN
-	// alone does NOT contain it (incident 2026-06-28: restored OPNsense lagged the
-	// whole infra). Forcing link_down=1 guarantees NO frame leaves the sandbox NIC.
-	// The N3 healthcheck runs via the guest agent (qm guest exec / pct exec), not the
-	// network, so it is unaffected. LXC guests have no internal tagging → VLAN suffices.
-	if pveType != "lxc" && !linkSet {
+	// Defense in depth for EVERY guest type: a restored firewall/router (e.g. OPNsense)
+	// tags VLANs internally and announces itself as gateway on every network; the
+	// isolation VLAN alone does NOT contain it (incident 2026-06-28: restored OPNsense
+	// lagged the whole infra). A restored LXC is just as dangerous in the general case:
+	// it boots with the PRODUCTION network configuration of its original (static IP,
+	// gateway, services) and would collide with the still-running production container
+	// the moment the sandbox segment is alive. link_down=1 IS part of the pve-container
+	// net[n] schema (it is not a QEMU-only option), so it applies to LXC as well, and it
+	// guarantees NO frame leaves the sandbox NIC. The N3 healthcheck runs via the guest
+	// agent (qm guest exec / pct exec), not the network, so it is unaffected.
+	if !linkSet {
 		out = append(out, "link_down=1")
 	}
 	return strings.Join(out, ",")
@@ -363,6 +367,57 @@ func (p *ProxmoxService) DestroyGuest(rawURL, node, tokenID, secret, pveType str
 		baseURL, targetNode, gtype, vmid)
 	req, _ := http.NewRequest("DELETE", apiURL, nil)
 	auth(req)
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+	}
+
+	var out struct {
+		Data string `json:"data"`
+	}
+	_ = json.Unmarshal(body, &out)
+	return out.Data, nil
+}
+
+// volIDBelongsToVMID reports whether a vzdump volid is an archive OF vmid. It is the
+// pure guard of the retention pruning path: parseVMIDFromVolID reads the VMID encoded
+// in the archive file name (vzdump-lxc-110-…), so a volid whose name does not carry
+// the expected VMID is NEVER deletable, even if a storage listing mislabelled it.
+func volIDBelongsToVMID(volID string, vmid int) bool {
+	if volID == "" || vmid <= 0 {
+		return false
+	}
+	return parseVMIDFromVolID(volID) == vmid
+}
+
+// DeleteBackupArchive deletes ONE vzdump archive from a Proxmox storage. It backs the
+// per-target retention rotation (keep the N most recent archives) and lives here, with
+// the other destructive Proxmox calls, because — like them — it carries its own safety
+// guard: it refuses (no API call) any volid whose file name does not belong to
+// expectedVMID, so a listing quirk or a future refactor can never delete the archives
+// of another guest.
+//
+// Returns the task UPID when Proxmox answers asynchronously (may be empty).
+func (p *ProxmoxService) DeleteBackupArchive(rawURL, node, tokenID, secret, storage, volID string, expectedVMID int) (string, error) {
+	if !volIDBelongsToVMID(volID, expectedVMID) {
+		return "", fmt.Errorf("refus de sûreté: suppression de l'archive %q qui n'appartient pas au VMID %d", volID, expectedVMID)
+	}
+	if storage == "" {
+		return "", fmt.Errorf("suppression d'archive: storage non renseigné")
+	}
+
+	client, baseURL, targetNode := p.restoreClient(rawURL, node, tokenID, secret, 60*time.Second)
+
+	apiURL := fmt.Sprintf("%s/api2/json/nodes/%s/storage/%s/content/%s",
+		baseURL, url.PathEscape(targetNode), url.PathEscape(storage), url.PathEscape(volID))
+	req, _ := http.NewRequest("DELETE", apiURL, nil)
+	req.Header.Add("Authorization", fmt.Sprintf("PVEAPIToken=%s=%s", tokenID, secret))
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", err

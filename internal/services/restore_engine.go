@@ -28,6 +28,14 @@ const (
 	bootWaitTimeout           = 3 * time.Minute        // max wait for the guest to reach "running"
 	defaultDiskDataPctCeiling = 85.0                   // refuse N2/N3 above this thin-pool data usage
 	defaultMinLocalAvailBytes = 5 * 1024 * 1024 * 1024 // 5 GiB headroom required on local storage
+
+	// Bounds of the free-sandbox-VMID scan. The scan dials the read-only helper over
+	// SSH once per candidate; with a stopped helper each dial burns its own timeout, so
+	// an unbounded scan of the whole [9500,9599] range could block a test for tens of
+	// minutes before admitting the obvious ("the channel is down"). Whichever bound is
+	// hit first aborts the scan with an explicit error.
+	sandboxScanBudget    = 90 * time.Second // max total wall time spent scanning
+	sandboxScanMaxErrors = 5                // consecutive probe failures ⇒ transport is down
 )
 
 // ErrRestoreTestInProgress is returned when a restore test is already running for a target.
@@ -74,7 +82,15 @@ func (s *BackupService) RunRestoreTest(targetID int, level, triggeredBy string) 
 	testID64, _ := res.LastInsertId()
 	testID := int(testID64)
 
-	go s.runRestoreTestAsync(testID, t, vmid, level)
+	// The whole restore orchestration (restore → boot → healthcheck → DESTROY) belongs
+	// to the application lifecycle: it is launched inside the service's task group so a
+	// shutdown drains it instead of abandoning a booted clone of a production guest on
+	// the hypervisor. A refusal here means the service is already draining.
+	if !s.startTask(func() { s.runRestoreTestAsync(testID, t, vmid, level) }) {
+		s.releaseTestSlot(targetID)
+		s.finishTest(testID, "failed", 0, 0, "Test non lancé : arrêt du service en cours")
+		return 0, ErrServiceShuttingDown
+	}
 	return testID, nil
 }
 
@@ -175,6 +191,21 @@ func (s *BackupService) runLevelN2N3(testID int, t models.BackupTarget, vmid int
 	// pveType).
 	vlanTag := pm.SandboxVlanTag()
 	sandboxBridge := pm.SandboxBridgeName()
+
+	// HONNÊTETÉ DU VERDICT (le seul argument différenciant du produit). Un verdict N3
+	// affirme « l'application répond ». Sans healthcheck configuré sur la cible — et
+	// c'est le cas NOMINAL des cibles auto-découvertes (healthcheck_type='none') — rien
+	// dans ce run ne peut le prouver : seul le redémarrage l'est. On rétrograde donc le
+	// niveau ENREGISTRÉ (et affiché) en N2 avant même de restaurer, plutôt que d'échouer,
+	// pour que le test reste utile ; le libellé dit exactement ce qui a été prouvé.
+	demoted := false
+	if provable := provenLevel(level, t.HealthcheckType, t.HealthcheckTarget); provable != level {
+		logf("N3 demandé mais aucun healthcheck n'est configuré sur cette cible : impossible de prouver que l'application répond. Test enregistré en %s (redémarrage prouvé, application non vérifiée). Configurez un healthcheck (service ou port) pour un vrai N3.", provable)
+		level = provable
+		demoted = true
+		s.setTestLevel(testID, level)
+	}
+
 	fail := func(detail string) {
 		s.finishTest(testID, "failed", 0, 0, logs.String())
 		s.notifyRestoreTest(t.Name, 0, level, "failed", detail)
@@ -257,6 +288,11 @@ func (s *BackupService) runLevelN2N3(testID int, t models.BackupTarget, vmid int
 		pveType = archiveType
 	}
 	logf("archive: %s (type %s)", archive, pveType)
+	// PREUVE AUDITABLE : on rattache le test à la sauvegarde effectivement restaurée
+	// (restore_tests.run_id → backup_runs.archive_path), sinon « la restauration a
+	// réussi » ne dit pas DE QUOI. Best-effort : une archive produite hors GoaCore n'a
+	// pas de run associé, le volid reste alors tracé dans les logs du test.
+	s.linkTestToArchive(testID, t.ID, archive)
 
 	// Resolve the restore storage now that the elected archive's pveType is known
 	// (qemu→images, lxc→rootdir), using the same snapshot pm captured above so the
@@ -344,34 +380,62 @@ func (s *BackupService) runLevelN2N3(testID int, t models.BackupTarget, vmid int
 	// Boot grace period before any healthcheck.
 	time.Sleep(bootSettleDelay)
 
-	// 8. N3 only: in-guest healthcheck via the channel.
+	// 8. N3 only: in-guest healthcheck via the channel. A level still at N3 here
+	// GUARANTEES a healthcheck is configured (otherwise it was demoted to N2 above),
+	// so this branch can never end on an unproven "passed".
 	if level == "N3" {
-		if t.HealthcheckType == "" || t.HealthcheckType == "none" || t.HealthcheckTarget == "" {
-			logf("N3 sans healthcheck configuré — verdict basé sur le boot uniquement")
-		} else {
-			kind := "service"
-			if t.HealthcheckType == "port" {
-				kind = "port"
-			}
-			ok, detail, herr := channel.Healthcheck(sandboxVMID, pveType, kind, t.HealthcheckTarget)
-			if herr != nil {
-				logf("échec healthcheck: %v", herr)
-				s.finishTest(testID, "failed", rto, sandboxVMID, logs.String())
-				s.notifyRestoreTest(t.Name, sandboxVMID, level, "failed", herr.Error())
-				return
-			}
-			logf("healthcheck (%s %s): %s", kind, t.HealthcheckTarget, detail)
-			if !ok {
-				s.finishTest(testID, "failed", rto, sandboxVMID, logs.String())
-				s.notifyRestoreTest(t.Name, sandboxVMID, level, "failed", "healthcheck: "+detail)
-				return
-			}
+		kind := "service"
+		if t.HealthcheckType == "port" {
+			kind = "port"
+		}
+		ok, detail, herr := channel.Healthcheck(sandboxVMID, pveType, kind, t.HealthcheckTarget)
+		if herr != nil {
+			logf("échec healthcheck: %v", herr)
+			s.finishTest(testID, "failed", rto, sandboxVMID, logs.String())
+			s.notifyRestoreTest(t.Name, sandboxVMID, level, "failed", herr.Error())
+			return
+		}
+		logf("healthcheck (%s %s): %s", kind, t.HealthcheckTarget, detail)
+		if !ok {
+			s.finishTest(testID, "failed", rto, sandboxVMID, logs.String())
+			s.notifyRestoreTest(t.Name, sandboxVMID, level, "failed", "healthcheck: "+detail)
+			return
 		}
 	}
 
-	logf("verdict: PASSED")
+	verdictDetail := fmt.Sprintf("RTO %ds", rto)
+	if demoted {
+		verdictDetail += " — redémarrage prouvé, application non vérifiée (aucun healthcheck configuré)"
+	}
+	logf("verdict: PASSED (%s)", level)
 	s.finishTest(testID, "passed", rto, sandboxVMID, logs.String())
-	s.notifyRestoreTest(t.Name, sandboxVMID, level, "passed", fmt.Sprintf("RTO %ds", rto))
+	s.notifyRestoreTest(t.Name, sandboxVMID, level, "passed", verdictDetail)
+}
+
+// provenLevel returns the level a run can actually PROVE for a target: N3 claims
+// "the application answers", which is only provable when the target declares a usable
+// in-guest healthcheck. Without one, an N3 request is downgraded to N2 ("restored and
+// booted"). N1/N2 are returned unchanged. Pure and table-testable — it is the single
+// place where the product decides what a verdict is allowed to claim.
+func provenLevel(requested, healthcheckType, healthcheckTarget string) string {
+	if requested != "N3" {
+		return requested
+	}
+	if !hasHealthcheck(healthcheckType, healthcheckTarget) {
+		return "N2"
+	}
+	return "N3"
+}
+
+// hasHealthcheck reports whether a target declares a usable in-guest healthcheck.
+// Auto-discovered targets carry healthcheck_type='none' (or empty) with no target, so
+// this returns false for them — the nominal case the N3 verdict must not lie about.
+func hasHealthcheck(healthcheckType, healthcheckTarget string) bool {
+	t := strings.ToLower(strings.TrimSpace(healthcheckType))
+	if t == "" || t == "none" {
+		return false
+	}
+	return strings.TrimSpace(healthcheckTarget) != ""
 }
 
 // pickFreeSandboxVMID scans the sandbox range for a VMID that is both ABSENT on
@@ -384,6 +448,10 @@ func (s *BackupService) runLevelN2N3(testID int, t models.BackupTarget, vmid int
 // pass: probe each candidate's Proxmox status WITHOUT the lock, then, holding the
 // lock, re-check it isn't reserved and claim it atomically. The reservation must be
 // released later via releaseSandboxVMID (the destroy defer does this).
+//
+// The scan is BOUNDED in time and in consecutive failures (sandboxScanBudget /
+// sandboxScanMaxErrors): a stopped helper used to cost one SSH dial timeout per
+// candidate, i.e. up to ~25 minutes of a test sitting on "running" before failing.
 func (s *BackupService) pickFreeSandboxVMID(pingFn func(int) (string, error), logf func(string, ...any)) (int, error) {
 	return s.pickFreeSandboxVMIDWith(pingFn, logf)
 }
@@ -391,8 +459,21 @@ func (s *BackupService) pickFreeSandboxVMID(pingFn func(int) (string, error), lo
 // pickFreeSandboxVMIDWith is the testable core of pickFreeSandboxVMID: it takes the
 // Proxmox status probe as a function so the scan/atomic-reservation logic can be
 // exercised without a live channel. ping reports "absent"/"running"/"stopped" or an
-// error for a single VMID.
+// error for a single VMID. It applies the production bounds; pickFreeSandboxVMIDBounded
+// takes them explicitly so a test can exercise them without waiting for real timeouts.
 func (s *BackupService) pickFreeSandboxVMIDWith(ping func(int) (string, error), logf func(string, ...any)) (int, error) {
+	return s.pickFreeSandboxVMIDBounded(ping, logf, time.Now().Add(sandboxScanBudget), sandboxScanMaxErrors)
+}
+
+// pickFreeSandboxVMIDBounded is pickFreeSandboxVMIDWith with explicit bounds.
+// deadline caps the TOTAL wall time of the scan; maxConsecErrors aborts as soon as
+// that many probes fail in a row (the probe transport is down — continuing would only
+// burn one timeout per remaining candidate). A probe failure is still tolerated in
+// isolation: the counter resets on the next successful probe, so a single flaky slot
+// never aborts the scan. Both aborts return an explicit error rather than the generic
+// "no free VMID", so the operator sees the real cause.
+func (s *BackupService) pickFreeSandboxVMIDBounded(ping func(int) (string, error), logf func(string, ...any), deadline time.Time, maxConsecErrors int) (int, error) {
+	consecErrors := 0
 	for vmid := sandboxVMIDMin; vmid <= sandboxVMIDMax; vmid++ {
 		// Fast skip: if already reserved in-process, don't even Ping it.
 		s.testMu.Lock()
@@ -402,14 +483,25 @@ func (s *BackupService) pickFreeSandboxVMIDWith(ping func(int) (string, error), 
 			continue
 		}
 
+		if !time.Now().Before(deadline) {
+			return 0, fmt.Errorf("recherche d'un VMID sandbox libre abandonnée: délai imparti dépassé (arrêt au candidat %d)", vmid)
+		}
+
 		// Probe Proxmox status off the lock (network call).
 		status, err := ping(vmid)
 		if err != nil {
 			// A transient error on one slot shouldn't abort the whole scan, but
-			// log it; keep trying the next slots.
+			// log it; keep trying the next slots — until the transport is clearly
+			// down (maxConsecErrors in a row).
 			logf("ping %d: %v", vmid, err)
+			consecErrors++
+			if maxConsecErrors > 0 && consecErrors >= maxConsecErrors {
+				return 0, fmt.Errorf("canal Proxmox injoignable: %d sondes de VMID sandbox en échec d'affilée (dernière erreur: %v)",
+					consecErrors, err)
+			}
 			continue
 		}
+		consecErrors = 0
 		if status != "absent" {
 			continue
 		}
@@ -554,6 +646,64 @@ func (s *BackupService) setTestSandbox(testID, vmid int) {
 	if _, err := s.db.Exec(`UPDATE restore_tests SET sandbox_vmid = ? WHERE id = ?`, vmid, testID); err != nil {
 		slog.Error("restore-test: set sandbox vmid", "test_id", testID, "error", err)
 	}
+}
+
+// setTestLevel rewrites the level recorded for a test. It is used when the requested
+// level cannot be proven (N3 without healthcheck → N2, see provenLevel): the level
+// stored in DB — the one the UI and the history show — must always describe what was
+// actually verified, never what was asked for.
+func (s *BackupService) setTestLevel(testID int, level string) {
+	if _, err := s.db.Exec(`UPDATE restore_tests SET level = ? WHERE id = ?`, level, testID); err != nil {
+		slog.Error("restore-test: set level", "test_id", testID, "level", level, "error", err)
+	}
+}
+
+// archiveFileName reduces a Proxmox volid to the bare archive file name
+// ("local:backup/vzdump-lxc-110-….tar.zst" → "vzdump-lxc-110-….tar.zst"). The two
+// forms coexist in backup_runs.archive_path: a local run records the volid, while an
+// off-site push records the file name reported by the helper. Pure.
+func archiveFileName(volID string) string {
+	if i := strings.LastIndex(volID, "/"); i >= 0 {
+		return volID[i+1:]
+	}
+	if i := strings.LastIndex(volID, ":"); i >= 0 {
+		return volID[i+1:]
+	}
+	return volID
+}
+
+// linkTestToArchive records WHICH archive the test actually restored, by resolving the
+// backup_runs row that produced it and writing its id into restore_tests.run_id (the
+// column existed but was never filled, so the "proof of restorability" did not say what
+// had been restored). Matching accepts both forms of archive_path (volid or bare file
+// name — see archiveFileName).
+//
+// Best-effort: an archive created outside GoaCore (a vzdump scheduled on Proxmox
+// itself) has no run to point at; the volid then stays traced in the test logs, which
+// are persisted with the row.
+func (s *BackupService) linkTestToArchive(testID, targetID int, volID string) {
+	if s.db == nil || volID == "" {
+		return
+	}
+	var runID int
+	err := s.db.QueryRow(
+		`SELECT id FROM backup_runs
+		 WHERE target_id = ? AND archive_path IN (?, ?)
+		 ORDER BY id DESC
+		 LIMIT 1`, targetID, volID, archiveFileName(volID)).Scan(&runID)
+	if errors.Is(err, sql.ErrNoRows) {
+		slog.Info("restore-test: restored archive has no GoaCore run", "test_id", testID, "volid", volID)
+		return
+	}
+	if err != nil {
+		slog.Error("restore-test: resolve archive run", "test_id", testID, "volid", volID, "error", err)
+		return
+	}
+	if _, err := s.db.Exec(`UPDATE restore_tests SET run_id = ? WHERE id = ?`, runID, testID); err != nil {
+		slog.Error("restore-test: link test to run", "test_id", testID, "run_id", runID, "error", err)
+		return
+	}
+	slog.Info("restore-test: archive under test", "test_id", testID, "run_id", runID, "volid", volID)
 }
 
 // finishTest writes the terminal verdict, RTO, sandbox and logs to a test row.

@@ -1,3 +1,8 @@
+# GoaCore — stack de DÉVELOPPEMENT (port 8444). Renseignez TLS_HOSTS avec le nom que
+# vous utilisez réellement pour que le certificat auto-signé le couvre.
+# Elle reprend le durcissement de la prod (rootfs en lecture seule, capacités
+# retirées, limites) : un environnement de dev qui tourne dans des conditions plus
+# permissives que la prod ne prouve rien.
 services:
   app:
     build: .
@@ -10,20 +15,30 @@ services:
       - DB_HOST=db-dev:3306
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASSWORD}
+      - DB_PASS_FILE=${DB_PASSWORD_FILE:-}
       - PORT=8080
+      # Convention _FILE (cf. docker-compose.yml) : le fichier l'emporte sur la
+      # variable, un fichier illisible refuse le démarrage.
       - SESSION_SECRET=${SESSION_SECRET}
+      - SESSION_SECRET_FILE=${SESSION_SECRET_FILE:-}
+      # Noms/IP couverts par le certificat auto-signé (persisté dans goacore_tls_dev).
+      - TLS_HOSTS=${TLS_HOSTS:-}
       - PROXMOX_URL=${PROXMOX_URL}
       - PROXMOX_NODE=${PROXMOX_NODE:-pve}
       - PROXMOX_TOKEN_ID=${PROXMOX_TOKEN_ID}
       - PROXMOX_TOKEN_SECRET=${PROXMOX_TOKEN_SECRET}
+      - PROXMOX_TOKEN_SECRET_FILE=${PROXMOX_TOKEN_SECRET_FILE:-}
       - SKIP_TLS_VERIFY=${SKIP_TLS_VERIFY:-false}
       - WAZUH_API_URL=${WAZUH_API_URL}
       - WAZUH_USER=${WAZUH_USER}
       - WAZUH_PASSWORD=${WAZUH_PASSWORD}
+      - WAZUH_PASSWORD_FILE=${WAZUH_PASSWORD_FILE:-}
       - WAZUH_INDEXER_URL=${WAZUH_INDEXER_URL}
       - WAZUH_INDEXER_USER=${WAZUH_INDEXER_USER}
       - WAZUH_INDEXER_PASSWORD=${WAZUH_INDEXER_PASSWORD}
+      - WAZUH_INDEXER_PASSWORD_FILE=${WAZUH_INDEXER_PASSWORD_FILE:-}
       - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+      - DISCORD_BOT_TOKEN_FILE=${DISCORD_BOT_TOKEN_FILE:-}
       - DISCORD_CHANNEL_ID=${DISCORD_CHANNEL_ID}
       - DISCORD_AUTH_CHANNEL_ID=${DISCORD_AUTH_CHANNEL_ID}
       - DISCORD_ANSIBLE_CHANNEL_ID=${DISCORD_ANSIBLE_CHANNEL_ID}
@@ -39,13 +54,29 @@ services:
     restart: unless-stopped
     volumes:
       - ./soar_config.json:/app/soar_config.json
+      # Playbooks : ceux livrés sont resynchronisés depuis l'image au démarrage.
       - ansible_playbooks_dev:/app/playbooks
+      # Certificat TLS persisté (empreinte stable entre deux déploiements dev).
+      - goacore_tls_dev:/app/certs
       - /opt/goacloud/secrets/goabackup_key:/app/secrets/goabackup_key:ro
+    # Mêmes garde-fous qu'en production — voir docker-compose.yml pour le détail.
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    mem_reservation: 256m
+    cpus: 1.5
+    pids_limit: 512
     networks:
       - goacloud-dev
 
   db-dev:
-    image: mysql:8.0
+    # Même digest qu'en production (tag mysql:8.0) : dev et prod doivent tourner
+    # sur la même version de moteur, sinon un bug de schéma se découvre en prod.
+    image: mysql@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
     container_name: goacloud_db_dev
     environment:
       - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
@@ -56,12 +87,23 @@ services:
       - mysql_data_dev:/var/lib/mysql
       - ./schema.sql:/docker-entrypoint-initdb.d/init.sql
     restart: unless-stopped
+    # Voir docker-compose.yml : pas de read_only sur MySQL (son entrypoint ajuste
+    # les droits du datadir au démarrage), mais capacités réduites au strict besoin.
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    mem_reservation: 256m
+    cpus: 1.5
+    pids_limit: 512
     networks:
       - goacloud-dev
 
 volumes:
   mysql_data_dev:
   ansible_playbooks_dev:
+  goacore_tls_dev:
 
 networks:
   goacloud-dev:

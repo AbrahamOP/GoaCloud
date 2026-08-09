@@ -5,9 +5,6 @@
     {{template "head-common"}}
     <title>GoaCore | Connexion Proxmox</title>
     <style>
-        body {
-            font-family: 'Outfit', sans-serif;
-        }
         input::-ms-reveal,
         input::-ms-clear,
         input::-webkit-contacts-auto-fill-button,
@@ -31,17 +28,18 @@
 
 <body class="min-h-screen flex bg-surface text-on-surface">
 
+    {{template "skip-link"}}
     {{template "mobile-overlay"}}
     {{template "sidebar"}}
 
-    <main class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
+    <main id="main-content" tabindex="-1" class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
         {{template "bubbles"}}
 
-        <div class="px-8 py-10 relative z-10">
+        <div class="px-4 md:px-8 py-10 relative z-10">
             <!-- Header -->
             <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
                 <div>
-                    <h2 class="text-3xl font-bold text-on-surface mb-2"><span class="gradient-text">Paramètres</span></h2>
+                    <h2 class="text-2xl md:text-3xl font-bold text-on-surface mb-2"><span class="gradient-text">Paramètres</span></h2>
                     <p class="text-on-surface-variant text-sm">{{.HeaderSubtitle}}</p>
                 </div>
                 <div class="flex items-center gap-3 flex-wrap">
@@ -70,9 +68,9 @@
 
             <!-- Source banner -->
             <div class="mb-6 p-3 rounded-lg text-xs flex items-center gap-2
-                {{if eq .Source "db"}}bg-green-500/10 border border-green-500/20 text-green-300
-                {{else if eq .Source "env"}}bg-blue-500/10 border border-blue-500/20 text-blue-300
-                {{else}}bg-orange-500/10 border border-orange-500/20 text-orange-300{{end}}">
+                {{if eq .Source "db"}}bg-success/10 border border-success/20 text-success
+                {{else if eq .Source "env"}}bg-info/10 border border-info/20 text-info
+                {{else}}bg-warning/10 border border-warning/20 text-warning{{end}}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -96,7 +94,7 @@
             </div>
             {{end}}
             {{if .Success}}
-            <div class="mb-4 p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-green-300 text-sm flex items-center gap-2">
+            <div class="mb-4 p-4 rounded-lg bg-success/10 border border-success/20 text-success text-sm flex items-center gap-2">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -108,10 +106,10 @@
             <!-- Import env button -->
             {{if .EnvImportable}}
             <form action="/api/onboarding/proxmox/import-env" method="POST" class="mb-6">
-                <div class="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs flex items-center justify-between gap-3">
+                <div class="p-3 rounded-lg bg-info/10 border border-info/20 text-info text-xs flex items-center justify-between gap-3">
                     <span>Une configuration Proxmox existe dans l'environnement.</span>
                     <button type="submit"
-                        class="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 transition">
+                        class="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold bg-info/20 hover:bg-info/30 text-info transition">
                         Importer la config env
                     </button>
                 </div>
@@ -174,7 +172,7 @@
                 <div class="space-y-2">
                     <label for="token_secret" class="text-sm font-medium text-on-surface ml-1">
                         Secret du token
-                        {{if .SecretPresent}}<span class="text-green-400 text-xs">(enregistré — laisser vide pour conserver)</span>{{end}}
+                        {{if .SecretPresent}}<span class="text-success text-xs">(enregistré — laisser vide pour conserver)</span>{{end}}
                     </label>
                     <div class="relative">
                         <input id="token_secret" name="token_secret" type="password" {{if not .SecretPresent}}required{{end}}
@@ -300,7 +298,7 @@
                         Enregistrer
                     </button>
                 </div>
-                <p id="save-anyway-hint" class="hidden text-xs text-orange-300 ml-1"></p>
+                <p id="save-anyway-hint" class="hidden text-xs text-warning ml-1"></p>
             </form>
                     </div>
                 </section>
@@ -308,8 +306,11 @@
         </div>
     </main>
 
+    {{template "toast-host"}}
+
     <script src="/static/theme.js"></script>
     <script src="/static/csrf.js"></script>
+    <script src="/static/ui.js"></script>
     {{template "sidebar-js"}}
     <script>
         // Toggle password visibility
@@ -357,9 +358,11 @@
             });
         });
 
-        function showResult(cls, html) {
+        // textContent, jamais innerHTML : le message contient l'erreur brute
+        // renvoyée par le Proxmox testé, qui n'est pas une source de confiance.
+        function showResult(cls, msg) {
             resultPanel.className = 'p-3 rounded-lg text-sm ' + cls;
-            resultPanel.innerHTML = html;
+            resultPanel.textContent = msg;
             resultPanel.classList.remove('hidden');
         }
 
@@ -389,11 +392,11 @@
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
                     if (data.ok) {
-                        showResult('bg-green-500/10 border border-green-500/20 text-green-300',
+                        showResult('bg-success/10 border border-success/20 text-success',
                             '✓ Connexion établie. Vous pouvez enregistrer.');
                         enableSave(true);
                     } else if (data.kind === 'network') {
-                        showResult('bg-orange-500/10 border border-orange-500/20 text-orange-300',
+                        showResult('bg-warning/10 border border-warning/20 text-warning',
                             '⚠ ' + (data.error || 'Erreur réseau transitoire.'));
                         // Transient: allow "save anyway" (server re-tests at Save).
                         enableSave(true);

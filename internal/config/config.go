@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // Config holds all application configuration loaded from environment variables.
@@ -90,10 +91,67 @@ type Config struct {
 	SessionSecret string
 	CookieSecure  bool
 	SkipTLSVerify bool
+
+	// TrustedProxies is the list of CIDR blocks (env TRUSTED_PROXIES, comma or
+	// space separated; a bare IP is read as a single-host block) whose forwarding
+	// headers — X-Forwarded-For / X-Real-IP — may be believed when resolving the
+	// client IP that keys the login rate limiter.
+	//
+	// EMPTY BY DEFAULT, and that default is a security decision: GoaCore serves
+	// HTTPS itself on 8443, so anything able to reach the port can forge those
+	// headers. Trusting them unconditionally would let an attacker mint a fresh
+	// counter on every attempt and never be blocked. With an empty list NO header
+	// is trusted and the limiter keys on the real r.RemoteAddr.
+	//
+	// Set it ONLY to the address(es) of the reverse proxy actually in front of the
+	// app, e.g. TRUSTED_PROXIES=192.0.2.1/32 (Traefik) or 10.0.0.0/8. The list
+	// is installed into the middleware at boot (main.go) and a malformed entry is
+	// fatal — a typo must never silently widen or void the trust boundary.
+	TrustedProxies []string
+
+	// secretFileErrs collects the KEY_FILE references that could not be read at
+	// Load time (see getEnvSecret). They are reported by RequireForBoot/Validate so
+	// a mistyped or unmounted secret file refuses the boot instead of quietly
+	// leaving GoaCore with an empty credential.
+	secretFileErrs []string
 }
+
+// secretFileSuffix implements the Docker convention for secrets: for any variable
+// KEY handled by getEnvSecret, KEY_FILE=/run/secrets/xxx reads the secret from the
+// file instead of the environment.
+const secretFileSuffix = "_FILE"
 
 // Load reads configuration from environment variables with defaults.
 func Load() *Config {
+	var secretErrs []string
+
+	// getEnvSecret reads a secret, preferring the file named by KEY_FILE over the
+	// KEY variable itself. Environment variables are readable by anyone who can
+	// reach the Docker daemon (docker inspect) or the process (/proc/<pid>/environ);
+	// a file mounted from a Docker/Swarm secret, or from a tmpfs, is not.
+	//
+	// KEY_FILE WINS over KEY when both are set: an operator who mounts a secret
+	// means it, and a stale KEY left over in the compose file must not shadow it.
+	// A file that cannot be read (or is empty) is recorded as an error rather than
+	// silently downgraded to the fallback — see secretFileErrs.
+	getEnvSecret := func(key, fallback string) string {
+		path := strings.TrimSpace(os.Getenv(key + secretFileSuffix))
+		if path == "" {
+			return getEnv(key, fallback)
+		}
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			secretErrs = append(secretErrs, fmt.Sprintf("%s%s=%q: %v", key, secretFileSuffix, path, err))
+			return ""
+		}
+		// Trailing newline: `echo secret > file` and most secret managers add one.
+		value := strings.TrimSpace(string(raw))
+		if value == "" {
+			secretErrs = append(secretErrs, fmt.Sprintf("%s%s=%q: file is empty", key, secretFileSuffix, path))
+		}
+		return value
+	}
+
 	cfg := &Config{
 		// No DB credential defaults: DB_USER/DB_PASS MUST be injected by the
 		// compose/env file (see docker-compose.yml — the host DB_PASSWORD maps to the
@@ -102,13 +160,13 @@ func Load() *Config {
 		// root/root. DB_HOST keeps a sane localhost default; DB_NAME keeps "goacloud"
 		// (the existing production schema name — changing it would break the live DB).
 		DBUser:             getEnv("DB_USER", ""),
-		DBPass:             getEnv("DB_PASS", ""),
+		DBPass:             getEnvSecret("DB_PASS", ""),
 		DBHost:             getEnv("DB_HOST", "127.0.0.1:3306"),
 		DBName:             getEnv("DB_NAME", "goacloud"),
 		ProxmoxURL:         getEnv("PROXMOX_URL", ""),
 		ProxmoxNode:        getEnv("PROXMOX_NODE", "pve"),
 		ProxmoxTokenID:     getEnv("PROXMOX_TOKEN_ID", ""),
-		ProxmoxTokenSecret: getEnv("PROXMOX_TOKEN_SECRET", ""),
+		ProxmoxTokenSecret: getEnvSecret("PROXMOX_TOKEN_SECRET", ""),
 		ProxmoxStorage:     getEnv("PROXMOX_STORAGE", ""),
 		ProxmoxBridge:      getEnv("PROXMOX_BRIDGE", ""),
 		// VLAN 1-4094, default 99. A 0/out-of-range env yields the bounded default;
@@ -122,20 +180,20 @@ func Load() *Config {
 		MinLocalAvailGiB: getEnvIntBounded("GOABACKUP_MIN_LOCAL_AVAIL_GIB", 5, 0, 1024),
 		WazuhAPIURL:      getEnv("WAZUH_API_URL", ""),
 		WazuhUser:        getEnv("WAZUH_USER", ""),
-		WazuhPassword:    getEnv("WAZUH_PASSWORD", ""),
+		WazuhPassword:    getEnvSecret("WAZUH_PASSWORD", ""),
 		WazuhIndexerURL:  getEnv("WAZUH_INDEXER_URL", ""),
 		WazuhIndexerUser: getEnv("WAZUH_INDEXER_USER", ""),
-		WazuhIndexerPass: getEnv("WAZUH_INDEXER_PASSWORD", ""),
+		WazuhIndexerPass: getEnvSecret("WAZUH_INDEXER_PASSWORD", ""),
 		// Default empty (not "ollama"): a vierge instance with no AI_PROVIDER must NOT
 		// instantiate an Ollama client pointed at localhost:11434 that fails every SOAR
 		// tick. AI enrichment stays cleanly "disabled" until configured (env or in-app).
 		// Production is unaffected — it sets AI_PROVIDER explicitly in its env.
 		AIProvider:            getEnv("AI_PROVIDER", ""),
 		AIURL:                 getEnv("AI_URL", ""),
-		AIAPIKey:              getEnv("AI_API_KEY", ""),
+		AIAPIKey:              getEnvSecret("AI_API_KEY", ""),
 		AIModel:               getEnv("AI_MODEL", ""),
 		OpenAIBaseURL:         getEnv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
-		DiscordBotToken:       getEnv("DISCORD_BOT_TOKEN", ""),
+		DiscordBotToken:       getEnvSecret("DISCORD_BOT_TOKEN", ""),
 		DiscordChannelID:      getEnv("DISCORD_CHANNEL_ID", ""),
 		DiscordAuthChannel:    getEnv("DISCORD_AUTH_CHANNEL_ID", ""),
 		DiscordAnsibleChannel: getEnv("DISCORD_ANSIBLE_CHANNEL_ID", ""),
@@ -150,9 +208,11 @@ func Load() *Config {
 
 		HTTPPort:      getEnv("PORT", "8080"),
 		HTTPSPort:     getEnv("HTTPS_PORT", "8443"),
-		SessionSecret: getEnv("SESSION_SECRET", "super-secret-key-change-me"),
+		SessionSecret: getEnvSecret("SESSION_SECRET", "super-secret-key-change-me"),
 		CookieSecure:  getEnv("COOKIE_SECURE", "true") != "false",
 		SkipTLSVerify: getEnv("SKIP_TLS_VERIFY", "false") == "true",
+		// No default: no proxy is trusted until the operator names one.
+		TrustedProxies: getEnvList("TRUSTED_PROXIES"),
 	}
 
 	// Legacy Ollama support
@@ -163,7 +223,19 @@ func Load() *Config {
 		cfg.AIModel = getEnv("OLLAMA_MODEL", "")
 	}
 
+	cfg.secretFileErrs = secretErrs
 	return cfg
+}
+
+// secretFileError reports the KEY_FILE references that could not be read. It is
+// checked by BOTH boot guards below, whichever runs first: an unreadable secret
+// file must produce "your secret file is unreadable", not the misleading "your
+// SESSION_SECRET is missing" that an empty fallback would trigger.
+func (c *Config) secretFileError() error {
+	if len(c.secretFileErrs) == 0 {
+		return nil
+	}
+	return fmt.Errorf("unusable secret file(s): %s", strings.Join(c.secretFileErrs, "; "))
 }
 
 // Validate checks that configured service URLs are well-formed. Catching a
@@ -177,6 +249,9 @@ func Load() *Config {
 // booting — the operator can still fix it via onboarding. Its form is re-validated
 // at Save time (ValidateURL) and a boot-time Warn is emitted (ProxmoxURLWarning).
 func (c *Config) Validate() error {
+	if err := c.secretFileError(); err != nil {
+		return err
+	}
 	for name, raw := range map[string]string{
 		"WAZUH_API_URL":     c.WazuhAPIURL,
 		"WAZUH_INDEXER_URL": c.WazuhIndexerURL,
@@ -215,6 +290,9 @@ var weakSessionSecrets = map[string]bool{
 // unaffected — it injects DB_USER/DB_PASS/DB_NAME and a strong SESSION_SECRET via its
 // env, so every check below passes.
 func (c *Config) RequireForBoot() error {
+	if err := c.secretFileError(); err != nil {
+		return err
+	}
 	var missing []string
 	if c.DBUser == "" {
 		missing = append(missing, "DB_USER")
@@ -263,6 +341,23 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// getEnvList reads a comma/space separated env var into a slice, dropping empty
+// items. A missing or blank var yields a nil slice (the "nothing listed" case,
+// which callers must treat as "no entry", never as "all entries").
+func getEnvList(key string) []string {
+	raw := os.Getenv(key)
+	if strings.TrimSpace(raw) == "" {
+		return nil
+	}
+	var out []string
+	for _, item := range strings.FieldsFunc(raw, func(r rune) bool { return r == ',' || r == ' ' || r == '\t' }) {
+		if item = strings.TrimSpace(item); item != "" {
+			out = append(out, item)
+		}
+	}
+	return out
 }
 
 // getEnvBool reads a boolean env var. Accepts true/1/yes/on (case-insensitive).

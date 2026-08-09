@@ -2,6 +2,10 @@ module goacore
 
 go 1.25.0
 
+// Épingle le toolchain au patch qui corrige les vulnérabilités de la bibliothèque
+// standard remontées par govulncheck (et que le builder du Dockerfile embarque).
+toolchain go1.25.12
+
 require (
 	github.com/bwmarrin/discordgo v0.29.0
 	github.com/go-chi/chi/v5 v5.3.1

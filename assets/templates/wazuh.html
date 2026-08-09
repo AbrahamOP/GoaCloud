@@ -4,24 +4,22 @@
 <head>
     {{template "head-common"}}
     <title>GoaCore - Wazuh</title>
-    <style>
-        body { font-family: 'Outfit', sans-serif; }
-    </style>
 </head>
 
 <body class="min-h-screen flex bg-surface text-on-surface">
+    {{template "skip-link"}}
     {{template "mobile-overlay"}}
     {{template "sidebar"}}
 
     <!-- Main Content -->
-    <main class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
+    <main id="main-content" tabindex="-1" class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
         {{template "bubbles"}}
 
-        <div class="px-8 py-10 relative z-10">
+        <div class="px-4 md:px-8 py-10 relative z-10">
             <!--            -->
             <div class="flex flex-wrap items-center justify-between mb-8 gap-4">
                 <div>
-                    <h2 class="text-3xl font-bold text-on-surface mb-2">Wazuh <span class="gradient-text">Security</span>
+                    <h2 class="text-2xl md:text-3xl font-bold text-on-surface mb-2">Wazuh <span class="gradient-text">Security</span>
                     </h2>
                     <p class="text-on-surface-variant text-sm">Surveillance des vulnérabilités de votre infrastructure.</p>
                 </div>
@@ -52,20 +50,20 @@
             <div class="mb-8">
                 <h3 class="text-xl font-semibold text-on-surface mb-4">Tableau de bord CVE</h3>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                    <div class="bg-surface-container border border-outline-variant rounded-xl p-4 text-center border-l-4 border-red-500">
-                        <p class="text-3xl font-bold text-red-400" id="cve-critical">-</p>
+                    <div class="bg-surface-container border border-outline-variant rounded-xl p-4 text-center border-l-4 border-error">
+                        <p class="text-3xl font-bold text-error" id="cve-critical">-</p>
                         <p class="text-xs text-on-surface-variant uppercase mt-1">Critical</p>
                     </div>
-                    <div class="bg-surface-container border border-outline-variant rounded-xl p-4 text-center border-l-4 border-orange-500">
-                        <p class="text-3xl font-bold text-orange-400" id="cve-high">-</p>
+                    <div class="bg-surface-container border border-outline-variant rounded-xl p-4 text-center border-l-4 border-warning">
+                        <p class="text-3xl font-bold text-warning" id="cve-high">-</p>
                         <p class="text-xs text-on-surface-variant uppercase mt-1">High</p>
                     </div>
-                    <div class="bg-surface-container border border-outline-variant rounded-xl p-4 text-center border-l-4 border-yellow-500">
-                        <p class="text-3xl font-bold text-yellow-400" id="cve-medium">-</p>
+                    <div class="bg-surface-container border border-outline-variant rounded-xl p-4 text-center border-l-4 border-tertiary">
+                        <p class="text-3xl font-bold text-tertiary" id="cve-medium">-</p>
                         <p class="text-xs text-on-surface-variant uppercase mt-1">Medium</p>
                     </div>
-                    <div class="bg-surface-container border border-outline-variant rounded-xl p-4 text-center border-l-4 border-blue-500">
-                        <p class="text-3xl font-bold text-blue-400" id="cve-low">-</p>
+                    <div class="bg-surface-container border border-outline-variant rounded-xl p-4 text-center border-l-4 border-info">
+                        <p class="text-3xl font-bold text-info" id="cve-low">-</p>
                         <p class="text-xs text-on-surface-variant uppercase mt-1">Low</p>
                     </div>
                 </div>
@@ -81,7 +79,8 @@
             <div class="mb-8">
                 <h3 class="text-xl font-semibold text-on-surface mb-4">Menaces r&eacute;seau (24h)</h3>
                 <div class="bg-surface-container border border-outline-variant rounded-xl overflow-hidden">
-                    <table class="w-full text-left border-collapse">
+                    <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse min-w-[32rem]">
                         <thead>
                             <tr class="bg-surface-container text-on-surface-variant text-xs uppercase border-b border-outline-variant">
                                 <th class="p-3 font-semibold">Adresse IP</th>
@@ -93,11 +92,13 @@
                             <tr><td colspan="3" class="p-4 text-on-surface-variant text-center">Chargement...</td></tr>
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
 
             <div class="bg-surface-container rounded-xl overflow-hidden border border-outline-variant">
-                <table class="w-full text-left border-collapse">
+                <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[48rem]">
                     <thead>
                         <tr class="bg-surface-container text-on-surface-variant text-xs uppercase border-b border-outline-variant">
                             <th class="p-4 font-semibold">Agent</th>
@@ -126,12 +127,12 @@
                             <td class="p-4">
                                 {{if eq .Status "active"}}
                                 <span
-                                    class="px-2 py-1 text-xs font-semibold rounded-full bg-green-500/10 text-green-400 border border-green-500/20">
+                                    class="px-2 py-1 text-xs font-semibold rounded-full bg-success/10 text-success border border-success/20">
                                     Active
                                 </span>
                                 {{else}}
                                 <span
-                                    class="px-2 py-1 text-xs font-semibold rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
+                                    class="px-2 py-1 text-xs font-semibold rounded-full bg-error/10 text-error border border-error/20">
                                     {{.Status}}
                                 </span>
                                 {{end}}
@@ -140,28 +141,28 @@
                                 <div class="flex gap-2">
                                     {{if gt .VulnSummary.Critical 0}}
                                     <span
-                                        class="px-2 py-1 text-xs font-bold rounded bg-red-500/20 text-red-500 border border-red-500/30"
+                                        class="px-2 py-1 text-xs font-bold rounded bg-error/20 text-error border border-error/30"
                                         title="Critique">
                                         {{.VulnSummary.Critical}} C
                                     </span>
                                     {{end}}
                                     {{if gt .VulnSummary.High 0}}
                                     <span
-                                        class="px-2 py-1 text-xs font-bold rounded bg-orange-500/20 text-orange-500 border border-orange-500/30"
+                                        class="px-2 py-1 text-xs font-bold rounded bg-warning/20 text-warning border border-warning/30"
                                         title="Élevée">
                                         {{.VulnSummary.High}} H
                                     </span>
                                     {{end}}
                                     {{if gt .VulnSummary.Medium 0}}
                                     <span
-                                        class="px-2 py-1 text-xs font-bold rounded bg-yellow-500/20 text-yellow-500 border border-yellow-500/30"
+                                        class="px-2 py-1 text-xs font-bold rounded bg-tertiary/20 text-tertiary border border-tertiary/30"
                                         title="Moyenne">
                                         {{.VulnSummary.Medium}} M
                                     </span>
                                     {{end}}
                                     {{if gt .VulnSummary.Low 0}}
                                     <span
-                                        class="px-2 py-1 text-xs font-bold rounded bg-blue-500/20 text-blue-500 border border-blue-500/30"
+                                        class="px-2 py-1 text-xs font-bold rounded bg-info/20 text-info border border-info/30"
                                         title="Faible">
                                         {{.VulnSummary.Low}} L
                                     </span>
@@ -180,13 +181,14 @@
                         {{end}}
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
     </main>
 
     <!-- Modal Details -->
-    <div id="agent-modal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog"
-        aria-modal="true">
+    <div id="agent-modal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-agent-name" role="dialog"
+        aria-modal="true" tabindex="-1" data-modal-exit-ms="300">
         <!-- Backdrop -->
         <div class="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity opacity-0" id="modal-backdrop"></div>
 
@@ -196,7 +198,7 @@
                     id="modal-panel">
 
                     <!-- Header banner -->
-                    <div class="relative px-8 py-6 border-b border-outline-variant"
+                    <div class="relative px-4 md:px-8 py-6 border-b border-outline-variant"
                          style="background: linear-gradient(135deg, rgba(124,58,237,0.25) 0%, var(--md-color-surface-container-high) 70%);">
                         <div class="flex items-start justify-between gap-4">
                             <div class="flex items-center gap-4" style="min-width:0;">
@@ -208,7 +210,7 @@
                                 </div>
                                 <div style="min-width:0;">
                                     <p class="uppercase tracking-widest text-on-surface-variant font-semibold" style="font-size:10px;">Agent Wazuh</p>
-                                    <h3 class="text-2xl font-bold text-on-surface truncate" id="modal-agent-name">Agent Name</h3>
+                                    <h3 class="text-lg md:text-2xl font-bold text-on-surface truncate" id="modal-agent-name">Agent Name</h3>
                                     <div class="flex items-center gap-2 mt-1 flex-wrap">
                                         <span id="modal-agent-status-badge"
                                             class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border">
@@ -230,37 +232,37 @@
                     </div>
 
                     <!-- Content -->
-                    <div class="px-8 py-8 text-on-surface overflow-y-auto custom-scrollbar" style="max-height:78vh; display:flex; flex-direction:column; gap:2.25rem;">
+                    <div class="px-4 md:px-8 py-8 text-on-surface overflow-y-auto custom-scrollbar" style="max-height:78vh; display:flex; flex-direction:column; gap:2.25rem;">
 
                         <!-- Vulnerability KPI strip -->
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div class="rounded-lg border border-red-500/30 bg-red-500/10 p-4">
+                            <div class="rounded-lg border border-error/30 bg-error/10 p-4">
                                 <div class="flex items-center justify-between">
-                                    <p class="uppercase tracking-widest text-red-400 font-bold" style="font-size:10px;">Critiques</p>
-                                    <svg class="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M4.93 19.07l14.14-14.14"/></svg>
+                                    <p class="uppercase tracking-widest text-error font-bold" style="font-size:10px;">Critiques</p>
+                                    <svg class="w-4 h-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M4.93 19.07l14.14-14.14"/></svg>
                                 </div>
-                                <p class="text-2xl font-bold text-red-400 mt-2" id="modal-vuln-critical-count">0</p>
+                                <p class="text-xl md:text-2xl font-bold text-error mt-2" id="modal-vuln-critical-count">0</p>
                             </div>
-                            <div class="rounded-lg border border-orange-500/30 bg-orange-500/10 p-4">
+                            <div class="rounded-lg border border-warning/30 bg-warning/10 p-4">
                                 <div class="flex items-center justify-between">
-                                    <p class="uppercase tracking-widest text-orange-400 font-bold" style="font-size:10px;">Élevées</p>
-                                    <svg class="w-4 h-4 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                    <p class="uppercase tracking-widest text-warning font-bold" style="font-size:10px;">Élevées</p>
+                                    <svg class="w-4 h-4 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                                 </div>
-                                <p class="text-2xl font-bold text-orange-400 mt-2" id="modal-vuln-high-count">0</p>
+                                <p class="text-xl md:text-2xl font-bold text-warning mt-2" id="modal-vuln-high-count">0</p>
                             </div>
-                            <div class="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-4">
+                            <div class="rounded-lg border border-warning/30 bg-warning/10 p-4">
                                 <div class="flex items-center justify-between">
-                                    <p class="uppercase tracking-widest text-yellow-400 font-bold" style="font-size:10px;">Moyennes</p>
-                                    <svg class="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    <p class="uppercase tracking-widest text-warning font-bold" style="font-size:10px;">Moyennes</p>
+                                    <svg class="w-4 h-4 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 </div>
-                                <p class="text-2xl font-bold text-yellow-400 mt-2" id="modal-vuln-medium-count">0</p>
+                                <p class="text-xl md:text-2xl font-bold text-warning mt-2" id="modal-vuln-medium-count">0</p>
                             </div>
-                            <div class="rounded-lg border border-blue-500/30 bg-blue-500/10 p-4">
+                            <div class="rounded-lg border border-info/30 bg-info/10 p-4">
                                 <div class="flex items-center justify-between">
-                                    <p class="uppercase tracking-widest text-blue-400 font-bold" style="font-size:10px;">Faibles</p>
-                                    <svg class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                                    <p class="uppercase tracking-widest text-info font-bold" style="font-size:10px;">Faibles</p>
+                                    <svg class="w-4 h-4 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                                 </div>
-                                <p class="text-2xl font-bold text-blue-400 mt-2" id="modal-vuln-low-count">0</p>
+                                <p class="text-xl md:text-2xl font-bold text-info mt-2" id="modal-vuln-low-count">0</p>
                             </div>
                         </div>
 
@@ -310,12 +312,12 @@
                                     <div class="absolute bottom-full left-0 mb-2 hidden group-hover:block w-56 p-4 bg-surface-container-highest border border-outline-variant rounded-lg text-xs text-on-surface shadow-xl" style="z-index:60;">
                                         <p class="font-bold mb-2 border-b border-outline-variant pb-2">Légende « Patch / Condition »</p>
                                         <div class="flex items-center gap-2 mb-1"><span class="text-primary font-bold">&lt;</span> <span>Mettre à jour (version &lt; cible)</span></div>
-                                        <div class="flex items-center gap-2"><span class="text-yellow-400 font-bold">=</span> <span>Version vulnérable exacte</span></div>
+                                        <div class="flex items-center gap-2"><span class="text-warning font-bold">=</span> <span>Version vulnérable exacte</span></div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="rounded-lg border border-outline-variant overflow-hidden">
-                                <table class="w-full text-left text-sm">
+                            <div class="rounded-lg border border-outline-variant overflow-hidden overflow-x-auto">
+                                <table class="w-full text-left text-sm min-w-[36rem]">
                                     <thead class="uppercase tracking-widest bg-surface-container-high text-on-surface-variant" style="font-size:10px;">
                                         <tr>
                                             <th class="px-4 py-3 font-semibold">Package</th>
@@ -383,9 +385,9 @@
                     </div>
 
                     <!-- Footer -->
-                    <div class="bg-surface-container-high px-8 py-4 flex justify-end gap-2 border-t border-outline-variant">
+                    <div class="bg-surface-container-high px-4 md:px-8 py-4 flex justify-end gap-2 border-t border-outline-variant">
                         <button type="button" onclick="closeAgentModal()"
-                            class="inline-flex justify-center rounded-full border border-outline px-6 py-2 text-sm font-medium text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface focus:outline-none transition-colors">
+                            class="inline-flex justify-center rounded-full border border-outline px-3 md:px-6 py-2 text-sm font-medium text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface focus:outline-none transition-colors">
                             Fermer
                         </button>
                     </div>
@@ -395,10 +397,23 @@
     </div>
 
 
+    {{template "toast-host"}}
+
     <script src="/static/theme.js"></script>
     <script src="/static/csrf.js"></script>
+    <script src="/static/ui.js"></script>
     <script src="/static/search.js"></script>
     <script>
+        // Échappement HTML. OBLIGATOIRE pour toute valeur issue de l'API Wazuh
+        // (nom d'agent, IP, OS, sévérité…) : ces champs proviennent de machines
+        // supervisées, potentiellement compromises — c'est précisément la
+        // frontière de confiance que le produit prétend surveiller.
+        function escapeHtml(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
         // --- CVE Dashboard ---
         fetch('/api/wazuh/cve/summary').then(r => r.json()).then(data => {
             document.getElementById('cve-critical').textContent = data.critical || 0;
@@ -409,11 +424,11 @@
             if (data.top_agents && data.top_agents.length) {
                 container.innerHTML = data.top_agents.map(a =>
                     `<div class="flex items-center justify-between py-1.5 border-b border-outline-variant last:border-0">
-                        <span class="text-sm text-on-surface">${a.name}</span>
+                        <span class="text-sm text-on-surface">${escapeHtml(a.name)}</span>
                         <div class="flex gap-2 text-xs">
-                            ${a.critical ? '<span class="text-red-400 font-bold">'+a.critical+' C</span>' : ''}
-                            ${a.high ? '<span class="text-orange-400 font-bold">'+a.high+' H</span>' : ''}
-                            <span class="text-on-surface-variant">${a.total} total</span>
+                            ${a.critical ? '<span class="text-error font-bold">' + escapeHtml(a.critical) + ' C</span>' : ''}
+                            ${a.high ? '<span class="text-warning font-bold">' + escapeHtml(a.high) + ' H</span>' : ''}
+                            <span class="text-on-surface-variant">${escapeHtml(a.total)} total</span>
                         </div>
                     </div>`
                 ).join('');
@@ -432,14 +447,17 @@
             data.sort((a, b) => b.count - a.count);
             tbody.innerHTML = data.slice(0, 20).map(d => {
                 const severity = d.count > 50 ? 'Critical' : d.count > 20 ? 'High' : d.count > 5 ? 'Medium' : 'Low';
-                const colors = { Critical: 'text-red-400 bg-red-400/10', High: 'text-orange-400 bg-orange-400/10', Medium: 'text-yellow-400 bg-yellow-400/10', Low: 'text-blue-400 bg-blue-400/10' };
+                const colors = { Critical: 'text-error bg-error/10', High: 'text-warning bg-warning/10', Medium: 'text-tertiary bg-tertiary/10', Low: 'text-info bg-info/10' };
                 return `<tr class="hover:bg-surface-container-high">
-                    <td class="p-3 font-mono text-on-surface">${d.ip}</td>
-                    <td class="p-3 text-on-surface font-bold">${d.count}</td>
+                    <td class="p-3 font-mono text-on-surface">${escapeHtml(d.ip)}</td>
+                    <td class="p-3 text-on-surface font-bold">${escapeHtml(d.count)}</td>
                     <td class="p-3"><span class="px-2 py-0.5 rounded-full text-xs font-medium ${colors[severity]}">${severity}</span></td>
                 </tr>`;
             }).join('');
-        }).catch(() => {});
+        }).catch(() => {
+            const tbody = document.getElementById('threat-list');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="3" class="p-4 text-error text-center">Menaces r\u00e9seau indisponibles \u2014 la connexion \u00e0 Wazuh a \u00e9chou\u00e9.</td></tr>';
+        });
 
         // --- Refresh Logic ---
         async function refreshPage() {
@@ -455,7 +473,9 @@
                 const agents = await res.json();
                 renderAgentsTable(agents);
             } catch (e) {
-                console.error('Refresh failed:', e);
+                // Un échec muet est pire qu'une erreur : l'opérateur croit voir
+                // l'état à jour des agents alors que le tableau est figé.
+                notifyError(e, "La liste des agents n'a pas pu être actualisée");
             } finally {
                 icon.classList.remove('animate-spin');
                 btn.disabled = false;
@@ -469,35 +489,43 @@
                 tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-on-surface-variant">Aucun agent trouvé ou erreur de connexion API.</td></tr>`;
                 return;
             }
-            tbody.innerHTML = agents.map(a => {
+            tbody.textContent = '';
+            agents.forEach(a => {
                 const statusBadge = a.status === 'active'
-                    ? `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-500/10 text-green-400 border border-green-500/20">Active</span>`
-                    : `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-500/10 text-red-400 border border-red-500/20">${a.status}</span>`;
+                    ? `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-success/10 text-success border border-success/20">Active</span>`
+                    : `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-error/10 text-error border border-error/20">${escapeHtml(a.status)}</span>`;
 
                 const vs = a.vuln_summary || {};
                 let vulnHtml = '';
-                if (vs.critical > 0) vulnHtml += `<span class="px-2 py-1 text-xs font-bold rounded bg-red-500/20 text-red-500 border border-red-500/30" title="Critique">${vs.critical} C</span>`;
-                if (vs.high > 0)     vulnHtml += `<span class="px-2 py-1 text-xs font-bold rounded bg-orange-500/20 text-orange-500 border border-orange-500/30" title="Élevée">${vs.high} H</span>`;
-                if (vs.medium > 0)   vulnHtml += `<span class="px-2 py-1 text-xs font-bold rounded bg-yellow-500/20 text-yellow-500 border border-yellow-500/30" title="Moyenne">${vs.medium} M</span>`;
-                if (vs.low > 0)      vulnHtml += `<span class="px-2 py-1 text-xs font-bold rounded bg-blue-500/20 text-blue-500 border border-blue-500/30" title="Faible">${vs.low} L</span>`;
+                if (vs.critical > 0) vulnHtml += `<span class="px-2 py-1 text-xs font-bold rounded bg-error/20 text-error border border-error/30" title="Critique">${escapeHtml(vs.critical)} C</span>`;
+                if (vs.high > 0)     vulnHtml += `<span class="px-2 py-1 text-xs font-bold rounded bg-warning/20 text-warning border border-warning/30" title="Élevée">${escapeHtml(vs.high)} H</span>`;
+                if (vs.medium > 0)   vulnHtml += `<span class="px-2 py-1 text-xs font-bold rounded bg-warning/20 text-warning border border-warning/30" title="Moyenne">${escapeHtml(vs.medium)} M</span>`;
+                if (vs.low > 0)      vulnHtml += `<span class="px-2 py-1 text-xs font-bold rounded bg-info/20 text-info border border-info/30" title="Faible">${escapeHtml(vs.low)} L</span>`;
                 if (!vs.total)       vulnHtml = `<span class="text-on-surface-variant text-xs italic">Aucune vulnérabilité</span>`;
 
-                return `<tr class="hover:bg-outline-variant cursor-pointer group" onclick="openAgentModal(this)"
-                    data-status="${a.status}" data-agent='${JSON.stringify(a)}'>
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-outline-variant cursor-pointer group';
+                // dataset plutôt qu'un attribut sérialisé dans le HTML : JSON.stringify
+                // n'échappe pas les apostrophes, un nom d'agent du type
+                // `x' onmouseover='…` sortait donc de data-agent='…'.
+                tr.dataset.status = a.status || '';
+                tr.dataset.agent = JSON.stringify(a);
+                tr.addEventListener('click', () => openAgentModal(tr));
+                tr.innerHTML = `
                     <td class="p-4 font-medium text-on-surface flex items-center gap-3">
                         <div class="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary">
                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7" />
                             </svg>
                         </div>
-                        ${a.name}
+                        ${escapeHtml(a.name)}
                     </td>
-                    <td class="p-4 font-mono text-on-surface-variant">${a.ip || ''}</td>
-                    <td class="p-4 text-on-surface-variant">${a.os ? a.os.name : ''}</td>
+                    <td class="p-4 font-mono text-on-surface-variant">${escapeHtml(a.ip)}</td>
+                    <td class="p-4 text-on-surface-variant">${escapeHtml(a.os ? a.os.name : '')}</td>
                     <td class="p-4">${statusBadge}</td>
-                    <td class="p-4"><div class="flex gap-2">${vulnHtml}</div></td>
-                </tr>`;
-            }).join('');
+                    <td class="p-4"><div class="flex gap-2">${vulnHtml}</div></td>`;
+                tbody.appendChild(tr);
+            });
         }
 
         // --- Filtering Logic ---
@@ -559,8 +587,8 @@
             statusLabel.textContent = (data.status || 'unknown').toUpperCase();
             statusBadge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ' + (
                 data.status === 'active'
-                    ? 'bg-green-500/10 border-green-500/40 text-green-400'
-                    : 'bg-red-500/10 border-red-500/40 text-red-400'
+                    ? 'bg-success/10 border-success/40 text-success'
+                    : 'bg-error/10 border-error/40 text-error'
             );
 
             // Reset KPI counters until vulnerabilities are loaded
@@ -570,7 +598,7 @@
             });
 
             // Show Modal (Anim)
-            modal.classList.remove('hidden');
+            GoaUI.openModal(modal);
             // Trigger reflow
             void modal.offsetWidth;
 
@@ -583,14 +611,17 @@
         }
 
         function closeAgentModal() {
+            GoaUI.closeModal(modal);
+        }
+
+        // L'animation de sortie est rejouée quelle que soit la façon de fermer
+        // (bouton, Échap, clic sur le fond) ; data-modal-exit-ms diffère d'autant
+        // le masquage effectif de la racine.
+        modal.addEventListener('goa:modal-close', function () {
             modalBackdrop.classList.add('opacity-0');
             modalPanel.classList.add('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
             modalPanel.classList.remove('translate-y-0', 'sm:scale-100');
-
-            setTimeout(() => {
-                modal.classList.add('hidden');
-            }, 300); // Match transition duration
-        }
+        });
 
         // Vulnerability state (persisted across filter/search interactions)
         let vulnState = {
@@ -621,8 +652,7 @@
 
                 renderVulnerabilities();
             } catch (error) {
-                console.error("Error loading vulns:", error);
-                modalVulnsContent.innerHTML = `<p class="text-red-400 text-xs text-center">Erreur lors du chargement des vulnérabilités.</p>`;
+                modalVulnsContent.innerHTML = `<p class="text-error text-xs text-center">Les vulnérabilités de cet agent n'ont pas pu être chargées. Vérifiez la connexion à l'indexeur Wazuh.</p>`;
             } finally {
                 modalVulnsLoading.classList.add('hidden');
             }
@@ -630,11 +660,11 @@
 
         function setActiveSeverityFilter(sev) {
             const tints = {
-                all:      { text: 'text-primary',        border: 'border-primary' },
-                Critical: { text: 'text-red-400',        border: 'border-red-500' },
-                High:     { text: 'text-orange-400',     border: 'border-orange-500' },
-                Medium:   { text: 'text-yellow-400',     border: 'border-yellow-500' },
-                Low:      { text: 'text-blue-400',       border: 'border-blue-500' }
+                all:      { text: 'text-primary',  border: 'border-primary' },
+                Critical: { text: 'text-error',    border: 'border-error' },
+                High:     { text: 'text-warning',  border: 'border-warning' },
+                Medium:   { text: 'text-tertiary', border: 'border-tertiary' },
+                Low:      { text: 'text-info',     border: 'border-info' }
             };
             document.querySelectorAll('.sev-filter-btn').forEach(function (btn) {
                 const key = btn.getAttribute('data-sev-filter');
@@ -671,12 +701,6 @@
             vulnState.collapsed[sev] = !vulnState.collapsed[sev];
             renderVulnerabilities();
         };
-
-        function escapeHtml(s) {
-            return String(s == null ? '' : s)
-                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-        }
 
         // Compose a clean package label: name + version only if name doesn't already contain it
         function pkgLabel(pkg) {
@@ -728,7 +752,7 @@
                     if (p.condition.includes('Package less than')) {
                         condDisplay = '<span class="text-primary font-bold mr-1">&lt;</span> ' + escapeHtml(p.condition.replace('Package less than', '').trim());
                     } else if (p.condition.includes('Package equal to')) {
-                        condDisplay = '<span class="text-yellow-400 font-bold mr-1">=</span> ' + escapeHtml(p.condition.replace('Package equal to', '').trim());
+                        condDisplay = '<span class="text-warning font-bold mr-1">=</span> ' + escapeHtml(p.condition.replace('Package equal to', '').trim());
                     }
                     topPkgHtml += `
                     <tr class="transition-colors">
@@ -736,7 +760,7 @@
                         <td class="px-4 py-3 text-xs font-mono text-on-surface-variant">${escapeHtml(p.version)}</td>
                         <td class="px-4 py-3 text-xs font-mono truncate" style="max-width:200px;" title="${escapeHtml(p.condition)}">${condDisplay}</td>
                         <td class="px-4 py-3 text-right">
-                            <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs font-bold border border-red-500/30" style="min-width:28px;">
+                            <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-error/20 text-error text-xs font-bold border border-error/30" style="min-width:28px;">
                                 ${p.count}
                             </span>
                         </td>
@@ -777,11 +801,16 @@
                 (groups[v.severity] || groups.Low).push(v);
             });
             const order = ['Critical', 'High', 'Medium', 'Low'];
+            // Quatre niveaux, quatre teintes DISTINCTES. High et Medium partageaient
+            // « warning » : deux groupes côte à côte rigoureusement identiques, donc
+            // une sévérité qu'il fallait lire pour la distinguer — exactement ce que
+            // la couleur est censée éviter. Medium passe sur « tertiary », qui n'est
+            // employé nulle part ailleurs dans cette page.
             const colors = {
-                Critical: { border: 'border-red-500/50',    bg: 'bg-red-500/10',    text: 'text-red-400',    label: 'Critical' },
-                High:     { border: 'border-orange-500/50', bg: 'bg-orange-500/10', text: 'text-orange-400', label: 'High' },
-                Medium:   { border: 'border-yellow-500/50', bg: 'bg-yellow-500/10', text: 'text-yellow-400', label: 'Medium' },
-                Low:      { border: 'border-blue-500/50',   bg: 'bg-blue-500/10',   text: 'text-blue-400',   label: 'Low' }
+                Critical: { border: 'border-error/50',    bg: 'bg-error/10',    text: 'text-error',    label: 'Critical' },
+                High:     { border: 'border-warning/50',  bg: 'bg-warning/10',  text: 'text-warning',  label: 'High' },
+                Medium:   { border: 'border-tertiary/50', bg: 'bg-tertiary/10', text: 'text-tertiary', label: 'Medium' },
+                Low:      { border: 'border-info/50',     bg: 'bg-info/10',     text: 'text-info',     label: 'Low' }
             };
 
             let html = '';
@@ -837,7 +866,7 @@
             modalVulnsContent.innerHTML = html;
         }
 
-        // Close on backdrop click
+        // Close on backdrop click (Échap et le piège de focus viennent de ui.js)
         modalBackdrop.addEventListener('click', closeAgentModal);
 
 

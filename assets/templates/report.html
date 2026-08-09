@@ -145,6 +145,11 @@
         table.report tbody tr:last-child td { border-bottom: none; }
         table.report tbody tr:nth-child(even) td { background: #fafbfc; }
 
+        /* Sur téléphone, un tableau plus large que l'écran doit défiler dans son
+           propre conteneur, pas entraîner toute la page avec lui. */
+        .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 18px; }
+        .table-scroll > table.report { margin-bottom: 0; min-width: 34rem; }
+
         .badge {
             display: inline-flex;
             align-items: center;
@@ -197,6 +202,9 @@
                 max-width: 100%;
                 border-radius: 0;
             }
+            /* À l'impression, rien ne défile : le tableau reprend toute la largeur. */
+            .table-scroll { overflow: visible; }
+            .table-scroll > table.report { min-width: 0; }
             .kpi, table.report, .section-head + .kpi-grid { break-inside: avoid; }
             table.report thead { display: table-header-group; }
             tr, td, th { break-inside: avoid; }
@@ -299,6 +307,7 @@
 
         <h3 style="margin:16px 0 6px;">Liste des machines ({{len .VMs}})</h3>
         {{if .VMs}}
+        <div class="table-scroll">
         <table class="report">
             <thead>
                 <tr>
@@ -327,6 +336,7 @@
                 {{end}}
             </tbody>
         </table>
+        </div>
         {{else}}
         <p style="color:var(--c-ink-muted); font-size:11px; padding:12px 0;">Aucune VM inventoriée.</p>
         {{end}}
@@ -368,6 +378,7 @@
 
         {{if .WazuhAgents}}
         <h3 style="margin:16px 0 6px;">Agents Wazuh ({{len .WazuhAgents}})</h3>
+        <div class="table-scroll">
         <table class="report">
             <thead>
                 <tr>
@@ -400,6 +411,7 @@
                 {{end}}
             </tbody>
         </table>
+        </div>
         {{end}}
 
         <div class="page-break"></div>
@@ -426,6 +438,7 @@
         </div>
 
         {{if .Apps}}
+        <div class="table-scroll">
         <table class="report">
             <thead>
                 <tr>
@@ -456,6 +469,7 @@
                 {{end}}
             </tbody>
         </table>
+        </div>
         {{else}}
         <p style="color:var(--c-ink-muted); font-size:11px;">Aucune application configurée.</p>
         {{end}}

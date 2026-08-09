@@ -7,11 +7,34 @@
 #      optionnel et configurable plus tard depuis l'interface web.
 #   3. docker compose up -d --build
 #
-# L'application est servie en HTTPS sur le port 8443 (certificat auto-signé généré
-# automatiquement — à placer derrière un reverse proxy ou à remplacer en prod).
+# L'application est servie en HTTPS sur le port 8443. Le certificat auto-signé est
+# PERSISTÉ dans le volume goacore_tls : il n'est régénéré que s'il est absent,
+# expiré, ou s'il ne couvre plus TLS_HOSTS — l'empreinte ne change donc plus à
+# chaque mise à jour. Renseignez TLS_HOSTS dans .env avec le nom/IP par lequel vous
+# accédez à GoaCore, ou fournissez votre propre certificat (TLS_CERT_FILE /
+# TLS_KEY_FILE + un montage read-only).
 # Au premier lancement, ouvrez https://<hôte>:8443/setup pour créer l'admin.
 #
 # Toutes les variables d'environnement sont lues depuis le fichier .env voisin.
+#
+# ─── SAUVEGARDE (à mettre en place le jour de l'installation) ────────────────────
+# GoaCore vend la restaurabilité prouvée : sa propre base doit être sauvegardée.
+# Le volume mysql_data contient TOUT l'état (utilisateurs, planifications, cibles)
+# et les secrets chiffrés (token Proxmox, clés SSH) — chiffrés avec une clé dérivée
+# de SESSION_SECRET, qui n'est PAS dans la base : un dump sans SESSION_SECRET est
+# irrécupérable. Sauvegardez les deux.
+#
+# Outillage fourni : install/backup.sh (dump/restore/prune, testé et documenté).
+#   ./install/backup.sh dump                # dump chiffrable, horodaté, gzip
+#   ./install/backup.sh restore <fichier>   # restauration dans la base en place
+#   0 3 * * *  cd /opt/goacore && ./install/backup.sh dump >> /var/log/goacore-backup.log 2>&1
+#
+# Équivalent en une commande, si vous préférez piloter vous-même :
+#   docker compose exec -T db sh -c 'exec mysqldump --single-transaction --routines \
+#     --triggers --events -u root -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"' | gzip > goacore-$(date +%F).sql.gz
+#   gunzip -c goacore-2026-01-01.sql.gz | docker compose exec -T db sh -c \
+#     'exec mysql -u root -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"'
+# ────────────────────────────────────────────────────────────────────────────────
 services:
   app:
     build: .
@@ -34,29 +57,53 @@ services:
       - DB_HOST=db:3306
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASSWORD}
+      - DB_PASS_FILE=${DB_PASSWORD_FILE:-}
       - DB_NAME=${DB_NAME}
       - PORT=8080
       - HTTPS_PORT=8443
       # --- Sécurité ---
+      # Chaque secret accepte la variante _FILE (convention Docker) : par exemple
+      # SESSION_SECRET_FILE=/run/secrets/session_secret fait lire le secret dans le
+      # fichier au lieu de l'environnement — que `docker inspect` et
+      # /proc/<pid>/environ exposent à quiconque atteint le démon Docker. Le _FILE
+      # a la priorité, un fichier illisible refuse le démarrage.
+      # Voir .env.example, section « Secrets par fichier ».
       - SESSION_SECRET=${SESSION_SECRET}
+      - SESSION_SECRET_FILE=${SESSION_SECRET_FILE:-}
       - COOKIE_SECURE=${COOKIE_SECURE:-true}
+      # Adresse du reverse proxy réellement en frontal (ex. Traefik). Vide = aucun
+      # en-tête X-Forwarded-For n'est cru : le rate-limiting et l'audit utilisent
+      # alors l'IP de la connexion. Ne jamais élargir au-delà du proxy réel.
+      - TRUSTED_PROXIES=${TRUSTED_PROXIES:-}
       - SKIP_TLS_VERIFY=${SKIP_TLS_VERIFY:-false}
+      # --- TLS de l'interface ---
+      # Noms/IP à inclure dans le certificat auto-signé (séparés par des virgules) :
+      # sans eux, le certificat ne vaut que pour localhost et le navigateur avertit.
+      - TLS_HOSTS=${TLS_HOSTS:-}
+      # Certificat fourni par l'exploitant (montez-le en read-only ci-dessous).
+      # Les deux variables vont ensemble ; laissées vides, GoaCore gère la paire.
+      - TLS_CERT_FILE=${TLS_CERT_FILE:-}
+      - TLS_KEY_FILE=${TLS_KEY_FILE:-}
       # --- Proxmox (optionnel — configurable depuis l'UI) ---
       - PROXMOX_URL=${PROXMOX_URL}
       - PROXMOX_NODE=${PROXMOX_NODE:-pve}
       - PROXMOX_TOKEN_ID=${PROXMOX_TOKEN_ID}
       - PROXMOX_TOKEN_SECRET=${PROXMOX_TOKEN_SECRET}
+      - PROXMOX_TOKEN_SECRET_FILE=${PROXMOX_TOKEN_SECRET_FILE:-}
       - PROXMOX_STORAGE=${PROXMOX_STORAGE}
       - PROXMOX_BRIDGE=${PROXMOX_BRIDGE}
       # --- Wazuh (optionnel — configurable depuis l'UI) ---
       - WAZUH_API_URL=${WAZUH_API_URL}
       - WAZUH_USER=${WAZUH_USER}
       - WAZUH_PASSWORD=${WAZUH_PASSWORD}
+      - WAZUH_PASSWORD_FILE=${WAZUH_PASSWORD_FILE:-}
       - WAZUH_INDEXER_URL=${WAZUH_INDEXER_URL}
       - WAZUH_INDEXER_USER=${WAZUH_INDEXER_USER}
       - WAZUH_INDEXER_PASSWORD=${WAZUH_INDEXER_PASSWORD}
+      - WAZUH_INDEXER_PASSWORD_FILE=${WAZUH_INDEXER_PASSWORD_FILE:-}
       # --- Discord (optionnel — configurable depuis l'UI) ---
       - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+      - DISCORD_BOT_TOKEN_FILE=${DISCORD_BOT_TOKEN_FILE:-}
       - DISCORD_CHANNEL_ID=${DISCORD_CHANNEL_ID}
       - DISCORD_AUTH_CHANNEL_ID=${DISCORD_AUTH_CHANNEL_ID}
       - DISCORD_ANSIBLE_CHANNEL_ID=${DISCORD_ANSIBLE_CHANNEL_ID}
@@ -64,6 +111,7 @@ services:
       - AI_PROVIDER=${AI_PROVIDER:-ollama}
       - AI_URL=${AI_URL}
       - AI_API_KEY=${AI_API_KEY}
+      - AI_API_KEY_FILE=${AI_API_KEY_FILE:-}
       - AI_MODEL=${AI_MODEL}
       - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
     depends_on:
@@ -71,31 +119,107 @@ services:
         condition: service_healthy
     restart: unless-stopped
     volumes:
-      # Playbooks Ansible générés/uploadés depuis l'app (persistés).
+      # Playbooks : ceux livrés avec l'image sont recopiés ici au démarrage par
+      # l'entrypoint (sinon le volume les masquerait à vie et un playbook corrigé
+      # n'arriverait jamais) ; ceux créés/uploadés depuis l'app sont persistés.
       - ansible_playbooks:/app/playbooks
+      # Certificat TLS de l'interface : persisté pour que son empreinte ne change
+      # pas à chaque recréation du conteneur.
+      - goacore_tls:/app/certs
+      # Secrets par fichier (_FILE) : décommentez et déposez-y vos secrets si vous
+      # ne voulez pas qu'ils apparaissent dans `docker inspect`.
+      # - ./secrets:/run/secrets:ro
+      # Certificat fourni par l'exploitant, si TLS_CERT_FILE/TLS_KEY_FILE sont définis.
+      # - ./tls:/run/tls:ro
+    # ─── Durcissement du conteneur ────────────────────────────────────────────
+    # L'image embarque Ansible, donc un interpréteur Python complet : c'est la
+    # plus grosse surface d'attaque du produit (cf. commentaire du Dockerfile).
+    # Ces options bornent ce qu'un code arbitraire y obtiendrait.
+    read_only: true          # rootfs immuable : rien ne s'installe, rien ne persiste
+    tmpfs:
+      # Espace de travail d'Ansible (ANSIBLE_HOME) et répertoires temporaires dans
+      # lesquels RunPlaybook dépose la clé SSH le temps d'une exécution. En tmpfs,
+      # cette clé ne touche jamais le disque. `exec` est nécessaire : Ansible y
+      # exécute du Python.
+      - /tmp:size=256m,mode=1777
+    cap_drop: [ALL]          # l'app écoute sur 8443/8080 en non-root : aucune capacité requise
+    security_opt:
+      - no-new-privileges:true
+    # Limites de ressources : un playbook qui s'emballe ou une fuite mémoire ne
+    # doivent pas emporter l'hôte (et avec lui MySQL et les autres services).
+    mem_limit: 1g
+    mem_reservation: 256m
+    cpus: 2.0
+    pids_limit: 512
 
   db:
-    image: mysql:8.0
+    # Épinglée par digest (tag mysql:8.0) : un tag mouvant fait qu'un `compose pull`
+    # peut changer la version du moteur sous une base existante, sans que personne
+    # ne l'ait décidé. Mise à jour :
+    #   docker buildx imagetools inspect mysql:8.0 --format '{{.Manifest.Digest}}'
+    image: mysql@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
     container_name: goacloud_db
     environment:
+      # L'image MySQL implémente elle aussi la convention _FILE. Les deux formes
+      # sont EXCLUSIVES : si vous renseignez DB_ROOT_PASSWORD_FILE, laissez
+      # DB_ROOT_PASSWORD vide dans .env (sinon l'entrypoint MySQL refuse de démarrer).
       - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_ROOT_PASSWORD_FILE=${DB_ROOT_PASSWORD_FILE:-}
       - MYSQL_DATABASE=${DB_NAME}
       - MYSQL_USER=${DB_USER}
       - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_PASSWORD_FILE=${DB_PASSWORD_FILE:-}
     volumes:
+      # Volume nommé : c'est LUI qu'il faut sauvegarder (voir l'en-tête du fichier
+      # et install/backup.sh). Son nom réel est <projet>_mysql_data —
+      # `docker volume ls` pour le retrouver. Il n'est délibérément PAS renommé :
+      # changer sa clé ferait repartir une installation existante sur une base vide.
       - mysql_data:/var/lib/mysql
       # Initialisation du schéma au tout premier démarrage (base vide uniquement).
       - ./schema.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      # Secrets par fichier, si vous utilisez MYSQL_*_FILE.
+      # - ./secrets:/run/secrets:ro
     restart: unless-stopped
+    # Durcissement. read_only n'est PAS appliqué ici : l'entrypoint MySQL ajuste
+    # les droits de /var/lib/mysql-files et du socket au démarrage, ce qu'un rootfs
+    # en lecture seule fait échouer. On se limite donc aux capacités : tout est
+    # retiré sauf les quatre dont l'entrypoint a besoin pour préparer le datadir
+    # puis abandonner les privilèges (gosu) vers l'utilisateur mysql.
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 2g
+    mem_reservation: 512m
+    cpus: 2.0
+    pids_limit: 512
     healthcheck:
       # L'app attend que MySQL réponde réellement (et pas seulement que le conteneur
       # démarre) grâce à depends_on: condition: service_healthy ci-dessus.
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      #
+      # Le mot de passe est lu dans les DEUX formes acceptées par l'image MySQL :
+      # MYSQL_ROOT_PASSWORD (environnement) ou MYSQL_ROOT_PASSWORD_FILE (secret par
+      # fichier, la forme désormais recommandée dans .env.example). Ne sonder que la
+      # première rendait la base éternellement « unhealthy » avec un secret par
+      # fichier — donc `depends_on: service_healthy` bloquait le démarrage de l'app.
+      # Les `$$` sont l'échappement Compose : ils arrivent en `$` dans le conteneur.
+      test:
+        - CMD-SHELL
+        - >-
+          PW="$${MYSQL_ROOT_PASSWORD:-}";
+          [ -n "$$PW" ] || PW="$$(cat "$${MYSQL_ROOT_PASSWORD_FILE:-/dev/null}" 2>/dev/null)";
+          mysqladmin ping -h localhost -u root -p"$$PW" --silent
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 30s
 
 volumes:
+  # État complet de GoaCore (comptes, planifications, cibles, secrets chiffrés).
+  # À SAUVEGARDER, avec SESSION_SECRET sans lequel les secrets sont indéchiffrables.
   mysql_data:
+  # Playbooks de l'utilisateur (ceux livrés sont resynchronisés depuis l'image).
   ansible_playbooks:
+  # Certificat + clé privée TLS de l'interface. Sauvegarde facultative : GoaCore
+  # régénère la paire si elle disparaît (l'empreinte change alors, une fois).
+  goacore_tls:

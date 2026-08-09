@@ -4,24 +4,22 @@
 <head>
     {{template "head-common"}}
     <title>GoaCore - Logs d'Audit</title>
-    <style>
-        body { font-family: 'Outfit', sans-serif; }
-    </style>
 </head>
 
 <body class="min-h-screen flex bg-surface text-on-surface">
 
+    {{template "skip-link"}}
     {{template "mobile-overlay"}}
     {{template "sidebar"}}
 
     <!-- Main Content -->
-    <main class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
+    <main id="main-content" tabindex="-1" class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
         {{template "bubbles"}}
 
-        <div class="px-8 py-10 relative z-10">
+        <div class="px-4 md:px-8 py-10 relative z-10">
             <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
                 <div>
-                    <h2 class="text-3xl font-bold text-on-surface mb-2"><span class="gradient-text">Paramètres</span></h2>
+                    <h2 class="text-2xl md:text-3xl font-bold text-on-surface mb-2"><span class="gradient-text">Paramètres</span></h2>
                     <p class="text-on-surface-variant text-sm">{{.HeaderSubtitle}}</p>
                 </div>
                 <div class="flex items-center gap-3 flex-wrap">
@@ -35,52 +33,52 @@
                 <section class="flex-1 min-w-0 w-full">
             <!-- Audit Logs Table -->
             <div class="rounded-xl overflow-hidden bg-surface-container border border-outline-variant relative z-10 shadow-xl">
-                <div class="px-6 py-4 border-b border-outline-variant flex justify-between items-center"
+                <div class="px-3 md:px-6 py-4 border-b border-outline-variant flex justify-between items-center"
                      style="background: linear-gradient(135deg, rgba(251,146,60,0.12) 0%, var(--md-color-surface-container) 70%);">
                     <h3 class="font-semibold text-on-surface flex items-center gap-2">
-                        <svg class="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                        <svg class="w-5 h-5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
                         Journal d'activité
                     </h3>
-                    <span class="text-xs bg-orange-500/10 text-orange-400 px-2 py-1 rounded-full border border-orange-500/30 font-semibold">{{len .Logs}} entrées</span>
+                    <span class="text-xs bg-warning/10 text-warning px-2 py-1 rounded-full border border-warning/30 font-semibold">{{len .Logs}} entrées</span>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm text-on-surface-variant">
                         <thead class="bg-surface-container-high text-xs uppercase tracking-widest font-semibold text-on-surface-variant">
                             <tr>
-                                <th class="px-6 py-4">Date</th>
-                                <th class="px-6 py-4">Utilisateur</th>
-                                <th class="px-6 py-4">Action</th>
-                                <th class="px-6 py-4">Details</th>
-                                <th class="px-6 py-4">Adresse IP</th>
+                                <th class="px-3 md:px-6 py-4">Date</th>
+                                <th class="px-3 md:px-6 py-4">Utilisateur</th>
+                                <th class="px-3 md:px-6 py-4">Action</th>
+                                <th class="px-3 md:px-6 py-4">Details</th>
+                                <th class="px-3 md:px-6 py-4">Adresse IP</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-outline-variant">
                             {{range .Logs}}
                             <tr class="hover:bg-surface-container-high transition-colors duration-150">
-                                <td class="px-6 py-4 font-mono text-on-surface-variant">{{.CreatedAt}}</td>
-                                <td class="px-6 py-4 font-medium text-on-surface flex items-center gap-2">
+                                <td class="px-3 md:px-6 py-4 font-mono text-on-surface-variant">{{.CreatedAt}}</td>
+                                <td class="px-3 md:px-6 py-4 font-medium text-on-surface flex items-center gap-2">
                                     <div
                                         class="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-[10px] text-on-primary font-bold">
                                         {{printf "%.1s" .Username}}
                                     </div>
                                     {{.Username}}
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-3 md:px-6 py-4">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                        {{if eq .Action " Login"}} bg-green-900/30 text-green-400 border
-                                        border-green-500/20 {{else if eq .Action "AddUser" }} bg-blue-900/30
-                                        text-blue-400 border border-blue-500/20 {{else if eq .Action "DeleteUser" }}
-                                        bg-red-900/30 text-error border border-red-500/20 {{else}} bg-surface-container-highest
+                                        {{if eq .Action " Login"}} bg-success/15 text-success border
+                                        border-success/20 {{else if eq .Action "AddUser" }} bg-info/15
+                                        text-info border border-info/20 {{else if eq .Action "DeleteUser" }}
+                                        bg-error/15 text-error border border-error/20 {{else}} bg-surface-container-highest
                                         text-on-surface border border-outline-variant {{end}}">
                                         {{.Action}}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 max-w-md truncate" title="{{.Details}}">{{.Details}}</td>
-                                <td class="px-6 py-4 font-mono text-xs">{{.IPAddress}}</td>
+                                <td class="px-3 md:px-6 py-4 max-w-md truncate" title="{{.Details}}">{{.Details}}</td>
+                                <td class="px-3 md:px-6 py-4 font-mono text-xs">{{.IPAddress}}</td>
                             </tr>
                             {{else}}
                             <tr>
-                                <td colspan="5" class="px-6 py-12 text-center text-on-surface-variant">
+                                <td colspan="5" class="px-3 md:px-6 py-12 text-center text-on-surface-variant">
                                     Aucune activite enregistree pour le moment.
                                 </td>
                             </tr>
@@ -94,8 +92,11 @@
         </div>
     </main>
 
+    {{template "toast-host"}}
+
     <script src="/static/theme.js"></script>
     <script src="/static/csrf.js"></script>
+    <script src="/static/ui.js"></script>
     <script src="/static/search.js"></script>
     {{template "sidebar-js"}}
 </body>
