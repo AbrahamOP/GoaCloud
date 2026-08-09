@@ -46,8 +46,10 @@ ARG TARGETARCH
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -o goacloud ./cmd/server
 
 # Final Stage
-# alpine:3.21
-FROM alpine@sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d65087abc07d
+# alpine:3.24 — version reprise de main (bump Dependabot), mais épinglée par
+# digest comme le reste : un tag reste mouvant, et deux builds du même commit
+# doivent produire le même binaire.
+FROM alpine@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
 
 WORKDIR /app
 

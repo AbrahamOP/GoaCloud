@@ -30,9 +30,9 @@ jobs:
     # PR (code non relu) -> runner jetable GitHub ; push interne -> self-hosted.
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || 'self-hosted' }}
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           # Suit la directive `go` de go.mod plutôt qu'une version figée ici : une
           # version épinglée en dur diverge silencieusement du module (le runner
@@ -90,9 +90,9 @@ jobs:
     name: Détecteur de course
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
 
@@ -138,9 +138,9 @@ jobs:
           --health-retries=20
           --health-start-period=20s
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
 
@@ -170,7 +170,7 @@ jobs:
     # pour une PR (cf. bandeau sécurité en tête de fichier).
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || 'self-hosted' }}
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Bash syntax (bash -n)
         run: bash -n deploy/goabackup/goabackup-runner.sh
@@ -256,7 +256,7 @@ jobs:
     runs-on: self-hosted
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # The Portainer webhook re-pulls the repo then runs compose pull -> build -> up.
       # The app service is build-only (no pinned `image:` registry tag — see
@@ -333,7 +333,7 @@ jobs:
       tag: ${{ steps.release.outputs.tag }}
       created: ${{ steps.release.outputs.created }}
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -493,7 +493,7 @@ jobs:
       packages: write
     steps:
       - name: Checkout (tag de la release)
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.release.outputs.tag }}
 
@@ -554,6 +554,13 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           ACTOR: ${{ github.actor }}
         run: |
+          # Les PR Dependabot s'exécutent avec le magasin de secrets Dependabot,
+          # pas celui du dépôt : DISCORD_WEBHOOK arrive vide et `curl -sf` sort en 3,
+          # ce qui faisait échouer PR Check sur un build par ailleurs vert.
+          if [ -z "$DISCORD_WEBHOOK" ]; then
+            echo "DISCORD_WEBHOOK absent (PR Dependabot) — notification ignorée"
+            exit 0
+          fi
           export LC_ALL=C.UTF-8
           SAFE_TITLE=$(printf '%s' "$PR_TITLE" | tr -d '"\\' | tr -d '\000-\037' | cut -c1-120)
           SAFE_ACTOR=$(printf '%s' "$ACTOR" | tr -cd 'A-Za-z0-9._-' | cut -c1-64)
