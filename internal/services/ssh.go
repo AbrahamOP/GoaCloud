@@ -324,6 +324,29 @@ func (s *SSHService) SSHHostKeyCallback(ip string) gossh.HostKeyCallback {
 	}
 }
 
+// DeletePinnedHostKey removes the pinned host key of ip from the shared
+// ssh_host_keys store, and reports whether a row was actually removed.
+//
+// This is the ONLY exit from ErrHostKeyMismatch. GoaCore never overwrites a pinned
+// key on its own — that refusal is what makes the pinning worth anything — so a host
+// that was legitimately reinstalled (new host key) would otherwise be locked out of
+// Ansible and of the console for good. Deleting the pin is the deliberate,
+// audited gesture that re-opens the bootstrap: the operator then pins the new key
+// after comparing its fingerprint out of band.
+func (s *SSHService) DeletePinnedHostKey(ip string) (bool, error) {
+	res, err := s.db.Exec("DELETE FROM ssh_host_keys WHERE ip = ?", ip)
+	if err != nil {
+		return false, fmt.Errorf("suppression de la clé hôte épinglée pour %s : %w", ip, err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		// Le pilote ne sait pas compter les lignes : la suppression a bien eu lieu,
+		// on ne transforme pas cette ignorance en échec.
+		return false, nil
+	}
+	return n > 0, nil
+}
+
 // pveNodeInternal is used internally for node discovery.
 type pveNodeInternal struct {
 	Node   string `json:"node"`

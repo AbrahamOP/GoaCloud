@@ -127,6 +127,70 @@ func TestSettingsHubSectionsRender(t *testing.T) {
 	}
 }
 
+// TestSettingsAccountSecurityUI pins the entry points the account sections MUST
+// expose. Each assertion below stands for a feature that existed only in the
+// router before: the hardened /api/mfa/disable rejects a body-less POST (so the
+// page needs a proof field), /logout-all and /api/users/reset-mfa were reachable
+// by hand only, and the activation toast was destroyed by an immediate reload.
+func TestSettingsAccountSecurityUI(t *testing.T) {
+	tmpl := loadSettingsTemplates(t)
+
+	render := func(t *testing.T, data map[string]any) string {
+		t.Helper()
+		var buf bytes.Buffer
+		if err := tmpl.ExecuteTemplate(&buf, "settings.html", data); err != nil {
+			t.Fatalf("render: %v", err)
+		}
+		return buf.String()
+	}
+
+	t.Run("securite", func(t *testing.T) {
+		d := settingsScaffold("securite", "Protégez l'accès à votre compte.", false)
+		d["MFAEnabled"] = true
+		out := render(t, d)
+
+		for _, want := range []string{
+			`id="mfa-disable-proof"`, // the password / TOTP proof the API demands
+			`application/json`,       // the disable call now carries a JSON body
+			`action="/logout-all"`,   // "déconnecter toutes mes sessions"
+			`reloadAfterToast`,       // the confirmation survives long enough to be read
+		} {
+			if !strings.Contains(out, want) {
+				t.Errorf("securite section is missing %q", want)
+			}
+		}
+		// The old body-less call is exactly what the hardened endpoint 400s on.
+		if strings.Contains(out, "'/api/mfa/disable', { method: 'POST' }") {
+			t.Error("the disable button still POSTs without a body — the endpoint rejects it with a 400")
+		}
+		// A single reload site (inside reloadAfterToast): any other occurrence is an
+		// immediate reload that would wipe the toast before it is seen.
+		if n := strings.Count(out, "window.location.reload"); n != 1 {
+			t.Errorf("%d reload sites in the securite section, want 1 (the delayed one)", n)
+		}
+		// The candidate secret is server-side state now; the page must not post one.
+		if strings.Contains(out, `id="temp-secret"`) {
+			t.Error("the page still carries a client-side candidate secret for /api/mfa/verify")
+		}
+	})
+
+	t.Run("utilisateurs", func(t *testing.T) {
+		users := []models.User{{ID: 1, Username: "alice", Email: "a@example.com", Role: "Admin", CreatedAt: "2026-01-01"}}
+
+		d := settingsScaffold("utilisateurs", "Gérez les comptes et les accès.", true)
+		d["Users"] = users
+		if out := render(t, d); !strings.Contains(out, `action="/api/users/reset-mfa"`) {
+			t.Error("an Admin has no way to reset a locked-out user's 2FA")
+		}
+
+		d = settingsScaffold("utilisateurs", "Gérez les comptes et les accès.", false)
+		d["Users"] = users
+		if out := render(t, d); strings.Contains(out, `action="/api/users/reset-mfa"`) {
+			t.Error("the MFA reset action is offered to a non-Admin")
+		}
+	})
+}
+
 // TestRechromedOnboardingPagesRender extends the anti-500 guard to the two onboarding
 // pages re-chromed into the Paramètres hub: onboarding-proxmox.html (/parametres/proxmox)
 // and onboarding-canal.html (/parametres/sauvegarde). They are NOT settings.html sections

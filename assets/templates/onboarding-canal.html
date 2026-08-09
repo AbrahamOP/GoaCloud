@@ -5,7 +5,6 @@
     {{template "head-common"}}
     <title>GoaCore | Canal de sauvegarde</title>
     <style>
-        body { font-family: 'Outfit', sans-serif; }
         pre.cmd {
             white-space: pre-wrap; word-break: break-all;
             font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -20,17 +19,18 @@
 
 <body class="min-h-screen flex bg-surface text-on-surface">
 
+    {{template "skip-link"}}
     {{template "mobile-overlay"}}
     {{template "sidebar"}}
 
-    <main class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
+    <main id="main-content" tabindex="-1" class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
         {{template "bubbles"}}
 
-        <div class="px-8 py-10 relative z-10">
+        <div class="px-4 md:px-8 py-10 relative z-10">
             <!-- Header -->
             <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
                 <div>
-                    <h2 class="text-3xl font-bold text-on-surface mb-2"><span class="gradient-text">Paramètres</span></h2>
+                    <h2 class="text-2xl md:text-3xl font-bold text-on-surface mb-2"><span class="gradient-text">Paramètres</span></h2>
                     <p class="text-on-surface-variant text-sm">{{.HeaderSubtitle}}</p>
                 </div>
                 <div class="flex items-center gap-3 flex-wrap">
@@ -58,7 +58,7 @@
         </div>
         {{end}}
         {{if .Success}}
-        <div class="mb-6 p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-green-300 text-sm">
+        <div class="mb-6 p-4 rounded-lg bg-success/10 border border-success/20 text-success text-sm">
             {{.Success}}
         </div>
         {{end}}
@@ -75,9 +75,9 @@
                 </div>
             </div>
             <span class="px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0
-                {{if .HasInAppKey}}{{if eq .Status "ok"}}bg-green-500/15 text-green-300{{else}}bg-orange-500/15 text-orange-300{{end}}
-                {{else if eq .Source "env"}}bg-blue-500/15 text-blue-300
-                {{else}}bg-orange-500/15 text-orange-300{{end}}">
+                {{if .HasInAppKey}}{{if eq .Status "ok"}}bg-success/15 text-success{{else}}bg-warning/15 text-warning{{end}}
+                {{else if eq .Source "env"}}bg-info/15 text-info
+                {{else}}bg-warning/15 text-warning{{end}}">
                 {{if .HasInAppKey}}{{if eq .Status "ok"}}Vérifié{{else}}À vérifier{{end}}
                 {{else if eq .Source "env"}}Env (fichier)
                 {{else}}Non configuré{{end}}
@@ -87,10 +87,10 @@
         <!-- Import env (key file) -->
         {{if .EnvImportable}}
         <form action="/api/onboarding/canal/import-env" method="POST" class="mb-6">
-            <div class="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs flex items-center justify-between gap-3">
+            <div class="p-3 rounded-lg bg-info/10 border border-info/20 text-info text-xs flex items-center justify-between gap-3">
                 <span>Une configuration de canal (clé fichier) existe dans l'environnement.</span>
                 <button type="submit"
-                    class="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 transition">
+                    class="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold bg-info/20 hover:bg-info/30 text-info transition">
                     Importer la config env
                 </button>
             </div>
@@ -114,7 +114,7 @@
             <p class="text-xs text-on-surface-variant mb-4 pl-10">
                 GoaCore génère une paire de clés. La clé <strong>privée</strong> est chiffrée en base et
                 ne quitte jamais le serveur ; seule la clé <strong>publique</strong> part dans le script.
-                {{with .Channel}}{{if .HasInAppKey}}<br><span class="text-orange-300">Une clé existe déjà. La régénérer révoquera l'ancienne : vous devrez relancer le script d'installation sur le Proxmox.</span>{{end}}{{end}}
+                {{with .Channel}}{{if .HasInAppKey}}<br><span class="text-warning">Une clé existe déjà. La régénérer révoquera l'ancienne : vous devrez relancer le script d'installation sur le Proxmox.</span>{{end}}{{end}}
             </p>
             <div class="pl-10">
                 <button type="button" id="btn-provision"
@@ -137,7 +137,22 @@
                 et vérifie l'empreinte sha256 du helper embarqué.
             </p>
             <div class="pl-10">
-                <pre id="root-command" class="cmd p-3 rounded-lg bg-surface-container-high border border-outline text-xs text-on-surface select-all">curl -k -fsSL {{.InstallerURL}} -o /tmp/goabackup-install.sh &amp;&amp; less /tmp/goabackup-install.sh &amp;&amp; sudo bash /tmp/goabackup-install.sh</pre>
+                {{if .InstallCommand}}
+                {{/* La commande vient du serveur (channelRootCommand) : elle embarque le
+                     contrôle sha256 du script téléchargé. Ne jamais la réécrire en dur ici —
+                     c'est ce qui avait rendu la vérification d'empreinte inopérante. */}}
+                <pre id="root-command" class="cmd p-3 rounded-lg bg-surface-container-high border border-outline text-xs text-on-surface select-all whitespace-pre-wrap break-all">{{.InstallCommand}}</pre>
+                <p class="mt-2 text-[11px] text-on-surface-variant break-all">
+                    Empreinte attendue du script (affichée ici via le TLS vérifié de votre navigateur,
+                    et non téléchargée par la commande&nbsp;) :
+                    <code class="text-on-surface select-all">{{.InstallerSHA}}</code>
+                </p>
+                {{else}}
+                <p class="text-xs text-warning">
+                    Générez d'abord la clé du canal à l'étape&nbsp;1 : la commande d'installation
+                    n'est produite qu'une fois la clé provisionnée.
+                </p>
+                {{end}}
                 <div class="flex items-center gap-3 mt-2">
                     <button type="button" id="btn-copy"
                         class="px-3 py-1.5 rounded-full text-xs font-semibold bg-surface-container-high border border-outline text-on-surface hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface transition">
@@ -190,11 +205,11 @@
             </p>
             <div class="pl-10 space-y-3">
                 <div class="p-3 rounded-lg bg-surface-container-high border border-outline-variant text-xs">
-                    <div class="font-semibold text-on-surface mb-1">S3 / Backblaze B2 <span class="text-green-300">(recommandé PME — sans navigateur)</span></div>
+                    <div class="font-semibold text-on-surface mb-1">S3 / Backblaze B2 <span class="text-success">(recommandé PME — sans navigateur)</span></div>
                     <pre class="cmd text-on-surface-variant">rclone config   # n) nouveau remote → type s3/b2 → clés API → terminé</pre>
                 </div>
                 <div class="p-3 rounded-lg bg-surface-container-high border border-outline-variant text-xs">
-                    <div class="font-semibold text-on-surface mb-1">Google Drive (headless) <span class="text-orange-300">(avancé)</span></div>
+                    <div class="font-semibold text-on-surface mb-1">Google Drive (headless) <span class="text-warning">(avancé)</span></div>
                     <p class="text-on-surface-variant">
                         OAuth Drive nécessite un navigateur : lancez <code>rclone authorize "drive"</code>
                         sur votre poste, puis recollez le token dans <code>rclone config</code> sur le
@@ -253,8 +268,11 @@
         </div>
     </main>
 
+    {{template "toast-host"}}
+
     <script src="/static/theme.js"></script>
     <script src="/static/csrf.js"></script>
+    <script src="/static/ui.js"></script>
     {{template "sidebar-js"}}
     <script>
         (function () {
@@ -274,7 +292,7 @@
             }
             function markStepDone(numEl) {
                 if (!numEl) return;
-                numEl.className = 'step-num bg-green-500/20 text-green-300 border border-green-500/30';
+                numEl.className = 'step-num bg-success/20 text-success border border-success/30';
                 numEl.textContent = '✓';
             }
 
@@ -297,8 +315,8 @@
                         .then(function (r) { return r.json(); })
                         .then(function (data) {
                             if (data.ok) {
-                                show(provisionResult, 'text-xs mt-3 text-green-300',
-                                    '✓ Clé générée. Empreinte : <code>' + (data.fingerprint || '') + '</code>');
+                                show(provisionResult, 'text-xs mt-3 text-success',
+                                    '✓ Clé générée. Empreinte : <code>' + esc(data.fingerprint || '') + '</code>');
                                 if (data.command && rootCommand) { rootCommand.textContent = data.command; }
                                 if (data.helper_sha256 && helperSha) {
                                     helperSha.textContent = 'sha256 helper : ' + data.helper_sha256;
@@ -308,7 +326,7 @@
                                 markStepDone(document.getElementById('step1-num'));
                                 btnProvision.textContent = 'Régénérer la clé';
                             } else {
-                                show(provisionResult, 'text-xs mt-3 text-error', '✕ ' + (data.error || 'Échec de la génération.'));
+                                show(provisionResult, 'text-xs mt-3 text-error', '✕ ' + esc(data.error || 'Échec de la génération.'));
                                 btnProvision.textContent = old;
                             }
                         })
@@ -364,13 +382,13 @@
                         .then(function (r) { return r.json(); })
                         .then(function (data) {
                             if (data.ok) {
-                                show(verifyResult, 'text-xs mt-3 text-green-300',
-                                    '✓ Canal vérifié. ' + (data.detail || ''));
+                                show(verifyResult, 'text-xs mt-3 text-success',
+                                    '✓ Canal vérifié. ' + esc(data.detail || ''));
                                 markStepDone(document.getElementById('step3-num'));
                             } else if (data.kind === 'network') {
-                                show(verifyResult, 'text-xs mt-3 text-orange-300', '⚠ ' + (data.error || 'Pas encore installé.'));
+                                show(verifyResult, 'text-xs mt-3 text-warning', '⚠ ' + esc(data.error || 'Pas encore installé.'));
                             } else {
-                                show(verifyResult, 'text-xs mt-3 text-error', '✕ ' + (data.error || 'Échec.'));
+                                show(verifyResult, 'text-xs mt-3 text-error', '✕ ' + esc(data.error || 'Échec.'));
                             }
                         })
                         .catch(function () {
@@ -398,7 +416,7 @@
                         .then(function (r) { return r.json(); })
                         .then(function (list) {
                             if (!Array.isArray(list) || list.length === 0) {
-                                show(detectResult, 'p-3 rounded-lg text-xs bg-orange-500/10 border border-orange-500/20 text-orange-300',
+                                show(detectResult, 'p-3 rounded-lg text-xs bg-warning/10 border border-warning/20 text-warning',
                                     'Aucun remote rclone détecté. Configurez-en un avec <code>rclone config</code> sur le Proxmox.');
                                 return;
                             }
@@ -408,7 +426,7 @@
                                 return '<li><strong>' + esc(r.Name) + '</strong> — libre ' + fmtBytes(r.FreeBytes) +
                                     ' / total ' + fmtBytes(r.TotalBytes) + '</li>';
                             }).join('');
-                            show(detectResult, 'p-3 rounded-lg text-xs bg-green-500/10 border border-green-500/20 text-green-300',
+                            show(detectResult, 'p-3 rounded-lg text-xs bg-success/10 border border-success/20 text-success',
                                 '✓ Remotes détectés :<ul class="list-disc pl-8 mt-1">' + rows + '</ul>');
                         })
                         .catch(function () {

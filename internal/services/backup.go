@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -33,6 +34,12 @@ var ErrNoRotationTarget = errors.New("no enabled backup target available for rot
 // of the user's actual remotes. Remotes are NEVER hardcoded — they are validated
 // live against the helper's rclone config.
 var ErrUnknownRemote = errors.New("unknown or empty rclone remote")
+
+// ErrServiceShuttingDown is returned when a new long-running orchestration (backup
+// or restore test) is requested while the service is draining for shutdown. Starting
+// one at that point would leave a half-finished restore — a booted clone of the
+// customer's production guest whose destroy defer never runs — on the hypervisor.
+var ErrServiceShuttingDown = errors.New("backup service is shutting down")
 
 // Backup destinations. local = vzdump only; both = vzdump then copy to a remote,
 // keeping the local copy; remote = vzdump then push to a remote and drop the
@@ -137,6 +144,16 @@ type BackupService struct {
 	testInFlight map[int]bool
 	sandboxInUse map[int]bool
 
+	// tasks / draining make the service's long-running orchestrations (vzdump
+	// polling, restore tests) part of the APPLICATION lifecycle instead of being
+	// fire-and-forget goroutines nobody waits for. Every `go` launched by the service
+	// goes through startTask, and Wait(ctx) drains them at shutdown so a stop can
+	// never abandon a booted sandbox clone (its destroy defer would never run) nor
+	// mark "failed" a vzdump that Proxmox is about to complete.
+	taskMu   sync.Mutex
+	tasks    sync.WaitGroup
+	draining bool
+
 	// Disk pre-flight thresholds for the restore-test engine, seeded once at
 	// construction from env (compiled defaults otherwise). They are static tuning,
 	// not a hot-reloadable connection attribute, so they live on the service rather
@@ -182,6 +199,56 @@ func NewBackupService(db *sql.DB, proxmox *ProxmoxService, cfgStore *config.Conf
 		diskDataPctCeiling:   ceiling,
 		minLocalAvailBytes:   minAvail,
 		defaultBackupStorage: scanStorage,
+	}
+}
+
+// startTask launches one of the service's long-running orchestrations inside the
+// service's own wait group, so cmd/server/main.go can drain them at shutdown via
+// Wait(ctx). It returns false — WITHOUT launching anything — once the service is
+// draining: refusing a new restore/backup during shutdown is the whole point (a
+// restore started at t-1s would leave a running clone of a production guest behind).
+func (s *BackupService) startTask(fn func()) bool {
+	s.taskMu.Lock()
+	if s.draining {
+		s.taskMu.Unlock()
+		return false
+	}
+	s.tasks.Add(1)
+	s.taskMu.Unlock()
+
+	go func() {
+		defer s.tasks.Done()
+		fn()
+	}()
+	return true
+}
+
+// Wait drains the service: it first refuses any NEW orchestration (subsequent
+// TriggerBackup / RunRestoreTest calls return ErrServiceShuttingDown), then blocks
+// until every in-flight backup / restore test has finished — including the deferred
+// destruction of its sandbox — or until ctx expires.
+//
+// It is the counterpart of the worker wait group in cmd/server/main.go: the workers
+// are cancelled by their context, these orchestrations are DRAINED (never cancelled
+// mid-restore, which is exactly what would leak a guest). Returns ctx.Err() when the
+// shutdown deadline fires before the drain completes, so the caller can log the leak
+// risk instead of exiting silently.
+func (s *BackupService) Wait(ctx context.Context) error {
+	s.taskMu.Lock()
+	s.draining = true
+	s.taskMu.Unlock()
+
+	done := make(chan struct{})
+	go func() {
+		s.tasks.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		slog.Warn("backup: shutdown deadline reached with orchestrations still in flight — a sandbox guest may be left behind")
+		return ctx.Err()
 	}
 }
 
@@ -406,6 +473,25 @@ func validateTargetSettings(healthcheckType, healthcheckTarget string, retention
 	return t, target, nil
 }
 
+// maxRPOHours bounds an acceptable RPO to one year. Beyond that the value stops
+// being a contractual objective and becomes a way to make the coverage KPI green by
+// accident.
+const maxRPOHours = 8760
+
+// validateRPOHours is the pure, table-testable validation of a target's RPO
+// objective (in hours). It refuses 0 and negatives on purpose: rpoStatus() reads
+// any value <= 0 as "always ok", so accepting it would silently paint a never-backed-
+// up target green in the coverage KPI — the exact opposite of what the metric is for.
+func validateRPOHours(rpoHours int) error {
+	if rpoHours <= 0 {
+		return fmt.Errorf("le RPO doit être d'au moins 1 heure, reçu %d", rpoHours)
+	}
+	if rpoHours > maxRPOHours {
+		return fmt.Errorf("le RPO ne peut pas dépasser %d heures (1 an), reçu %d", maxRPOHours, rpoHours)
+	}
+	return nil
+}
+
 // validateRotationHour bounds the rotation hour to a valid 0-23 range.
 func validateRotationHour(hour int) error {
 	if hour < 0 || hour > 23 {
@@ -521,6 +607,11 @@ func (s *BackupService) AddTarget(vmid int, vmType, name string) error {
 // UpdateTargetSettings updates a single target's healthcheck strategy and backup
 // retention count. All inputs are validated (closed healthcheck-type set, numeric
 // port when type=port, non-negative retention) before any write.
+//
+// Elle n'ACTIVE jamais la rotation : retention_enabled n'est pas touché ici. Le
+// bouton « Sauvegarder » de la fiche d'une cible ne doit pas pouvoir rendre
+// destructif, d'un clic et sans confirmation, un réglage hérité du défaut du schéma.
+// L'activation passe par UpdateTargetRetention, geste explicite et distinct.
 func (s *BackupService) UpdateTargetSettings(targetID int, healthcheckType, healthcheckTarget string, retentionCount int) error {
 	if targetID <= 0 {
 		return fmt.Errorf("invalid target id %d", targetID)
@@ -534,6 +625,60 @@ func (s *BackupService) UpdateTargetSettings(targetID int, healthcheckType, heal
 		cleanType, cleanTarget, retentionCount, targetID)
 	if err != nil {
 		return fmt.Errorf("update target settings: %w", err)
+	}
+	return nil
+}
+
+// UpdateTargetRetention est le SEUL chemin qui arme (ou désarme) la rotation des
+// archives d'une cible. C'est un geste délibéré de l'exploitant : tant qu'il n'a pas
+// été fait, retention_enabled reste faux (défaut du schéma et de la migration 4) et
+// applyRetention ne supprime rien — y compris sur les parcs déjà installés, où
+// retention_count valait 3 sans que personne ne l'ait choisi.
+//
+// enabled=true exige une conservation >= 1 : « garder 0 archive » n'est pas une
+// rétention, c'est un effacement.
+func (s *BackupService) UpdateTargetRetention(targetID int, enabled bool, retentionCount int) error {
+	if targetID <= 0 {
+		return fmt.Errorf("invalid target id %d", targetID)
+	}
+	if retentionCount < 0 {
+		return fmt.Errorf("le nombre d'archives à conserver doit être >= 0, reçu %d", retentionCount)
+	}
+	if enabled && retentionCount < 1 {
+		return errors.New("activer la rotation exige de conserver au moins 1 archive")
+	}
+	res, err := s.db.Exec(
+		`UPDATE backup_targets SET retention_enabled = ?, retention_count = ? WHERE id = ?`,
+		enabled, retentionCount, targetID)
+	if err != nil {
+		return fmt.Errorf("update target retention: %w", err)
+	}
+	if n, aerr := res.RowsAffected(); aerr == nil && n == 0 {
+		return fmt.Errorf("cible %d introuvable", targetID)
+	}
+	slog.Warn("backup: rotation de rétention modifiée", "target_id", targetID,
+		"enabled", enabled, "keep", retentionCount)
+	return nil
+}
+
+// UpdateTargetRPO updates a single target's RPO objective (hours), the contractual
+// metric that drives the ok/warn/breach status and the coverage KPI. It was until now
+// frozen at the schema default (24 h) with no way to change it, which made the KPI
+// unusable for a customer whose objective is 4 h — or 7 days. The value is validated
+// (1..8760) before any write, exactly like the healthcheck settings above.
+func (s *BackupService) UpdateTargetRPO(targetID, rpoHours int) error {
+	if targetID <= 0 {
+		return fmt.Errorf("invalid target id %d", targetID)
+	}
+	if err := validateRPOHours(rpoHours); err != nil {
+		return err
+	}
+	res, err := s.db.Exec(`UPDATE backup_targets SET rpo_hours = ? WHERE id = ?`, rpoHours, targetID)
+	if err != nil {
+		return fmt.Errorf("update target rpo: %w", err)
+	}
+	if n, aerr := res.RowsAffected(); aerr == nil && n == 0 {
+		return fmt.Errorf("cible %d introuvable", targetID)
 	}
 	return nil
 }
@@ -629,7 +774,14 @@ func (s *BackupService) TriggerBackup(targetID int, destination, remote, usernam
 	runID64, _ := res.LastInsertId()
 	runID := int(runID64)
 
-	go s.runBackupAsync(runID, targetID, vmid, name, pveType, storage, destination, remote)
+	// The dump orchestration belongs to the application lifecycle (see startTask): a
+	// shutdown drains it instead of abandoning it half-way.
+	if !s.startTask(func() {
+		s.runBackupAsync(runID, targetID, vmid, name, pveType, storage, destination, remote, username)
+	}) {
+		s.finishRun(runID, "failed", 0, "", "Sauvegarde non lancée : arrêt du service en cours")
+		return 0, ErrServiceShuttingDown
+	}
 
 	return runID, nil
 }
@@ -650,7 +802,7 @@ func destinationLabel(destination, remote string) string {
 // runBackupAsync performs the vzdump, polls until completion, optionally pushes the
 // archive off-site (rclone), updates the run row and notifies Discord. It is
 // recover-guarded so it can never crash the process.
-func (s *BackupService) runBackupAsync(runID, targetID, vmid int, name, pveType, storage, destination, remote string) {
+func (s *BackupService) runBackupAsync(runID, targetID, vmid int, name, pveType, storage, destination, remote, username string) {
 	destLabel := destinationLabel(destination, remote)
 	defer func() {
 		if rec := recover(); rec != nil {
@@ -702,6 +854,11 @@ func (s *BackupService) runBackupAsync(runID, targetID, vmid int, name, pveType,
 		// status == "stopped" (or anything non-running): task finished.
 		if exitStatus == "OK" {
 			size, archive := s.lookupLatestArchive(vmid, storage)
+			// Chemin de l'archive LOCALE que ce dump vient de produire. On le fige ici
+			// parce que `archive` est ensuite réécrit par le chemin distant : la
+			// rotation locale, elle, doit se décider sur l'existence d'une archive
+			// locale fraîche (voir shouldApplyRetention).
+			localArchive := archive
 			// The local vzdump succeeded. If an off-site destination was requested,
 			// push it now; a push failure means the destination objective was NOT
 			// met, so the whole run is marked failed (the local copy still exists).
@@ -710,6 +867,12 @@ func (s *BackupService) runBackupAsync(runID, targetID, vmid int, name, pveType,
 				slog.Info("backup: vzdump completed", "run_id", runID, "vmid", vmid, "archive", archive, "size", size)
 				s.finishRunDest(runID, "completed", size, archive, destination, remote, "", msg)
 				s.notifyBackup(name, vmid, "vzdump", "completed", destLabel, msg)
+				// Rotation : la sauvegarde vient de réussir ET a laissé une archive locale
+				// fraîche, on peut purger les archives excédentaires de CETTE machine
+				// (jamais avant : on ne supprime rien tant qu'on n'a pas une archive
+				// fraîche de plus). Encore faut-il que l'exploitant ait activé la
+				// rotation sur la cible — elle est inerte par défaut.
+				s.applyRetention(targetID, vmid, storage, destination, localArchive, username)
 				return
 			}
 
@@ -735,6 +898,13 @@ func (s *BackupService) runBackupAsync(runID, targetID, vmid int, name, pveType,
 			slog.Info("backup: vzdump + push completed", "run_id", runID, "vmid", vmid, "remote", remote, "destination", destination, "archive", archive)
 			s.finishRunDest(runID, "completed", size, archive, destination, remote, "ok", msg)
 			s.notifyBackup(name, vmid, "vzdump", "completed", destLabel, msg)
+			// Rotation des archives locales excédentaires (voir applyRetention). Pour
+			// destination=remote la copie locale vient d'être supprimée par rclone : ce
+			// dump n'a donc laissé AUCUNE archive locale, et shouldApplyRetention refuse
+			// la purge — sinon on détruirait d'anciennes archives sur la foi d'une
+			// sauvegarde absente du storage. La rétention des copies hors site est un
+			// sujet distinct (rclone), non traité ici.
+			s.applyRetention(targetID, vmid, storage, destination, localArchive, username)
 			// Vérification d'intégrité automatique de la copie off-site fraîchement poussée
 			// (si activée dans les paramètres). Lecture seule, sans incidence sur la prod.
 			s.maybeAutoVerify(targetID, name)
@@ -773,6 +943,178 @@ func (s *BackupService) lookupLatestArchive(vmid int, storage string) (int64, st
 		return 0, ""
 	}
 	return best.SizeBytes, best.VolID
+}
+
+// archivesToPrune elects the archives of vmid that must be deleted so that only the
+// `keep` most recent ones remain. It is the PURE core of the retention rotation, and
+// it is deliberately conservative — this is the only place in GoaCore that decides to
+// destroy a customer's backup:
+//
+//   - keep <= 0 (réglage absent / rétention désactivée) ⇒ NOTHING is ever pruned;
+//   - entries belonging to another VMID are never candidates, and a volid whose file
+//     name does not carry vmid either (same VMID coherence check as the restore
+//     engine's M1 guard) — a mislabelled listing must not cost a foreign archive;
+//   - with fewer than (or exactly) keep archives, nothing is pruned.
+//
+// Election order: most recent first (CTime desc), volid as a tie-breaker so two
+// archives sharing a timestamp give a deterministic, reproducible decision.
+func archivesToPrune(entries []models.BackupEntry, vmid, keep int) []models.BackupEntry {
+	if keep <= 0 || vmid <= 0 {
+		return nil
+	}
+	owned := make([]models.BackupEntry, 0, len(entries))
+	for _, e := range entries {
+		if e.VMID != vmid || !volIDBelongsToVMID(e.VolID, vmid) {
+			continue
+		}
+		owned = append(owned, e)
+	}
+	if len(owned) <= keep {
+		return nil
+	}
+	sort.Slice(owned, func(i, j int) bool {
+		if owned[i].CTime.Equal(owned[j].CTime) {
+			return owned[i].VolID > owned[j].VolID
+		}
+		return owned[i].CTime.After(owned[j].CTime)
+	})
+	return owned[keep:]
+}
+
+const (
+	// retentionSystemActor est l'acteur inscrit au journal d'audit quand la rotation
+	// suit une sauvegarde déclenchée sans utilisateur identifié (ordonnanceur).
+	retentionSystemActor = "system"
+	// retentionAuditIP marque une action interne au serveur : elle ne vient d'aucune
+	// requête HTTP, donc d'aucune IP cliente.
+	retentionAuditIP = "local"
+)
+
+// retentionSetting porte le réglage de rotation d'une cible : l'interrupteur
+// explicite (retention_enabled) et le nombre d'archives à conserver.
+type retentionSetting struct {
+	Enabled bool
+	Keep    int
+}
+
+// retentionSettingFor reads the target's rotation switch AND count.
+//
+// Pourquoi un interrupteur en plus du compteur : retention_count vaut 3 par défaut
+// dans le schéma, et les cibles auto-découvertes sont insérées sans jamais le
+// renseigner. Purger sur cette valeur héritée reviendrait à détruire, sur un parc
+// déjà installé, des archives que GoaCore n'a pas produites (le job vzdump natif du
+// client) derrière un bouton « Sauvegarder » sans confirmation. L'activation doit
+// donc être un geste délibéré de l'exploitant (UpdateTargetRetention) : tant que
+// retention_enabled est faux, la rotation est inerte, comme avant.
+//
+// Toute anomalie (erreur DB, colonne encore absente parce que la migration n'a pas
+// tourné, NULL) rend « rotation désactivée » : un hoquet transitoire ne doit jamais
+// se lire « ne rien garder ».
+func (s *BackupService) retentionSettingFor(targetID int) retentionSetting {
+	if s.db == nil {
+		return retentionSetting{}
+	}
+	var enabled sql.NullBool
+	var keep sql.NullInt64
+	if err := s.db.QueryRow(
+		`SELECT retention_enabled, retention_count FROM backup_targets WHERE id = ?`,
+		targetID).Scan(&enabled, &keep); err != nil {
+		slog.Error("backup: read retention setting", "target_id", targetID, "error", err)
+		return retentionSetting{}
+	}
+	if !enabled.Valid || !enabled.Bool || !keep.Valid || keep.Int64 <= 0 {
+		return retentionSetting{}
+	}
+	return retentionSetting{Enabled: true, Keep: int(keep.Int64)}
+}
+
+// shouldApplyRetention dit si la sauvegarde qui vient de réussir autorise la purge
+// locale. L'invariant est « on ne supprime rien tant qu'on n'a pas une archive
+// LOCALE fraîche de plus » :
+//
+//   - destination=remote pousse l'archive hors site puis SUPPRIME la copie locale :
+//     la sauvegarde n'a donc laissé aucune archive locale, et purger reviendrait à
+//     détruire d'anciennes archives sur la foi d'un dump qui n'est plus là ;
+//   - un chemin d'archive vide signifie que la relecture du storage n'a rien trouvé
+//     (ou a échoué) : même raisonnement, on s'abstient.
+//
+// Pure et testable en table.
+func shouldApplyRetention(destination, localArchive string) bool {
+	if destination == DestinationRemote {
+		return false
+	}
+	return strings.TrimSpace(localArchive) != ""
+}
+
+// applyRetention enforces the target's retention_count AFTER a successful backup:
+// it lists the archives of the target's VMID on its storage and deletes the oldest
+// ones beyond the N most recent. Without it the setting is a lie the UI tells the
+// customer, and the archives pile up until the Proxmox storage is full (which also
+// blocks the restore tests via the disk guard).
+//
+// Elle ne s'exécute QUE si (a) l'exploitant a explicitement activé la rotation sur
+// la cible et (b) la sauvegarde qui vient de réussir a bien laissé une archive
+// locale fraîche (voir shouldApplyRetention).
+//
+// Best-effort by design: it NEVER fails the run that just succeeded. Every deletion
+// is logged AND tracée dans le journal d'audit (un acte destructif sur les données
+// du client doit laisser une trace nominative), and the actual DELETE re-checks VMID
+// ownership host-side (DeleteBackupArchive).
+func (s *BackupService) applyRetention(targetID, vmid int, storage, destination, localArchive, username string) {
+	if !shouldApplyRetention(destination, localArchive) {
+		slog.Info("backup: rotation ignorée, cette sauvegarde n'a laissé aucune archive locale fraîche",
+			"target_id", targetID, "vmid", vmid, "destination", destination)
+		return
+	}
+	setting := s.retentionSettingFor(targetID)
+	if !setting.Enabled || setting.Keep <= 0 {
+		// Rotation non activée sur cette cible : on ne supprime rien, jamais.
+		return
+	}
+	keep := setting.Keep
+	if storage == "" {
+		storage = s.defaultBackupStorage
+	}
+
+	pm := s.cfgStore.ProxmoxSnapshot()
+	entries, err := s.proxmox.ListBackups(pm.URL, pm.Node, pm.TokenID, pm.TokenSecret, storage)
+	if err != nil {
+		slog.Error("backup: retention listing failed", "target_id", targetID, "vmid", vmid, "storage", storage, "error", err)
+		return
+	}
+
+	prune := archivesToPrune(entries, vmid, keep)
+	if len(prune) == 0 {
+		return
+	}
+	actor := strings.TrimSpace(username)
+	if actor == "" {
+		actor = retentionSystemActor
+	}
+	slog.Info("backup: retention rotation", "target_id", targetID, "vmid", vmid,
+		"storage", storage, "keep", keep, "to_delete", len(prune), "actor", actor)
+	for _, e := range prune {
+		archiveStorage := e.Storage
+		if archiveStorage == "" {
+			archiveStorage = storage
+		}
+		if _, derr := s.proxmox.DeleteBackupArchive(pm.URL, pm.Node, pm.TokenID,
+			pm.TokenSecret, archiveStorage, e.VolID, vmid); derr != nil {
+			slog.Error("backup: retention delete failed", "vmid", vmid, "volid", e.VolID, "error", derr)
+			continue
+		}
+		// Trace obligatoire : c'est la seule opération de GoaCore qui détruit une
+		// donnée du client. slog pour l'exploitation, journal d'audit pour la
+		// traçabilité (qui / quoi / quand), lisible dans l'écran Journaux.
+		slog.Warn("backup: retention archive deleted", "target_id", targetID, "vmid", vmid,
+			"volid", e.VolID, "created_at", e.CTime, "size", e.SizeBytes, "actor", actor)
+		if s.db != nil {
+			LogAudit(s.db, 0, actor, "BackupRetentionDelete",
+				fmt.Sprintf("Rotation de rétention : archive %s supprimée (VMID %d, storage %s, créée le %s, %s, conservation %d)",
+					e.VolID, vmid, archiveStorage, e.CTime.Format(time.RFC3339), humanSize(e.SizeBytes), keep),
+				retentionAuditIP)
+		}
+	}
 }
 
 // setRunUPID persists the Proxmox task UPID on a run as soon as it is known.
@@ -912,8 +1254,11 @@ func (s *BackupService) RecentRuns(targetID, limit int) ([]models.BackupRun, err
 
 // loadTargets returns all backup targets ordered by numeric source ref.
 func (s *BackupService) loadTargets() ([]models.BackupTarget, error) {
+	// retention_enabled remonte jusqu'à l'UI : sans lui, la case « supprimer les
+	// archives au-delà de N » se réafficherait décochée après un rechargement,
+	// alors que la rotation est armée — l'interface mentirait dans l'autre sens.
 	rows, err := s.db.Query(`SELECT id, name, target_type, source_ref, storage, enabled,
-		rpo_hours, retention_count, healthcheck_type, healthcheck_target, created_at
+		rpo_hours, retention_count, retention_enabled, healthcheck_type, healthcheck_target, created_at
 		FROM backup_targets`)
 	if err != nil {
 		return nil, err
@@ -923,12 +1268,16 @@ func (s *BackupService) loadTargets() ([]models.BackupTarget, error) {
 	var targets []models.BackupTarget
 	for rows.Next() {
 		var t models.BackupTarget
+		var retentionEnabled sql.NullBool
 		if err := rows.Scan(&t.ID, &t.Name, &t.TargetType, &t.SourceRef, &t.Storage,
-			&t.Enabled, &t.RPOHours, &t.RetentionCount, &t.HealthcheckType,
+			&t.Enabled, &t.RPOHours, &t.RetentionCount, &retentionEnabled, &t.HealthcheckType,
 			&t.HealthcheckTarget, &t.CreatedAt); err != nil {
 			slog.Error("backup: scan target", "error", err)
 			continue
 		}
+		// NULL (colonne fraîchement ajoutée, ligne héritée) = rotation désactivée,
+		// même convention que retentionSettingFor.
+		t.RetentionEnabled = retentionEnabled.Valid && retentionEnabled.Bool
 		targets = append(targets, t)
 	}
 	sort.Slice(targets, func(i, j int) bool {

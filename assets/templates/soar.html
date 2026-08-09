@@ -5,7 +5,6 @@
     {{template "head-common"}}
     <title>GoaCore - SOAR</title>
     <style>
-        body { font-family: 'Outfit', sans-serif; }
         /* Custom toggle switch */
         .toggle-switch { position: relative; display: inline-flex; width: 36px; height: 20px; flex-shrink: 0; }
         .toggle-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
@@ -25,33 +24,24 @@
             transform: translateX(16px);
             background: var(--md-color-on-primary);
         }
-        /* Save toast */
-        .save-toast {
-            position: fixed; bottom: 24px; right: 24px; z-index: 200;
-            padding: 10px 20px; border-radius: 9999px; font-size: 13px; font-weight: 600;
-            background: var(--md-color-primary); color: var(--md-color-on-primary);
-            box-shadow: 0 8px 24px rgba(0,0,0,.3);
-            transform: translateY(80px); opacity: 0; transition: transform 300ms, opacity 300ms;
-            pointer-events: none;
-        }
-        .save-toast.show { transform: translateY(0); opacity: 1; }
     </style>
 </head>
 
 <body class="min-h-screen flex bg-surface text-on-surface">
 
+    {{template "skip-link"}}
     {{template "mobile-overlay"}}
     {{template "sidebar"}}
 
     <!-- Main Content -->
-    <main class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
+    <main id="main-content" tabindex="-1" class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
         {{template "bubbles"}}
 
-        <div class="px-8 py-10 relative z-10">
+        <div class="px-4 md:px-8 py-10 relative z-10">
             <!-- Header -->
             <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
                 <div>
-                    <h2 class="text-3xl font-bold text-on-surface mb-2">
+                    <h2 class="text-2xl md:text-3xl font-bold text-on-surface mb-2">
                         <span class="gradient-text">SOAR</span>
                         <span class="text-primary text-xs border border-primary/30 bg-primary/10 px-2 py-0.5 rounded-full uppercase tracking-wider ml-2">Beta</span>
                     </h2>
@@ -66,8 +56,8 @@
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div class="bg-surface-container border border-outline-variant rounded-xl p-4">
                     <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold">Module</p>
-                    <p class="text-lg font-bold text-green-400 mt-1 flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span> Actif
+                    <p class="text-lg font-bold text-success mt-1 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-success animate-pulse"></span> Actif
                     </p>
                 </div>
                 <div class="bg-surface-container border border-outline-variant rounded-xl p-4">
@@ -81,7 +71,7 @@
                 </div>
                 <div class="bg-surface-container border border-outline-variant rounded-xl p-4">
                     <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold">Alertes actives</p>
-                    <p class="text-lg font-bold text-orange-400 mt-1" id="kpi-alert-count">—</p>
+                    <p class="text-lg font-bold text-warning mt-1" id="kpi-alert-count">—</p>
                 </div>
             </div>
 
@@ -90,7 +80,7 @@
 
                 <!-- Discord Integration Card -->
                 <div class="lg:col-span-2 bg-surface-container border border-outline-variant rounded-xl shadow-xl overflow-hidden">
-                    <div class="px-6 py-4 border-b border-outline-variant flex items-center gap-4"
+                    <div class="px-3 md:px-6 py-4 border-b border-outline-variant flex items-center gap-4"
                          style="background: linear-gradient(135deg, rgba(88,101,242,0.15) 0%, var(--md-color-surface-container) 70%);">
                         <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: rgba(88,101,242,0.2); border: 1px solid rgba(88,101,242,0.3);">
                             <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 24 24" style="color:#5865F2;">
@@ -137,10 +127,10 @@
 
                 <!-- Alert Configuration Card -->
                 <div class="bg-surface-container border border-outline-variant rounded-xl shadow-xl overflow-hidden">
-                    <div class="px-6 py-4 border-b border-outline-variant"
+                    <div class="px-3 md:px-6 py-4 border-b border-outline-variant"
                          style="background: linear-gradient(135deg, rgba(251,146,60,0.12) 0%, var(--md-color-surface-container) 70%);">
                         <h3 class="font-semibold text-on-surface flex items-center gap-2">
-                            <svg class="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg class="w-5 h-5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                             </svg>
                             Alertes actives
@@ -216,11 +206,11 @@
         </div>
     </main>
 
-    <!-- Save toast -->
-    <div id="save-toast" class="save-toast">Configuration sauvegardée ✓</div>
+    {{template "toast-host"}}
 
     <script src="/static/theme.js"></script>
     <script src="/static/csrf.js"></script>
+    <script src="/static/ui.js"></script>
     <script src="/static/search.js"></script>
     <script>
         function testAI() {
@@ -239,7 +229,7 @@
                 .then(function (body) {
                     if (body.status === 'success') {
                         result.textContent = 'IA connectée avec succès !';
-                        result.className = 'rounded-lg border border-green-500/30 bg-green-500/10 p-3 text-xs text-green-400';
+                        result.className = 'rounded-lg border border-success/30 bg-success/10 p-3 text-xs text-success';
                         document.getElementById('ai-preview-text').textContent = body.analysis || '';
                         if (body.analysis) preview.classList.remove('hidden');
                     } else {
@@ -248,7 +238,7 @@
                 })
                 .catch(function (err) {
                     result.textContent = 'Erreur IA: ' + err.message;
-                    result.className = 'rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400';
+                    result.className = 'rounded-lg border border-error/30 bg-error/10 p-3 text-xs text-error';
                 })
                 .finally(function () { btn.disabled = false; btn.style.opacity = ''; });
         }
@@ -266,14 +256,14 @@
                 .then(function (r) {
                     if (r.ok) {
                         result.textContent = 'Notification Discord envoyée avec succès !';
-                        result.className = 'rounded-lg border border-green-500/30 bg-green-500/10 p-3 text-xs text-green-400';
+                        result.className = 'rounded-lg border border-success/30 bg-success/10 p-3 text-xs text-success';
                     } else {
                         return r.text().then(function (t) { throw new Error(t); });
                     }
                 })
                 .catch(function (err) {
                     result.textContent = 'Erreur: ' + err.message;
-                    result.className = 'rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400';
+                    result.className = 'rounded-lg border border-error/30 bg-error/10 p-3 text-xs text-error';
                 })
                 .finally(function () { btn.disabled = false; btn.style.opacity = ''; });
         }
@@ -317,14 +307,11 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(config)
             }).then(function (r) {
-                if (r.ok) showSaveToast();
+                if (r.ok) notify('success', 'Configuration SOAR enregistrée.');
+                else notify('error', "La configuration n'a pas pu être enregistrée. Réessayez dans un instant.");
+            }).catch(function (err) {
+                notifyError(err, "L'enregistrement de la configuration SOAR a échoué");
             });
-        }
-
-        function showSaveToast() {
-            var toast = document.getElementById('save-toast');
-            toast.classList.add('show');
-            setTimeout(function () { toast.classList.remove('show'); }, 2000);
         }
     </script>
     {{template "sidebar-js"}}

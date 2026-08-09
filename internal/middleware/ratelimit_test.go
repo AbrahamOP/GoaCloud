@@ -5,6 +5,11 @@ import (
 	"testing"
 )
 
+// TestRealIP covers header parsing FROM A TRUSTED PROXY. The peer address
+// (10.0.0.1) is declared trusted for each case, which is the only situation where
+// X-Forwarded-For / X-Real-IP carry any authority. The untrusted case — the one
+// that used to let an attacker forge a new identity per attempt — is pinned in
+// TestRealIP_UntrustedPeerHeadersIgnored (ratelimit_trust_test.go).
 func TestRealIP(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -16,11 +21,12 @@ func TestRealIP(t *testing.T) {
 		{"xff single", "203.0.113.7", "", "10.0.0.1:1234", "203.0.113.7"},
 		{"xff chain takes leftmost", "203.0.113.7, 10.0.0.1, 10.0.0.2", "", "10.0.0.1:1234", "203.0.113.7"},
 		{"xff invalid falls back to x-real-ip", "not-an-ip", "198.51.100.4", "10.0.0.1:1234", "198.51.100.4"},
-		{"no headers uses remoteaddr host", "", "", "192.0.2.9:5678", "192.0.2.9"},
-		{"remoteaddr without port returned as-is", "", "", "192.0.2.9", "192.0.2.9"},
+		{"no headers uses remoteaddr host", "", "", "10.0.0.1:5678", "10.0.0.1"},
+		{"remoteaddr without port returned as-is", "", "", "10.0.0.1", "10.0.0.1"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			withTrustedProxies(t, "10.0.0.1/32")
 			r := httptest.NewRequest("GET", "/", nil)
 			r.RemoteAddr = tt.remoteAddr
 			if tt.xff != "" {

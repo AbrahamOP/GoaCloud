@@ -35,14 +35,16 @@
 
 <body class="bg-surface min-h-screen flex items-center justify-center relative overflow-hidden">
 
-    <!-- Decoration Gradients (sidebar palette) -->
-    <div class="absolute top-0 left-0 w-96 h-96 bg-purple-500/20 rounded-full pointer-events-none blur-2xl"></div>
-    <div class="absolute bottom-0 right-0 w-96 h-96 bg-cyan-600/5 rounded-full pointer-events-none blur-2xl"></div>
-    <div class="absolute top-0 right-0 w-32 h-32 bg-red-500/20 rounded-full pointer-events-none blur-2xl"></div>
-    <div class="absolute top-1/2 right-0 w-48 h-48 bg-orange-500/20 rounded-full pointer-events-none blur-2xl -translate-y-1/2"></div>
-    <div class="absolute bottom-0 left-1/2 w-48 h-48 bg-yellow-500/20 rounded-full pointer-events-none blur-2xl -translate-x-1/2"></div>
-    <div class="absolute top-1/2 left-0 w-32 h-32 bg-green-500/20 rounded-full pointer-events-none blur-2xl -translate-y-1/2"></div>
-    <div class="absolute top-0 left-1/2 w-48 h-48 bg-blue-500/20 rounded-full pointer-events-none blur-2xl -translate-x-1/2"></div>
+    <!-- Décor : halos flous en tokens sémantiques (donc thémés). Des
+         couleurs de palette brute restaient figées en teintes « dark » sur le
+         thème clair. -->
+    <div class="absolute top-0 left-0 w-96 h-96 bg-primary/20 rounded-full pointer-events-none blur-2xl"></div>
+    <div class="absolute bottom-0 right-0 w-96 h-96 bg-info/5 rounded-full pointer-events-none blur-2xl"></div>
+    <div class="absolute top-0 right-0 w-32 h-32 bg-error/20 rounded-full pointer-events-none blur-2xl"></div>
+    <div class="absolute top-1/2 right-0 w-48 h-48 bg-warning/20 rounded-full pointer-events-none blur-2xl -translate-y-1/2"></div>
+    <div class="absolute bottom-0 left-1/2 w-48 h-48 bg-tertiary/20 rounded-full pointer-events-none blur-2xl -translate-x-1/2"></div>
+    <div class="absolute top-1/2 left-0 w-32 h-32 bg-success/20 rounded-full pointer-events-none blur-2xl -translate-y-1/2"></div>
+    <div class="absolute top-0 left-1/2 w-48 h-48 bg-info/20 rounded-full pointer-events-none blur-2xl -translate-x-1/2"></div>
 
     <div
         class="bg-surface-container p-10 rounded-xl shadow-lg w-full max-w-md border border-outline-variant relative z-10">
@@ -71,9 +73,9 @@
                 <p class="text-xs text-on-surface-variant text-center pt-2">Veuillez entrer le code à 6 chiffres de votre
                     application.</p>
 
-                <!-- Hidden fields to maintain state -->
-                <input type="hidden" name="username" value="{{.Username}}">
-                <input type="hidden" name="password" value="{{.Password}}">
+                <!-- Aucun champ caché : l'identité de l'utilisateur en cours de connexion est
+                     conservée côté serveur (état de pré-authentification en session, 5 min).
+                     Le mot de passe ne repart JAMAIS vers le navigateur. -->
             </div>
             {{else}}
             <div class="space-y-2">
@@ -87,7 +89,8 @@
                         </svg>
                     </div>
                     <input type="text" id="username" name="username" required value="{{.Username}}"
-                        class="js-clear-on-focus w-full bg-transparent border border-outline rounded-xs pl-10 pr-4 py-3 text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition placeholder-on-surface-variant"
+                        autocomplete="username"
+                        class="w-full bg-transparent border border-outline rounded-xs pl-10 pr-4 py-3 text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition placeholder-on-surface-variant"
                         placeholder="Votre nom d'utilisateur">
                 </div>
             </div>
@@ -104,9 +107,10 @@
                         </svg>
                     </div>
                     <input type="password" id="password" name="password" required
-                        class="input-with-eye js-clear-on-focus w-full bg-transparent border border-outline rounded-xs pl-10 py-3 text-on-surface tracking-wider focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition placeholder-on-surface-variant"
+                        autocomplete="current-password"
+                        class="input-with-eye w-full bg-transparent border border-outline rounded-xs pl-10 py-3 text-on-surface tracking-wider focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition placeholder-on-surface-variant"
                         placeholder="••••••••">
-                    <button type="button" data-toggle-password="password" tabindex="-1"
+                    <button type="button" data-toggle-password="password"
                         class="absolute inset-y-0 right-0 pr-3 flex items-center text-on-surface-variant hover:text-on-surface focus:outline-none"
                         aria-label="Afficher le mot de passe">
                         <svg class="h-5 w-5 icon-eye" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -133,16 +137,6 @@
     <script src="/static/theme.js"></script>
     <script src="/static/csrf.js"></script>
     <script>
-        // Clear field value on first focus
-        document.querySelectorAll('.js-clear-on-focus').forEach(function (input) {
-            input.addEventListener('focus', function () {
-                if (!input.dataset.cleared) {
-                    input.value = '';
-                    input.dataset.cleared = '1';
-                }
-            });
-        });
-
         // Toggle password visibility
         document.querySelectorAll('[data-toggle-password]').forEach(function (btn) {
             btn.addEventListener('click', function () {

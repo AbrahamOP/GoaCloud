@@ -65,7 +65,42 @@ type fakeStmt struct{ query string }
 func (s fakeStmt) Close() error  { return nil }
 func (s fakeStmt) NumInput() int { return -1 } // let database/sql skip arg-count checks
 
-func (fakeStmt) Exec([]driver.Value) (driver.Result, error) {
+// execLog records the statements the router's middleware/handlers write, so a test
+// can assert on what actually landed in the database (the audit trail, in practice).
+var (
+	execMu  sync.Mutex
+	execLog []fakeExec
+)
+
+type fakeExec struct {
+	query string
+	args  []driver.Value
+}
+
+// execsContaining returns the recorded statements whose (normalised) text contains
+// fragment.
+func execsContaining(fragment string) []fakeExec {
+	execMu.Lock()
+	defer execMu.Unlock()
+	var out []fakeExec
+	for _, e := range execLog {
+		if strings.Contains(e.query, fragment) {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
+func resetExecLog() {
+	execMu.Lock()
+	defer execMu.Unlock()
+	execLog = nil
+}
+
+func (s fakeStmt) Exec(args []driver.Value) (driver.Result, error) {
+	execMu.Lock()
+	execLog = append(execLog, fakeExec{query: normalize(s.query), args: args})
+	execMu.Unlock()
 	return driver.RowsAffected(0), nil
 }
 
@@ -256,6 +291,21 @@ var routerOnlyDefended = []route{
 	{http.MethodGet, "/backups"},
 	{http.MethodGet, "/users"},
 	{http.MethodGet, "/audit-logs"},
+
+	// Applications catalogue MUTATIONS. The `apps` table is GLOBAL (no user_id), so
+	// each of these rewrites what EVERY user sees — and none of the handlers checks a
+	// role, which is precisely why they must never leave the AdminOnly group: a Viewer
+	// could otherwise wipe the catalogue, or repoint the "Proxmox" tile at a
+	// credential-harvesting page. /api/apps/pin is in this list for the same reason:
+	// `UPDATE apps SET is_pinned` has no per-user dimension, so a "favourite" is a
+	// change to everyone's dashboard. Move it back to the authenticated group only
+	// once pins get their own (user_id, app_id) table.
+	{http.MethodGet, "/add"},
+	{http.MethodPost, "/add"},
+	{http.MethodPost, "/api/apps/pin"},
+	{http.MethodPost, "/api/apps/update"},
+	{http.MethodPost, "/api/apps/reorder"},
+	{http.MethodDelete, "/api/apps/delete"},
 }
 
 // defenseInDepth: these handlers ALSO call middleware.RequireAdmin inline. The AdminOnly
@@ -268,6 +318,13 @@ var defenseInDepth = []route{
 	// SSH deploy/delete (HandleSSHDeploy / HandleSSHDelete re-check inline).
 	{http.MethodPost, "/api/ssh/deploy"},
 	{http.MethodDelete, "/api/ssh/delete"},
+
+	// Host-key pinning (scan/pin/delete re-check inline). Épingler l'identité d'un
+	// hôte engage tous les accès SSH ultérieurs, et la supprimer rouvre la fenêtre
+	// TOFU : c'est une surface d'administration, jamais du self-service.
+	{http.MethodPost, "/api/ssh/host-keys/scan"},
+	{http.MethodPost, "/api/ssh/host-keys/pin"},
+	{http.MethodDelete, "/api/ssh/host-keys"},
 
 	// Ansible execution + playbook + schedules (all re-check inline).
 	{http.MethodPost, "/api/ansible/run"},
@@ -307,10 +364,13 @@ var defenseInDepth = []route{
 	// SOAR config write (HandleSoarConfig re-checks inline on its POST arm).
 	{http.MethodPost, "/api/soar/config"},
 
-	// User management writes (add/delete/update re-check inline).
+	// User management writes (add/delete/update/reset-mfa re-check inline).
 	{http.MethodPost, "/api/users/add"},
 	{http.MethodPost, "/api/users/delete"},
 	{http.MethodPost, "/api/users/update"},
+	// Disables another account's second factor and revokes its sessions — as
+	// privileged as a password reset, hence the same gate.
+	{http.MethodPost, "/api/users/reset-mfa"},
 }
 
 // sensitiveRoutes is the union of both groups: every route below MUST 403 a Viewer,
@@ -606,6 +666,169 @@ func TestRBAC_ViewerCanReachReadOnlySurface(t *testing.T) {
 		}
 		if rr.Code == http.StatusSeeOther && rr.Header().Get("Location") == "/login" {
 			t.Fatalf("Viewer on %s %s: bounced to /login — authenticated Viewer treated as anon", rt.method, rt.path)
+		}
+	}
+}
+
+// TestRouter_PublicRoutesNeedNoSession pins the routes that MUST answer without a
+// session cookie. Each is public for a concrete reason, and each would be broken —
+// silently, in a way only production shows — by being tucked into an auth group:
+//
+//   - /healthz, /readyz: a Docker HEALTHCHECK, Traefik or an orchestrator probes
+//     them with no cookie. Behind AuthMiddleware they would answer 303 → /login,
+//     which most probes read as "alive", making the health check meaningless.
+//   - /canal/installer.sh: the admin runs the curl from a Proxmox root shell that
+//     has no session. Behind the gate, curl -L follows the 303 to /login and gets
+//     the login PAGE with a 200 — so `curl -f` never trips, the HTML lands in the
+//     script file, and `sudo bash` runs it. Authentication is a single-use token.
+//
+// The assertion is deliberately "not an auth bounce" rather than a status code:
+// the installer route legitimately answers 403 to a token-less request.
+func TestRouter_PublicRoutesNeedNoSession(t *testing.T) {
+	store := newTestStore()
+	db := openFakeDB(t)
+	router := newTestRouter(t, store, db)
+
+	for _, path := range []string{"/healthz", "/readyz", "/canal/installer.sh"} {
+		path := path
+		t.Run(path, func(t *testing.T) {
+			rr := doRequest(t, router, http.MethodGet, path, nil)
+			if rr.Code == http.StatusSeeOther {
+				t.Fatalf("anon GET %s: 303 to %q — the route is behind an auth group and no probe/curl can use it",
+					path, rr.Header().Get("Location"))
+			}
+			if rr.Code == http.StatusNotFound {
+				t.Fatalf("anon GET %s: 404 — the route is not registered", path)
+			}
+		})
+	}
+}
+
+// TestRouter_ProbesReportHealthy checks the probes are wired to the real handlers
+// (not merely registered): with a working DB they answer 200 and the agreed body.
+func TestRouter_ProbesReportHealthy(t *testing.T) {
+	store := newTestStore()
+	db := openFakeDB(t)
+	router := newTestRouter(t, store, db)
+
+	for _, tc := range []struct{ path, want string }{{"/healthz", `"status":"ok"`}, {"/readyz", `"status":"ready"`}} {
+		rr := doRequest(t, router, http.MethodGet, tc.path, nil)
+		if rr.Code != http.StatusOK {
+			t.Fatalf("GET %s: got %d, want 200", tc.path, rr.Code)
+		}
+		if !strings.Contains(rr.Body.String(), tc.want) {
+			t.Fatalf("GET %s: body %q does not contain %s", tc.path, rr.Body.String(), tc.want)
+		}
+	}
+}
+
+// TestRouter_LogoutAllIsSelfService: revoking every session of the CALLER acts on
+// the caller's own account only, so it belongs to the authenticated group. Gating
+// it admin-only would deny a Viewer the one remedy they have for a stolen cookie.
+func TestRouter_LogoutAllIsSelfService(t *testing.T) {
+	store := newTestStore()
+	db := openFakeDB(t)
+	router := newTestRouter(t, store, db)
+
+	setRole("la_viewer", "Viewer")
+	rr := doRequest(t, router, http.MethodPost, "/logout-all", sessionCookie(t, store, "la_viewer", csrfTok))
+
+	if rr.Code == http.StatusNotFound {
+		t.Fatal("POST /logout-all: 404 — the handler exists but is not routed")
+	}
+	if rr.Code == http.StatusForbidden {
+		t.Fatal("POST /logout-all: 403 — a Viewer must be able to revoke their OWN sessions")
+	}
+	// Success path: the epoch is bumped and the caller is sent back to /login.
+	if rr.Code != http.StatusSeeOther || rr.Header().Get("Location") != "/login" {
+		t.Fatalf("POST /logout-all: got %d → %q, want 303 → /login", rr.Code, rr.Header().Get("Location"))
+	}
+}
+
+// TestRouter_AuditTrailCoversTheAdminGroup proves the AuditTrail middleware is
+// mounted on the Admin-only group — and mounted BEFORE AdminOnly.
+//
+// The order is the point. Behind AdminOnly, a Viewer probing an admin route is
+// rejected before the middleware ever runs and the attempt leaves no trace at all;
+// in front of it, the same attempt is recorded as a refusal. That is exactly the
+// event an operator needs to see in /audit-logs.
+//
+// The middleware only records state-changing methods (reads are the bulk of the
+// traffic and would drown the trail), and only "METHOD /path" + outcome — never the
+// query string or the body, which carry TOTP codes, tokens and private keys.
+func TestRouter_AuditTrailCoversTheAdminGroup(t *testing.T) {
+	store := newTestStore()
+	db := openFakeDB(t)
+	router := newTestRouter(t, store, db)
+
+	setRole("audit_admin", "Admin")
+	setRole("audit_viewer", "Viewer")
+
+	// A REFUSED admin attempt must be recorded (middleware in front of AdminOnly).
+	resetExecLog()
+	doRequest(t, router, http.MethodPost, "/api/users/add", sessionCookie(t, store, "audit_viewer", csrfTok))
+	entries := execsContaining("insert into audit_logs")
+	if len(entries) == 0 {
+		t.Fatal("a Viewer POSTing /api/users/add left NO audit entry — AuditTrail is missing, or mounted behind AdminOnly")
+	}
+	// args: user_id, username, action, details, ip_address
+	last := entries[len(entries)-1]
+	if got := fmt.Sprint(last.args[1]); got != "audit_viewer" {
+		t.Fatalf("audit entry attributed to %q, want audit_viewer", got)
+	}
+	if got := fmt.Sprint(last.args[2]); got != "POST /api/users/add" {
+		t.Fatalf("audit action = %q, want \"POST /api/users/add\"", got)
+	}
+	if got := fmt.Sprint(last.args[3]); !strings.Contains(got, "403") {
+		t.Fatalf("audit outcome = %q, want the 403 refusal to be visible", got)
+	}
+
+	// An ADMIN mutation is recorded too — the trail is the net under the whole group.
+	resetExecLog()
+	doRequest(t, router, http.MethodPost, "/api/apps/reorder", sessionCookie(t, store, "audit_admin", csrfTok))
+	if len(execsContaining("insert into audit_logs")) == 0 {
+		t.Fatal("an Admin POST on /api/apps/reorder left no audit entry")
+	}
+
+	// Reads are NOT recorded: /audit-logs would become unreadable within a day.
+	resetExecLog()
+	doRequest(t, router, http.MethodGet, "/users", sessionCookie(t, store, "audit_admin", csrfTok))
+	if n := len(execsContaining("insert into audit_logs")); n != 0 {
+		t.Fatalf("a GET produced %d audit entries — only state-changing methods must be recorded", n)
+	}
+
+	// A route OUTSIDE the admin group is not audited by this middleware: the
+	// authenticated group carries no infra-sensitive mutation.
+	resetExecLog()
+	doRequest(t, router, http.MethodPost, "/api/profile/github", sessionCookie(t, store, "audit_viewer", csrfTok))
+	if n := len(execsContaining("insert into audit_logs")); n != 0 {
+		t.Fatalf("a self-service POST produced %d middleware audit entries — AuditTrail is mounted too widely", n)
+	}
+}
+
+// TestRouter_AuditTrailRecordsNoSecret pins the invariant that makes the trail safe
+// to read all day: the recorded action is the PATH only. A query string carries
+// tokens and one-time codes, and /audit-logs is a page an operator leaves open.
+func TestRouter_AuditTrailRecordsNoSecret(t *testing.T) {
+	store := newTestStore()
+	db := openFakeDB(t)
+	router := newTestRouter(t, store, db)
+
+	setRole("audit_secret", "Admin")
+	resetExecLog()
+
+	const secret = "s3cr3t-token-value"
+	doRequest(t, router, http.MethodPost, "/api/users/add?token="+secret, sessionCookie(t, store, "audit_secret", csrfTok))
+
+	entries := execsContaining("insert into audit_logs")
+	if len(entries) == 0 {
+		t.Fatal("no audit entry recorded")
+	}
+	for _, e := range entries {
+		for _, arg := range e.args {
+			if strings.Contains(fmt.Sprint(arg), secret) {
+				t.Fatalf("the query string leaked into the audit trail: %v", arg)
+			}
 		}
 	}
 }

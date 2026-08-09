@@ -4,28 +4,26 @@
 <head>
     {{template "head-common" .}}
     <title>GoaCore - Sauvegardes</title>
-    <style>
-        body { font-family: 'Outfit', sans-serif; }
-    </style>
 </head>
 
 <body class="min-h-screen flex bg-surface text-on-surface">
 
+    {{template "skip-link"}}
     {{template "mobile-overlay" .}}
 
     {{template "sidebar" .}}
 
     <!-- Main Content -->
-    <main class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
+    <main id="main-content" tabindex="-1" class="flex-1 md:ml-64 overflow-y-auto bg-surface relative">
         {{template "bubbles"}}
 
         <!-- Content -->
-        <div class="px-8 py-10 relative z-10">
+        <div class="px-4 md:px-8 py-10 relative z-10">
 
             <!-- Header -->
             <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
                 <div>
-                    <h2 class="text-3xl font-bold text-on-surface mb-2">Gestion <span class="gradient-text">Sauvegardes</span></h2>
+                    <h2 class="text-2xl md:text-3xl font-bold text-on-surface mb-2">Gestion <span class="gradient-text">Sauvegardes</span></h2>
                     <p class="text-on-surface-variant text-sm">Pilotez vos sauvegardes et vérifiez qu'elles sont réellement restaurables.</p>
                 </div>
                 <div class="flex items-center gap-3 flex-wrap">
@@ -71,21 +69,21 @@
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div class="bg-surface-container border border-outline-variant rounded-xl p-4">
                     <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold">Cibles surveillées</p>
-                    <p class="text-2xl font-bold text-teal-400 mt-1">{{.Summary.Total}}</p>
+                    <p class="text-xl md:text-2xl font-bold text-info mt-1">{{.Summary.Total}}</p>
                 </div>
                 <div class="bg-surface-container border border-outline-variant rounded-xl p-4">
                     <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold" title="Part des cibles dont la dernière sauvegarde est assez récente">Cibles à jour</p>
-                    <p class="text-2xl font-bold mt-1 {{if ge .Summary.CoveragePct 80}}text-green-400{{else if ge .Summary.CoveragePct 50}}text-orange-400{{else}}text-red-400{{end}}">{{.Summary.CoveragePct}}%</p>
+                    <p class="text-xl md:text-2xl font-bold mt-1 {{if ge .Summary.CoveragePct 80}}text-success{{else if ge .Summary.CoveragePct 50}}text-warning{{else}}text-error{{end}}">{{.Summary.CoveragePct}}%</p>
                 </div>
                 <div class="bg-surface-container border border-outline-variant rounded-xl p-4">
                     <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold" title="Cibles dont la dernière sauvegarde est trop ancienne">Sauvegardes en retard</p>
-                    <p class="text-2xl font-bold mt-1 {{if gt .Summary.Breach 0}}text-red-400{{else if gt .Summary.Warn 0}}text-orange-400{{else}}text-green-400{{end}}">{{.Summary.AtRisk}}</p>
+                    <p class="text-xl md:text-2xl font-bold mt-1 {{if gt .Summary.Breach 0}}text-error{{else if gt .Summary.Warn 0}}text-warning{{else}}text-success{{end}}">{{.Summary.AtRisk}}</p>
                 </div>
                 <div class="bg-surface-container border border-outline-variant rounded-xl p-4">
                     <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold" title="Les restaurations de test tournent dans un réseau isolé (VLAN 99), sans risque pour la production">Tests de restauration</p>
-                    <p class="text-2xl font-bold text-primary mt-1">Isolés</p>
-                    <p class="text-xs mt-1 flex items-center gap-1.5 {{if .RotationEnabled}}text-green-400{{else}}text-on-surface-variant{{end}}">
-                        <span class="inline-block w-1.5 h-1.5 rounded-full {{if .RotationEnabled}}bg-green-400{{else}}bg-outline-variant{{end}}"></span>
+                    <p class="text-xl md:text-2xl font-bold text-primary mt-1">Isolés</p>
+                    <p class="text-xs mt-1 flex items-center gap-1.5 {{if .RotationEnabled}}text-success{{else}}text-on-surface-variant{{end}}">
+                        <span class="inline-block w-1.5 h-1.5 rounded-full {{if .RotationEnabled}}bg-success{{else}}bg-outline-variant{{end}}"></span>
                         {{if .RotationEnabled}}Rotation auto · {{printf "%02d" .RotationHour}}:00{{else}}Rotation auto désactivée{{end}}
                     </p>
                 </div>
@@ -93,58 +91,58 @@
 
             <!-- Targets table -->
             <div class="bg-surface-container border border-outline-variant rounded-xl overflow-hidden shadow-xl">
-                <div class="px-6 py-4 border-b border-outline-variant flex justify-between items-center"
+                <div class="px-3 md:px-6 py-4 border-b border-outline-variant flex justify-between items-center"
                      style="background: linear-gradient(135deg, rgba(20,184,166,0.10) 0%, var(--md-color-surface-container) 70%);">
                     <h3 class="font-semibold text-on-surface flex items-center gap-2">
-                        <svg class="w-5 h-5 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+                        <svg class="w-5 h-5 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
                         Cibles de sauvegarde
                     </h3>
-                    <span class="text-xs bg-teal-500/10 text-teal-400 px-2 py-1 rounded-full border border-teal-500/30 font-semibold">{{.Summary.Total}}</span>
+                    <span class="text-xs bg-info/10 text-info px-2 py-1 rounded-full border border-info/30 font-semibold">{{.Summary.Total}}</span>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm text-on-surface-variant">
                         <thead class="bg-surface-container-high text-xs uppercase font-medium text-on-surface-variant">
                             <tr>
-                                <th class="px-6 py-3">Cible</th>
-                                <th class="px-6 py-3">Dernière sauvegarde</th>
-                                <th class="px-6 py-3" title="Indique si la dernière sauvegarde est assez récente par rapport au délai maximum toléré">Fraîcheur</th>
-                                <th class="px-6 py-3">Dernier test</th>
-                                <th class="px-6 py-3 text-right">Actions</th>
+                                <th class="px-3 md:px-6 py-3">Cible</th>
+                                <th class="px-3 md:px-6 py-3">Dernière sauvegarde</th>
+                                <th class="px-3 md:px-6 py-3" title="Indique si la dernière sauvegarde est assez récente par rapport au délai maximum toléré">Fraîcheur</th>
+                                <th class="px-3 md:px-6 py-3">Dernier test</th>
+                                <th class="px-3 md:px-6 py-3 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-outline-variant">
                             {{range .Targets}}
                             <tr class="hover:bg-outline-variant/30 transition" data-target-id="{{.Target.ID}}">
                                 <!-- Cible : nom + (type · réf) -->
-                                <td class="px-6 py-4">
+                                <td class="px-3 md:px-6 py-4">
                                     <div class="font-medium text-on-surface">{{.Target.Name}}</div>
                                     <div class="text-xs text-on-surface-variant mt-1"><span class="uppercase">{{.Target.TargetType}}</span> · <span class="font-mono">{{.Target.SourceRef}}</span></div>
                                 </td>
                                 <!-- Dernière sauvegarde : date + (taille · âge) -->
-                                <td class="px-6 py-4">
+                                <td class="px-3 md:px-6 py-4">
                                     <div class="text-on-surface">{{.LastBackupAtStr}}</div>
                                     <div class="text-xs text-on-surface-variant mt-1">{{.LastBackupSizeStr}} · {{.LastBackupAgeStr}}</div>
                                 </td>
                                 <!-- Fraîcheur -->
-                                <td class="px-6 py-4">
+                                <td class="px-3 md:px-6 py-4">
                                     {{if eq .RPOStatus "ok"}}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">À jour</span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-success/10 text-success border border-success/20">À jour</span>
                                     {{else if eq .RPOStatus "warn"}}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20">En retard</span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-warning/10 text-warning border border-warning/20">En retard</span>
                                     {{else if eq .RPOStatus "breach"}}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">Trop ancienne</span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-error/10 text-error border border-error/20">Trop ancienne</span>
                                     {{else}}
                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-surface-container-high text-on-surface-variant border border-outline-variant">Aucune</span>
                                     {{end}}
                                 </td>
                                 <!-- Dernier test : cliquable → rapport détaillé -->
-                                <td class="px-6 py-4 whitespace-nowrap" data-test-cell>
+                                <td class="px-3 md:px-6 py-4 whitespace-nowrap" data-test-cell>
                                     <button type="button" class="test-report-btn text-xs text-on-surface-variant hover:underline decoration-dotted underline-offset-2"
                                         data-target-id="{{.Target.ID}}" data-target-name="{{.Target.Name}}" data-test-status
                                         title="Voir le rapport du dernier test">—</button>
                                 </td>
                                 <!-- Actions : Sauvegarder (visible) + menu ⋮ (intégrité / test / destination) -->
-                                <td class="px-6 py-4 text-right whitespace-nowrap">
+                                <td class="px-3 md:px-6 py-4 text-right whitespace-nowrap">
                                     <span class="run-status text-xs text-on-surface-variant mr-2" data-run-status></span>
                                     <div class="relative inline-flex items-center gap-2">
                                         <button type="button"
@@ -160,24 +158,24 @@
                                         <!-- Menu déroulant des actions -->
                                         <div class="row-menu hidden fixed w-64 bg-surface-container-high border border-outline-variant rounded-xl shadow-xl z-50 p-2 text-left">
                                             <p class="px-2 pt-1 pb-1 text-[11px] uppercase tracking-widest font-semibold text-on-surface-variant">Destination de la sauvegarde</p>
-                                            <select class="backup-destination w-full bg-transparent text-on-surface text-sm rounded-lg border border-outline-variant px-3 py-2 mb-1 focus:outline-none focus:ring-1 focus:ring-primary">
+                                            <select aria-label="Destination de la sauvegarde" class="backup-destination w-full bg-transparent text-on-surface text-sm rounded-lg border border-outline-variant px-3 py-2 mb-1 focus:outline-none focus:ring-1 focus:ring-primary">
                                                 <option value="local" selected>Local</option>
                                                 <option value="both">Local + cloud</option>
                                                 <option value="remote">Cloud seul</option>
                                             </select>
-                                            <select class="backup-remote hidden w-full bg-transparent text-on-surface text-sm rounded-lg border border-outline-variant px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"></select>
+                                            <select aria-label="Espace de stockage cloud" class="backup-remote hidden w-full bg-transparent text-on-surface text-sm rounded-lg border border-outline-variant px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"></select>
                                             <div class="my-2 border-t border-outline-variant"></div>
                                             <p class="px-2 pb-1 text-[11px] uppercase tracking-widest font-semibold text-on-surface-variant">Vérification</p>
                                             <button type="button" class="check-integrity-btn w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-on-surface hover:bg-surface-container-highest transition text-left"
                                                 data-target-id="{{.Target.ID}}" data-target-name="{{.Target.Name}}"
                                                 title="Vérifie l'intégrité du fichier de sauvegarde — lecture seule, sans risque">
-                                                <svg class="w-4 h-4 text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                <svg class="w-4 h-4 text-success flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                                 Vérifier l'intégrité <span class="text-on-surface-variant text-xs">(sans risque)</span>
                                             </button>
-                                            <button type="button" class="restore-test-btn w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-on-surface hover:bg-orange-500/10 transition text-left"
+                                            <button type="button" class="restore-test-btn w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-on-surface hover:bg-warning/10 transition text-left"
                                                 data-target-id="{{.Target.ID}}" data-target-name="{{.Target.Name}}"
                                                 title="Restaure réellement la sauvegarde dans une VM jetable isolée (VLAN 99) pour prouver qu'elle fonctionne">
-                                                <svg class="w-4 h-4 text-orange-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6M10 3v5l-4.553 7.969A1.5 1.5 0 006.75 18h10.5a1.5 1.5 0 001.303-2.031L14 8V3"/></svg>
+                                                <svg class="w-4 h-4 text-warning flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6M10 3v5l-4.553 7.969A1.5 1.5 0 006.75 18h10.5a1.5 1.5 0 001.303-2.031L14 8V3"/></svg>
                                                 Test de restauration
                                             </button>
                                         </div>
@@ -186,7 +184,7 @@
                             </tr>
                             {{else}}
                             <tr>
-                                <td colspan="5" class="px-6 py-12 text-center">
+                                <td colspan="5" class="px-3 md:px-6 py-12 text-center">
                                     <div class="flex flex-col items-center gap-3 text-on-surface-variant">
                                         <svg class="w-12 h-12 text-outline" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
                                         {{if not $.ChannelConfigured}}
@@ -209,38 +207,45 @@
     </main>
 
     <!-- Settings Modal -->
-    <div id="settings-modal"
+    <div id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" tabindex="-1"
+        data-modal-dismiss
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
         <div class="bg-surface-container border border-outline-variant w-full max-w-3xl rounded-xl shadow-2xl transform transition-all scale-100 max-h-[90vh] flex flex-col">
-            <div class="flex justify-between items-center px-6 py-4 border-b border-outline-variant">
-                <h3 class="text-lg font-bold text-on-surface flex items-center gap-2">
-                    <svg class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <div class="flex justify-between items-center px-3 md:px-6 py-4 border-b border-outline-variant">
+                <h3 id="settings-modal-title" class="text-lg font-bold text-on-surface flex items-center gap-2">
+                    <svg class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                     Paramètres des sauvegardes
                 </h3>
-                <button onclick="closeSettingsModal()" class="text-on-surface-variant hover:text-on-surface transition">
+                <button type="button" onclick="closeSettingsModal()" aria-label="Fermer" class="text-on-surface-variant hover:text-on-surface transition">
                     <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
 
-            <div class="px-6 py-5 overflow-y-auto space-y-8">
+            <div class="px-3 md:px-6 py-5 overflow-y-auto space-y-8">
                 <!-- Destinations (remotes rclone) -->
                 <section>
                     <h4 class="text-sm font-semibold text-on-surface mb-1">Destinations</h4>
                     <p class="text-xs text-on-surface-variant mb-4">Vos espaces de stockage cloud connectés (via le serveur). Choisissez-en un comme destination distante lors d'une sauvegarde (« Local + cloud » ou « Cloud seul »).</p>
+                    <!-- overflow-x-auto : quatre colonnes dans une modale contrainte
+                         à max-w-3xl, sur un écran étroit le tableau débordait et la
+                         colonne « Total » devenait inatteignable (le conteneur était
+                         en overflow-hidden, donc coupée net et non défilable). -->
                     <div class="border border-outline-variant rounded-xl overflow-hidden">
-                        <table class="w-full text-left text-sm text-on-surface-variant">
-                            <thead class="bg-surface-container-high text-xs uppercase font-medium text-on-surface-variant">
-                                <tr>
-                                    <th class="px-4 py-3">Remote</th>
-                                    <th class="px-4 py-3">Utilisé</th>
-                                    <th class="px-4 py-3">Libre</th>
-                                    <th class="px-4 py-3">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody id="destinations-tbody" class="divide-y divide-outline-variant">
-                                <tr><td colspan="4" class="px-4 py-6 text-center text-sm text-on-surface-variant">Chargement…</td></tr>
-                            </tbody>
-                        </table>
+                        <div class="overflow-x-auto">
+                            <table class="w-full min-w-[32rem] text-left text-sm text-on-surface-variant">
+                                <thead class="bg-surface-container-high text-xs uppercase font-medium text-on-surface-variant">
+                                    <tr>
+                                        <th class="px-4 py-3">Remote</th>
+                                        <th class="px-4 py-3">Utilisé</th>
+                                        <th class="px-4 py-3">Libre</th>
+                                        <th class="px-4 py-3">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="destinations-tbody" class="divide-y divide-outline-variant">
+                                    <tr><td colspan="4" class="px-4 py-6 text-center text-sm text-on-surface-variant">Chargement…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 
@@ -285,6 +290,12 @@
                 <section>
                     <h4 class="text-sm font-semibold text-on-surface mb-1">Configuration par cible</h4>
                     <p class="text-xs text-on-surface-variant mb-4">Healthcheck post-restauration (N3) et nombre de sauvegardes à conserver.</p>
+                    <p class="text-xs text-warning mb-4">
+                        Le nombre d'archives à conserver ne supprime rien tant que la case
+                        « Supprimer les archives au-delà » reste décochée. Une fois cochée, GoaCore purge
+                        <strong>toutes</strong> les archives de la machine présentes sur le stockage Proxmox
+                        au-delà des N plus récentes — y compris celles produites par vos propres jobs vzdump.
+                    </p>
                     <div class="overflow-x-auto border border-outline-variant rounded-xl">
                         <table class="w-full text-left text-sm text-on-surface-variant">
                             <thead class="bg-surface-container-high text-xs uppercase font-medium text-on-surface-variant">
@@ -292,18 +303,18 @@
                                     <th class="px-4 py-3">Cible</th>
                                     <th class="px-4 py-3">Healthcheck</th>
                                     <th class="px-4 py-3">Valeur</th>
-                                    <th class="px-4 py-3">Rétention</th>
+                                    <th class="px-4 py-3">Rétention <span class="normal-case font-normal">(suppression automatique)</span></th>
                                     <th class="px-4 py-3 text-right">Action</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-outline-variant">
                                 {{range .Targets}}
-                                <tr data-tsettings-id="{{.Target.ID}}">
+                                <tr data-tsettings-id="{{.Target.ID}}" data-tsettings-name="{{.Target.Name}}">
                                     <td class="px-4 py-3 font-medium text-on-surface whitespace-nowrap">{{.Target.Name}}
                                         <span class="block font-mono text-xs text-on-surface-variant">{{.Target.TargetType}} · {{.Target.SourceRef}}</span>
                                     </td>
                                     <td class="px-4 py-3">
-                                        <select class="hc-type themed bg-surface-container-high text-on-surface text-xs rounded-lg border border-outline-variant px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary">
+                                        <select aria-label="Type de vérification de santé" class="hc-type themed bg-surface-container-high text-on-surface text-xs rounded-lg border border-outline-variant px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary">
                                             <option value="none" {{if eq .Target.HealthcheckType "none"}}selected{{end}}>Aucun</option>
                                             <option value="service" {{if eq .Target.HealthcheckType "service"}}selected{{end}}>Service</option>
                                             <option value="port" {{if eq .Target.HealthcheckType "port"}}selected{{end}}>Port</option>
@@ -315,8 +326,21 @@
                                             placeholder="{{if eq .Target.HealthcheckType "port"}}port{{else}}nom du service{{end}}">
                                     </td>
                                     <td class="px-4 py-3">
-                                        <input type="number" min="0" class="hc-retention bg-surface-container-high text-on-surface text-xs rounded-lg border border-outline-variant px-2 py-1.5 w-20 focus:outline-none focus:ring-1 focus:ring-primary"
-                                            value="{{.Target.RetentionCount}}">
+                                        <div class="flex flex-col gap-1.5">
+                                            <input type="number" min="0" aria-label="Nombre d'archives à conserver pour {{.Target.Name}}"
+                                                class="hc-retention bg-surface-container-high text-on-surface text-xs rounded-lg border border-outline-variant px-2 py-1.5 w-20 focus:outline-none focus:ring-1 focus:ring-primary"
+                                                value="{{.Target.RetentionCount}}">
+                                            {{/* Décochée par défaut : retention_enabled vaut FALSE dans le schéma et
+                                                 la migration 4 laisse tout l'existant désactivé. Cocher = autoriser
+                                                 la suppression définitive d'archives. */}}
+                                            <label class="flex items-start gap-2 cursor-pointer select-none max-w-[15rem]">
+                                                <input type="checkbox" class="hc-rotation mt-0.5 w-4 h-4 rounded border-outline-variant bg-transparent text-warning focus:ring-warning focus:ring-2"
+                                                    {{if .Target.RetentionEnabled}}checked{{end}}>
+                                                <span class="text-[11px] leading-tight {{if .Target.RetentionEnabled}}text-warning font-semibold{{else}}text-on-surface-variant{{end}}">
+                                                    Supprimer les archives au-delà
+                                                </span>
+                                            </label>
+                                        </div>
                                     </td>
                                     <td class="px-4 py-3 text-right">
                                         <button type="button" onclick="saveTargetSettings(this, {{.Target.ID}})"
@@ -336,19 +360,63 @@
         </div>
     </div>
 
+    <!-- Retention confirmation modal : armer la purge est le SEUL geste de cette
+         page qui détruit des données du client sans filet. Il nomme la machine et
+         dit ce qui sera supprimé, y compris ce que GoaCore n'a pas produit. -->
+    <div id="retention-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="retention-confirm-title" tabindex="-1"
+        data-modal-dismiss
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-surface-container border border-error/30 rounded-xl w-full max-w-lg shadow-2xl">
+            <div class="flex items-center justify-between px-3 md:px-6 py-4 border-b border-outline-variant">
+                <h3 id="retention-confirm-title" class="text-lg font-bold text-on-surface flex items-center gap-2">
+                    <svg class="w-5 h-5 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    Activer la suppression automatique
+                </h3>
+                <button type="button" onclick="closeRetentionConfirm()" aria-label="Fermer" class="text-on-surface-variant hover:text-on-surface transition">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="px-3 md:px-6 py-5 space-y-4">
+                <p class="text-sm text-on-surface">
+                    Après chaque sauvegarde réussie de <strong id="rtc-target-name" class="text-primary"></strong>,
+                    GoaCore <strong>supprimera définitivement</strong> ses archives au-delà des
+                    <strong id="rtc-keep" class="text-error"></strong> plus récentes.
+                </p>
+                <p class="text-sm text-error bg-error-container/40 border border-error/30 rounded-lg p-3">
+                    La purge porte sur <strong>toutes</strong> les archives de cette machine présentes sur le
+                    stockage Proxmox, y compris celles produites par vos propres jobs vzdump : GoaCore ne fait
+                    pas la différence entre une archive qu'il a créée et une archive qu'il a trouvée.
+                </p>
+                <p class="text-xs text-on-surface-variant">
+                    Les archives déjà envoyées hors site ne sont pas touchées, et rien n'est supprimé tant
+                    qu'une sauvegarde locale fraîche n'a pas réussi. Pour revenir en arrière, décochez la case
+                    puis enregistrez de nouveau.
+                </p>
+            </div>
+            <div class="flex justify-end gap-3 px-3 md:px-6 py-4 border-t border-outline-variant">
+                <button type="button" onclick="closeRetentionConfirm()" class="px-4 py-2 rounded-full text-sm text-on-surface-variant hover:text-on-surface transition">Annuler</button>
+                <button type="button" id="rtc-confirm-btn" class="inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold bg-error text-on-error hover:opacity-90 transition">
+                    Activer la suppression
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Restore-test confirmation modal (action sensible : restauration réelle) -->
-    <div id="restore-confirm-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div id="restore-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="restore-confirm-title" tabindex="-1"
+        data-modal-dismiss
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-surface-container border border-outline-variant rounded-xl w-full max-w-lg shadow-2xl">
-            <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
-                <h3 class="text-lg font-bold text-on-surface flex items-center gap-2">
-                    <svg class="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <div class="flex items-center justify-between px-3 md:px-6 py-4 border-b border-outline-variant">
+                <h3 id="restore-confirm-title" class="text-lg font-bold text-on-surface flex items-center gap-2">
+                    <svg class="w-5 h-5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                     Tester la restauration
                 </h3>
                 <button type="button" onclick="closeRestoreConfirm()" class="text-on-surface-variant hover:text-on-surface transition">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
-            <div class="px-6 py-5 space-y-4">
+            <div class="px-3 md:px-6 py-5 space-y-4">
                 <p class="text-sm text-on-surface">
                     GoaCore va restaurer la dernière sauvegarde de <strong id="rc-target-name" class="text-primary"></strong>
                     dans une <strong>VM temporaire</strong>, sur un <strong>réseau isolé (VLAN 99)</strong> sans accès à la
@@ -367,9 +435,9 @@
                     </label>
                 </fieldset>
             </div>
-            <div class="flex justify-end gap-3 px-6 py-4 border-t border-outline-variant">
+            <div class="flex justify-end gap-3 px-3 md:px-6 py-4 border-t border-outline-variant">
                 <button type="button" onclick="closeRestoreConfirm()" class="px-4 py-2 rounded-full text-sm text-on-surface-variant hover:text-on-surface transition">Annuler</button>
-                <button type="button" id="rc-confirm-btn" class="inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold bg-orange-500/15 text-orange-300 border border-orange-500/30 hover:bg-orange-500/20 transition">
+                <button type="button" id="rc-confirm-btn" class="inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold bg-warning/15 text-warning border border-warning/30 hover:bg-warning/20 transition">
                     Lancer le test
                 </button>
             </div>
@@ -377,92 +445,83 @@
     </div>
 
     <!-- Test report modal : verdict + détails (logs) du dernier test d'une cible -->
-    <div id="test-report-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div id="test-report-modal" role="dialog" aria-modal="true" aria-labelledby="test-report-title" tabindex="-1"
+        data-modal-dismiss
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-surface-container border border-outline-variant rounded-xl w-full max-w-2xl shadow-2xl">
-            <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
-                <h3 class="text-lg font-bold text-on-surface flex items-center gap-2">
-                    <svg class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+            <div class="flex items-center justify-between px-3 md:px-6 py-4 border-b border-outline-variant">
+                <h3 id="test-report-title" class="text-lg font-bold text-on-surface flex items-center gap-2">
+                    <svg class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
                     Rapport de test — <span id="tr-target-name" class="text-primary"></span>
                 </h3>
                 <button type="button" onclick="closeTestReport()" class="text-on-surface-variant hover:text-on-surface transition">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
-            <div class="px-6 py-5 space-y-4">
+            <div class="px-3 md:px-6 py-5 space-y-4">
                 <div id="tr-summary" class="flex flex-wrap gap-x-6 gap-y-2 text-sm"></div>
                 <div>
                     <p class="text-[11px] uppercase tracking-widest font-semibold text-on-surface-variant mb-1">Détails</p>
                     <pre id="tr-logs" class="text-xs bg-surface-container-high border border-outline-variant rounded-lg p-3 max-h-80 overflow-auto whitespace-pre-wrap text-on-surface-variant" style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;"></pre>
                 </div>
             </div>
-            <div class="flex justify-end px-6 py-4 border-t border-outline-variant">
+            <div class="flex justify-end px-3 md:px-6 py-4 border-t border-outline-variant">
                 <button type="button" onclick="closeTestReport()" class="px-4 py-2 rounded-full text-sm text-on-surface-variant hover:text-on-surface transition">Fermer</button>
             </div>
         </div>
     </div>
 
     <!-- Add machine modal : ajouter une cible de sauvegarde depuis les VMs/CT du Proxmox -->
-    <div id="add-machine-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div id="add-machine-modal" role="dialog" aria-modal="true" aria-labelledby="add-machine-title" tabindex="-1"
+        data-modal-dismiss
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-surface-container border border-outline-variant rounded-xl w-full max-w-lg shadow-2xl">
-            <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
-                <h3 class="text-lg font-bold text-on-surface flex items-center gap-2">
-                    <svg class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            <div class="flex items-center justify-between px-3 md:px-6 py-4 border-b border-outline-variant">
+                <h3 id="add-machine-title" class="text-lg font-bold text-on-surface flex items-center gap-2">
+                    <svg class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                     Ajouter une machine
                 </h3>
                 <button type="button" onclick="closeAddMachineModal()" class="text-on-surface-variant hover:text-on-surface transition">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
-            <div class="px-6 py-5 space-y-4">
+            <div class="px-3 md:px-6 py-5 space-y-4">
                 <p class="text-sm text-on-surface-variant">Choisissez une machine de votre Proxmox à sauvegarder. Elle apparaîtra dans le tableau et pourra être sauvegardée même si elle n'a pas encore d'archive.</p>
                 <div>
                     <label for="add-machine-select" class="block text-xs font-semibold text-on-surface-variant uppercase tracking-widest mb-1">Machine (VM / conteneur)</label>
                     <select id="add-machine-select" class="w-full bg-transparent text-on-surface text-sm rounded-lg border border-outline-variant px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"></select>
-                    <p id="add-machine-empty" class="hidden text-sm text-orange-300 mt-2">Aucune machine détectée. Vérifiez la connexion Proxmox, puis cliquez sur « Rafraîchir ».</p>
+                    <p id="add-machine-empty" class="hidden text-sm text-warning mt-2">Aucune machine détectée. Vérifiez la connexion Proxmox, puis cliquez sur « Rafraîchir ».</p>
                 </div>
             </div>
-            <div class="flex justify-end gap-3 px-6 py-4 border-t border-outline-variant">
+            <div class="flex justify-end gap-3 px-3 md:px-6 py-4 border-t border-outline-variant">
                 <button type="button" onclick="closeAddMachineModal()" class="px-4 py-2 rounded-full text-sm text-on-surface-variant hover:text-on-surface transition">Annuler</button>
                 <button type="button" id="add-machine-confirm" class="px-5 py-2 rounded-full text-sm font-bold bg-primary text-on-primary hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed">Ajouter</button>
             </div>
         </div>
     </div>
 
-    <!-- Toast container -->
-    <div id="backup-toast" class="fixed bottom-6 right-6 z-50 hidden">
-        <div class="px-4 py-3 rounded-xl shadow-xl border text-sm font-medium" id="backup-toast-inner"></div>
-    </div>
+    {{template "toast-host"}}
 
     <script src="/static/theme.js"></script>
     <script src="/static/csrf.js"></script>
+    <script src="/static/ui.js"></script>
     <script src="/static/search.js"></script>
 
     <script>
         (function () {
             const SPIN_SVG = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>';
 
+            // Le conteneur et le style du toast vivent maintenant dans le partial
+            // "toast-host" + ui.js ; on garde la signature locale (msg, kind) pour
+            // ne pas réécrire les quinze appels de la page.
             function toast(msg, kind) {
-                const wrap = document.getElementById('backup-toast');
-                const inner = document.getElementById('backup-toast-inner');
-                if (!wrap || !inner) return;
-                inner.textContent = msg;
-                inner.className = 'px-4 py-3 rounded-xl shadow-xl border text-sm font-medium';
-                if (kind === 'error') {
-                    inner.classList.add('bg-red-500/10', 'text-red-400', 'border-red-500/30');
-                } else if (kind === 'success') {
-                    inner.classList.add('bg-green-500/10', 'text-green-400', 'border-green-500/30');
-                } else {
-                    inner.classList.add('bg-surface-container-high', 'text-on-surface', 'border-outline-variant');
-                }
-                wrap.classList.remove('hidden');
-                clearTimeout(wrap._t);
-                wrap._t = setTimeout(() => wrap.classList.add('hidden'), 5000);
+                notify(kind || 'info', msg);
             }
 
             const STATUS_LABEL = {
-                running: ['En cours…', 'text-orange-400'],
-                completed: ['✅ OK', 'text-green-400'],
-                failed: ['❌ Échec', 'text-red-400'],
+                running: ['En cours…', 'text-warning'],
+                completed: ['✅ OK', 'text-success'],
+                failed: ['❌ Échec', 'text-error'],
                 pending: ['En attente', 'text-on-surface-variant']
             };
 
@@ -486,7 +545,7 @@
                         // Résultat de la copie vers le cloud (off-site) quand la destination n'est pas locale.
                         if (run.Status === 'completed' && run.Destination && run.Destination !== 'local') {
                             if (run.PushStatus === 'ok') label += ' · ☁️ copié';
-                            else if (run.PushStatus === 'failed') { label += ' · ⚠️ cloud échoué'; cls = 'text-orange-400'; }
+                            else if (run.PushStatus === 'failed') { label += ' · ⚠️ cloud échoué'; cls = 'text-warning'; }
                             else label += ' · ☁️…';
                         }
                         cell.textContent = label;
@@ -633,9 +692,9 @@
             // --- Restore tests -------------------------------------------------
 
             const VERDICT_LABEL = {
-                running: ['🧪 En cours…', 'text-orange-400'],
-                passed: ['✅ Réussi', 'text-green-400'],
-                failed: ['❌ Échec', 'text-red-400'],
+                running: ['🧪 En cours…', 'text-warning'],
+                passed: ['✅ Réussi', 'text-success'],
+                failed: ['❌ Échec', 'text-error'],
                 pending: ['En attente', 'text-on-surface-variant']
             };
             // Libellés clairs pour les niveaux de test (codes internes N1/N2/N3).
@@ -770,11 +829,11 @@
                     if (nameEl) nameEl.textContent = name;
                     const def = document.querySelector('input[name="rc-level"][value="N3"]');
                     if (def) def.checked = true;
-                    document.getElementById('restore-confirm-modal').classList.remove('hidden');
+                    GoaUI.openModal('restore-confirm-modal');
                 });
             });
             window.closeRestoreConfirm = function () {
-                document.getElementById('restore-confirm-modal').classList.add('hidden');
+                GoaUI.closeModal('restore-confirm-modal');
             };
             const rcConfirmBtn = document.getElementById('rc-confirm-btn');
             if (rcConfirmBtn) {
@@ -802,16 +861,16 @@
                 } else {
                     const dur = (t.RTOSeconds > 0) ? (t.RTOSeconds + ' s') : '—';
                     summary.innerHTML =
-                        '<div><span class="text-on-surface-variant">Verdict</span><br><strong>' + (VERDICT_FULL[t.Verdict] || t.Verdict) + '</strong></div>' +
-                        '<div><span class="text-on-surface-variant">Type</span><br><strong>' + (LEVEL_FULL[t.Level] || t.Level) + '</strong></div>' +
+                        '<div><span class="text-on-surface-variant">Verdict</span><br><strong>' + esc(VERDICT_FULL[t.Verdict] || t.Verdict) + '</strong></div>' +
+                        '<div><span class="text-on-surface-variant">Type</span><br><strong>' + esc(LEVEL_FULL[t.Level] || t.Level) + '</strong></div>' +
                         '<div><span class="text-on-surface-variant">Durée</span><br><strong>' + dur + '</strong></div>' +
                         '<div><span class="text-on-surface-variant">Date</span><br><strong>' + (fmtDate(t.CompletedAt || t.StartedAt || t.CreatedAt) || '—') + '</strong></div>';
                     logsEl.textContent = (t.Logs && t.Logs.trim()) ? t.Logs : 'Aucun détail enregistré.';
                 }
-                document.getElementById('test-report-modal').classList.remove('hidden');
+                GoaUI.openModal('test-report-modal');
             };
             window.closeTestReport = function () {
-                document.getElementById('test-report-modal').classList.add('hidden');
+                GoaUI.closeModal('test-report-modal');
             };
             document.querySelectorAll('.test-report-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
@@ -822,17 +881,11 @@
                 });
             });
 
-            // Fermer les modals en cliquant sur l'arrière-plan.
-            (function () {
-                [['restore-confirm-modal', 'closeRestoreConfirm'], ['test-report-modal', 'closeTestReport'], ['add-machine-modal', 'closeAddMachineModal']].forEach(function (pair) {
-                    const m = document.getElementById(pair[0]);
-                    if (m) m.addEventListener('click', function (e) { if (e.target === m) window[pair[1]](); });
-                });
-            })();
-
             // --- Ajouter une machine -------------------------------------------
+            // Le clic sur l'arrière-plan, Échap et le piège de focus sont pris en
+            // charge par ui.js (attribut data-modal-dismiss sur les racines).
             window.closeAddMachineModal = function () {
-                document.getElementById('add-machine-modal').classList.add('hidden');
+                GoaUI.closeModal('add-machine-modal');
             };
             window.openAddMachineModal = async function () {
                 const sel = document.getElementById('add-machine-select');
@@ -843,7 +896,7 @@
                 loading.textContent = 'Chargement…';
                 sel.appendChild(loading);
                 sel.classList.remove('hidden'); empty.classList.add('hidden'); addBtn.disabled = true;
-                document.getElementById('add-machine-modal').classList.remove('hidden');
+                GoaUI.openModal('add-machine-modal');
                 try {
                     const res = await fetch('/api/backups/available-guests', { headers: { 'Accept': 'application/json' } });
                     const guests = res.ok ? (await res.json() || []) : [];
@@ -897,21 +950,13 @@
             // --- Settings modal ------------------------------------------------
 
             window.openSettingsModal = function () {
-                document.getElementById('settings-modal').classList.remove('hidden');
+                GoaUI.openModal('settings-modal');
                 // Ensure remotes are loaded, then render the Destinations table.
                 loadRemotes().then(renderDestinations);
             };
             window.closeSettingsModal = function () {
-                document.getElementById('settings-modal').classList.add('hidden');
+                GoaUI.closeModal('settings-modal');
             };
-
-            // Close on backdrop click.
-            const settingsModal = document.getElementById('settings-modal');
-            if (settingsModal) {
-                settingsModal.addEventListener('click', (e) => {
-                    if (e.target === settingsModal) window.closeSettingsModal();
-                });
-            }
 
             window.saveRotationSettings = async function (btn) {
                 const enabled = document.getElementById('settings-rotation-enabled').checked;
@@ -937,39 +982,88 @@
                 }
             };
 
+            // --- Rétention par cible -------------------------------------------
+            //
+            // `retention_enabled` autorise la SUPPRESSION d'archives : cocher la case
+            // ne suffit pas, l'enregistrement passe par une confirmation qui nomme la
+            // machine. Décocher, en revanche, ne détruit rien et part directement.
+
+            // Réglage en attente de confirmation (une seule ligne à la fois).
+            let pendingRetention = null;
+
+            async function postTargetSettings(payload, btn) {
+                btn.disabled = true;
+                try {
+                    const res = await fetch('/api/backups/target-settings', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!res.ok) throw new Error((await res.text()) || ('HTTP ' + res.status));
+                    toast(payload.retention_enabled
+                        ? 'Cible mise à jour — suppression automatique active'
+                        : 'Cible mise à jour', 'success');
+                } catch (e) {
+                    toast('Échec : ' + e.message, 'error');
+                } finally {
+                    btn.disabled = false;
+                }
+            }
+
+            window.closeRetentionConfirm = function () {
+                pendingRetention = null;
+                GoaUI.closeModal('retention-confirm-modal');
+            };
+
+            // Échap ou clic sur le fond ferment la modale sans passer par
+            // closeRetentionConfirm : le réglage en attente doit mourir avec elle.
+            document.getElementById('retention-confirm-modal')
+                .addEventListener('goa:modal-close', function () { pendingRetention = null; });
+
+            document.getElementById('rtc-confirm-btn').addEventListener('click', function () {
+                const pending = pendingRetention;
+                if (!pending) return;
+                pendingRetention = null;
+                GoaUI.closeModal('retention-confirm-modal');
+                postTargetSettings(pending.payload, pending.btn);
+            });
+
             window.saveTargetSettings = async function (btn, targetId) {
                 const row = btn.closest('tr');
                 if (!row) return;
                 const hcType = row.querySelector('.hc-type').value;
                 const hcTarget = row.querySelector('.hc-target').value.trim();
                 const retention = parseInt(row.querySelector('.hc-retention').value, 10);
+                const rotation = row.querySelector('.hc-rotation').checked;
                 if (isNaN(retention) || retention < 0) {
                     toast('Rétention invalide (>= 0)', 'error');
+                    return;
+                }
+                if (rotation && retention < 1) {
+                    toast('Conserver 0 archive n\'est pas une rétention : indiquez au moins 1', 'error');
                     return;
                 }
                 if (hcType === 'port' && !/^\d+$/.test(hcTarget)) {
                     toast('Le port doit être numérique', 'error');
                     return;
                 }
-                btn.disabled = true;
-                try {
-                    const res = await fetch('/api/backups/target-settings', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            target_id: targetId,
-                            healthcheck_type: hcType,
-                            healthcheck_target: hcTarget,
-                            retention_count: retention
-                        })
-                    });
-                    if (!res.ok) throw new Error((await res.text()) || ('HTTP ' + res.status));
-                    toast('Cible mise à jour', 'success');
-                } catch (e) {
-                    toast('Échec : ' + e.message, 'error');
-                } finally {
-                    btn.disabled = false;
+                const payload = {
+                    target_id: targetId,
+                    healthcheck_type: hcType,
+                    healthcheck_target: hcTarget,
+                    retention_count: retention,
+                    retention_enabled: rotation
+                };
+                if (!rotation) {
+                    postTargetSettings(payload, btn);
+                    return;
                 }
+                // textContent : le nom de la machine vient de Proxmox, donc d'une
+                // frontière de confiance distincte — jamais d'innerHTML.
+                document.getElementById('rtc-target-name').textContent = row.dataset.tsettingsName || ('cible #' + targetId);
+                document.getElementById('rtc-keep').textContent = retention + (retention > 1 ? ' archives' : ' archive');
+                pendingRetention = { payload: payload, btn: btn };
+                GoaUI.openModal('retention-confirm-modal');
             };
 
             refreshRuns();

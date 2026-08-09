@@ -11,21 +11,6 @@ html.transitions-ready .glass-panel {
     transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
-/* ---- MD3 missing Tailwind classes ---- */
-@media (min-width: 768px) {
-    .md\:ml-64 {
-        margin-left: 16rem;
-    }
-    .md\:grid-cols-4 {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-}
-@media (min-width: 1024px) {
-    .lg\:grid-cols-4 {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-}
-
 /* ---- Theme toggle button ---- */
 #theme-toggle .icon-sun { display: none; }
 #theme-toggle .icon-moon { display: block; }
@@ -45,25 +30,14 @@ html.transitions-ready .glass-panel {
 }
 
 /* ============================================
-   Mobile Responsiveness Overrides
+   Mobile
    ============================================ */
 
-/* Reduce padding on small screens */
+/* Les paddings et tailles de titres mobiles sont désormais portés par le
+   balisage (px-4 md:px-8, text-2xl md:text-3xl…). Une pile de surcharges
+   !important sur des utilitaires Tailwind rendait toute exception impossible :
+   on ne pouvait plus décider, dans un template, qu'un titre reste grand. */
 @media (max-width: 767px) {
-    .px-8 { padding-left: 1rem !important; padding-right: 1rem !important; }
-    .px-6 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
-
-    /* Smaller headings on mobile */
-    h2.text-3xl { font-size: 1.375rem !important; line-height: 1.75rem !important; }
-    h3.text-2xl { font-size: 1.125rem !important; line-height: 1.5rem !important; }
-
-    /* KPI numbers: prevent overflow */
-    .text-2xl { font-size: 1.25rem !important; }
-    .text-4xl { font-size: 1.75rem !important; }
-
-    /* Tab spacing */
-    .space-x-6 > :not([hidden]) ~ :not([hidden]) { --tw-space-x-reverse: 0; margin-right: calc(0.5rem * var(--tw-space-x-reverse)); margin-left: calc(0.5rem * calc(1 - var(--tw-space-x-reverse))); }
-
     /* Stack flex rows vertically on very small screens */
     .flex-wrap { gap: 0.5rem; }
 
@@ -74,6 +48,10 @@ html.transitions-ready .glass-panel {
 /* All tables scrollable on overflow */
 table { display: table; }
 .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+
+/* Modale ouverte : le contenu derrière elle ne doit pas défiler (classe posée
+   par ui.js tant qu'au moins une modale est ouverte). */
+html.modal-open body { overflow: hidden; }
 
 /* Gradient-text fallback */
 .gradient-text {
@@ -88,6 +66,14 @@ table { display: table; }
     width: 10px; height: 10px; border-radius: 50%; display: inline-block;
     border: 2px solid transparent;
 }
-.health-up { background: #22c55e; border-color: rgba(34,197,94,.3); box-shadow: 0 0 6px rgba(34,197,94,.4); }
-.health-down { background: #ef4444; border-color: rgba(239,68,68,.3); box-shadow: 0 0 6px rgba(239,68,68,.4); }
+.health-up {
+    background: var(--md-color-success);
+    border-color: rgb(var(--md-color-success-rgb) / .3);
+    box-shadow: 0 0 6px rgb(var(--md-color-success-rgb) / .4);
+}
+.health-down {
+    background: var(--md-color-error);
+    border-color: rgb(var(--md-color-error-rgb) / .3);
+    box-shadow: 0 0 6px rgb(var(--md-color-error-rgb) / .4);
+}
 .health-unknown { background: var(--md-color-outline); }

@@ -112,14 +112,27 @@ npx tailwindcss -i ./tailwind.input.css -o ./assets/<sortie> --watch
 ## Lancer les tests
 
 Le projet est testé via le toolchain Go standard. Avant toute Pull Request,
-assurez-vous que les trois commandes suivantes passent — ce sont celles qu'exécute
-la CI :
+assurez-vous que les commandes suivantes passent — ce sont celles qu'exécute la
+CI, et elles y sont bloquantes :
 
 ```bash
-gofmt -l .        # ne doit rien afficher (sinon : gofmt -w <fichier>)
-go vet ./...      # analyse statique
-go test ./...     # suite de tests
+gofmt -l .          # ne doit rien afficher (sinon : gofmt -w <fichier>)
+go vet ./...        # analyse statique
+go test ./...       # suite de tests
+go test ./... -race # détecteur de data races (workers, scheduler, caches)
+go build ./...      # compilation
 ```
+
+La CI lance en plus [`govulncheck`](https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck),
+qui signale les vulnérabilités connues **réellement appelées** par le code :
+
+```bash
+go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+```
+
+> Cette étape est temporairement non bloquante, le temps de résorber la dette de
+> dépendances existante. Ne l'aggravez pas : une PR ne doit pas introduire de
+> nouvelle vulnérabilité appelée.
 
 Les tests couvrent notamment la configuration, les middlewares (rate-limit,
 onboarding gate), les workers et le moteur de sauvegarde/restauration. Ajoutez
@@ -175,15 +188,20 @@ docs(license): AGPL-3.0 + README finalisé
 1. **Forkez** le dépôt (ou créez une branche si vous avez les droits).
 2. Branchez-vous depuis `dev` : `git switch dev && git switch -c feat/ma-feature`.
 3. Codez, en ajoutant/maintenant les tests.
-4. Vérifiez localement : `gofmt -l . && go vet ./... && go test ./...`.
+4. Vérifiez localement : `gofmt -l . && go vet ./... && go test ./... -race`.
 5. Committez en Conventional Commits.
 6. Poussez et **ouvrez la PR vers `dev`** (ou `main` si justifié).
 7. Dans la description, expliquez **le pourquoi** du changement, ce que vous avez
    testé, et tout impact sur la configuration (nouvelle variable d'env, migration
    de schéma `schema.sql`, etc.).
 
-La CI (`go vet`, `go test`, build, validation du helper `goabackup`) doit être
-verte avant relecture. Gardez les PR ciblées et de taille raisonnable : une PR =
-un sujet.
+La CI (`gofmt`, `go vet`, `go test` avec et sans `-race`, build, `govulncheck`,
+validation du helper `goabackup`) doit être verte avant relecture. Gardez les PR
+ciblées et de taille raisonnable : une PR = un sujet.
+
+> Les jobs déclenchés par une Pull Request s'exécutent sur un runner GitHub
+> hébergé et jetable, sans accès aux secrets du dépôt : c'est normal qu'une PR
+> issue d'un fork n'obtienne ni notification Discord ni déploiement. Seuls les
+> `push` sur `dev`/`main`, après relecture et merge, déclenchent le déploiement.
 
 Merci pour votre contribution.

@@ -18,7 +18,7 @@
                 {{printf "%.1s" .Username}}
             </div>
             <div>
-                <h3 class="text-2xl font-bold text-on-surface">{{.Username}}</h3>
+                <h3 class="text-lg md:text-2xl font-bold text-on-surface">{{.Username}}</h3>
                 <p class="text-on-surface-variant">{{.Email}}</p>
                 <span class="inline-block mt-2 px-3 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary border border-primary/30">{{.Role}}</span>
             </div>
@@ -49,7 +49,7 @@
                         class="w-full bg-transparent border border-outline rounded-xs px-4 py-3 text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition placeholder-on-surface-variant">
                 </div>
             </div>
-            <button type="submit" class="w-full md:w-auto bg-primary text-on-primary rounded-full font-bold py-3 px-8 transition duration-300">Mettre à jour le mot de passe</button>
+            <button type="submit" class="w-full md:w-auto bg-primary text-on-primary rounded-full font-bold py-3 px-4 md:px-8 transition duration-300">Mettre à jour le mot de passe</button>
         </form>
     </div>
 
@@ -66,7 +66,7 @@
                     class="w-full bg-transparent border border-outline rounded-xs px-4 py-3 text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition placeholder-on-surface-variant">
                 <p class="text-xs text-on-surface-variant mt-1 pl-1">Ce lien apparaîtra dans le menu de navigation.</p>
             </div>
-            <button type="submit" class="w-full md:w-auto bg-primary text-on-primary rounded-full font-bold py-3 px-8 transition duration-300">Enregistrer</button>
+            <button type="submit" class="w-full md:w-auto bg-primary text-on-primary rounded-full font-bold py-3 px-4 md:px-8 transition duration-300">Enregistrer</button>
         </form>
     </div>
 </div>
@@ -77,10 +77,10 @@
     document.addEventListener('DOMContentLoaded', () => {
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('success')) {
-            alert('Profil mis à jour avec succès !');
+            notify('success', 'Votre profil a bien été mis à jour.');
             window.history.replaceState({}, document.title, window.location.pathname);
         } else if (urlParams.has('error')) {
-            alert('Erreur : ' + urlParams.get('error'));
+            notify('error', "Le profil n'a pas pu être enregistré : " + urlParams.get('error'));
             window.history.replaceState({}, document.title, window.location.pathname);
         }
     });
@@ -99,16 +99,25 @@
 
         <div id="mfa-status-area">
             {{if .MFAEnabled}}
-            <div class="bg-green-500/10 border border-green-500/20 text-green-400 px-4 py-3 rounded-xl mb-6 flex items-center gap-3">
+            <div class="bg-success/10 border border-success/20 text-success px-4 py-3 rounded-xl mb-6 flex items-center gap-3">
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                 2FA est active sur votre compte.
             </div>
-            <button onclick="disableMFA()" class="bg-error-container text-error border border-error/30 font-bold py-2 px-6 rounded-full transition duration-300">Désactiver 2FA</button>
+            {{/* Désactiver la 2FA est une opération sensible : le serveur exige la
+                 preuve d'un des deux facteurs (mot de passe OU code 2FA courant).
+                 Sans ce champ, le bouton renverrait un 400 systématique. */}}
+            <div class="space-y-3 max-w-sm">
+                <label for="mfa-disable-proof" class="block text-xs font-semibold text-on-surface-variant uppercase tracking-widest pl-1">Mot de passe actuel ou code 2FA</label>
+                <input type="password" id="mfa-disable-proof" autocomplete="current-password" placeholder="Mot de passe ou 000 000"
+                    class="w-full bg-transparent border border-outline rounded-xs px-4 py-3 text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary transition placeholder-on-surface-variant">
+                <p class="text-xs text-on-surface-variant pl-1">Confirmez avec l'un de vos deux facteurs. Vos autres sessions seront déconnectées.</p>
+                <button onclick="disableMFA()" class="bg-error-container text-error border border-error/30 font-bold py-2 px-3 md:px-6 rounded-full transition duration-300">Désactiver 2FA</button>
+            </div>
             {{else}}
-            <div class="bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 px-4 py-3 rounded-xl mb-6">
+            <div class="bg-warning/10 border border-warning/20 text-warning px-4 py-3 rounded-xl mb-6">
                 La double authentification n'est pas activée. Nous vous recommandons de l'activer pour sécuriser votre compte.
             </div>
-            <button onclick="startMFASetup()" class="bg-primary text-on-primary rounded-full font-bold py-2 px-6 transition duration-300">Activer 2FA</button>
+            <button onclick="startMFASetup()" class="bg-primary text-on-primary rounded-full font-bold py-2 px-3 md:px-6 transition duration-300">Activer 2FA</button>
             {{end}}
         </div>
 
@@ -138,50 +147,105 @@
                             class="bg-transparent border border-outline rounded-xs px-4 py-2 text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary w-32 text-center font-mono tracking-widest">
                         <button onclick="verifyAndActivate()" class="bg-primary text-on-primary px-4 py-2 rounded-full transition">Vérifier &amp; Activer</button>
                     </div>
-                    <input type="hidden" id="temp-secret">
+                    {{/* Pas de champ « secret » caché : la clé candidate est gardée
+                         côté serveur (session) par /api/mfa/setup et n'est jamais
+                         renvoyée dans la requête de vérification. */}}
                 </div>
             </div>
         </div>
+    </div>
+
+    {{/* Révocation globale : le seul point d'entrée de /logout-all. C'est le
+         remède utilisateur en cas de vol de session (cookie 24 h non révocable
+         autrement). */}}
+    <div class="rounded-xl p-8 bg-surface-container border border-outline-variant mt-6">
+        <h3 class="text-xl font-semibold text-on-surface mb-2 flex items-center gap-2">
+            <svg class="w-6 h-6 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+            Sessions actives
+        </h3>
+        <p class="text-on-surface-variant text-sm mb-6">Déconnecte tous vos appareils, y compris celui-ci. À utiliser si vous suspectez qu'une session vous a été volée.</p>
+        <form action="/logout-all" method="POST"
+            onsubmit="return confirm('Déconnecter TOUTES vos sessions, y compris celle-ci ? Vous devrez vous reconnecter.');">
+            <button type="submit" class="bg-error-container text-error border border-error/30 font-bold py-2 px-3 md:px-6 rounded-full transition duration-300">Déconnecter toutes mes sessions</button>
+        </form>
     </div>
 </div>
 {{end}}
 
 {{define "settings-securite-js"}}
 <script>
+    // Le rechargement laisse au toast le temps d'être lu : un reload immédiat
+    // détruit la page (et la notification) avant que l'utilisateur ne voie rien.
+    const MFA_RELOAD_DELAY_MS = 1600;
+    function reloadAfterToast() { setTimeout(() => window.location.reload(), MFA_RELOAD_DELAY_MS); }
+
+    // Réponse d'erreur JSON du serveur ({"error": "..."}), sinon un repli lisible.
+    async function mfaErrorMessage(res, fallback) {
+        try {
+            const data = await res.json();
+            if (data && data.error) return data.error;
+        } catch (e) { /* corps vide ou non-JSON */ }
+        return fallback;
+    }
+
     async function startMFASetup() {
         try {
             const res = await fetch('/api/mfa/setup');
             if (!res.ok) throw new Error('Erreur setup');
             const data = await res.json();
             document.getElementById('qr-code-img').src = "data:image/png;base64," + data.qr_code;
-            document.getElementById('temp-secret').value = data.secret;
             document.getElementById('manual-secret').textContent = data.secret;
             document.getElementById('mfa-setup-area').classList.remove('hidden');
         } catch (e) {
-            alert("Erreur lors de l'initialisation du 2FA");
+            notifyError(e, "La configuration de la double authentification n'a pas pu démarrer");
         }
     }
     async function verifyAndActivate() {
         const code = document.getElementById('verify-code').value.replace(/\s/g, '');
-        const secret = document.getElementById('temp-secret').value;
-        if (!code) return alert("Veuillez entrer le code");
+        if (!code) { notify('warning', "Saisissez le code à 6 chiffres affiché par votre application d'authentification."); return; }
         try {
+            // La clé candidate reste côté serveur : on ne poste que le code.
             const res = await fetch('/api/mfa/verify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code, secret })
+                body: JSON.stringify({ code })
             });
-            if (res.ok) { alert("MFA activé avec succès !"); window.location.reload(); }
-            else { alert("Code invalide"); }
-        } catch (e) { alert("Erreur lors de la vérification"); }
+            if (res.ok) {
+                notify('success', "La double authentification est activée sur votre compte.");
+                reloadAfterToast();
+            } else {
+                notify('error', await mfaErrorMessage(res, "Ce code est incorrect ou expiré. Vérifiez l'heure de votre téléphone, puis réessayez."));
+            }
+        } catch (e) { notifyError(e, "La vérification du code a échoué"); }
     }
     async function disableMFA() {
+        const field = document.getElementById('mfa-disable-proof');
+        const proof = field ? field.value.trim() : '';
+        if (!proof) {
+            notify('warning', "Saisissez votre mot de passe actuel ou un code 2FA pour confirmer la désactivation.");
+            if (field) field.focus();
+            return;
+        }
         if (!confirm("Êtes-vous sûr de vouloir désactiver la double authentification ?")) return;
+        // Six chiffres : ce peut être un code TOTP comme un mot de passe numérique,
+        // on envoie les deux preuves et le serveur retient celle qui est valide.
+        const body = /^\d{6}$/.test(proof) ? { password: proof, code: proof } : { password: proof };
         try {
-            const res = await fetch('/api/mfa/disable', { method: 'POST' });
-            if (res.ok) { window.location.reload(); }
-            else { alert("Erreur lors de la désactivation"); }
-        } catch (e) { alert("Erreur réseau"); }
+            const res = await fetch('/api/mfa/disable', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (res.ok) {
+                field.value = '';
+                // La session courante est ré-estampillée par le serveur : le
+                // rechargement reste connecté, seules les AUTRES sessions tombent.
+                notify('success', "La double authentification est désactivée. Vos autres sessions ont été déconnectées.");
+                reloadAfterToast();
+            } else {
+                notify('error', await mfaErrorMessage(res, "La double authentification n'a pas pu être désactivée. Réessayez dans un instant."));
+            }
+        } catch (e) { notifyError(e, "La désactivation de la double authentification a échoué"); }
     }
     function copyToClipboard(element) {
         const text = element.textContent;
@@ -189,7 +253,7 @@
             const originalText = element.textContent;
             element.textContent = "Copié !";
             setTimeout(() => { element.textContent = originalText; }, 2000);
-        }).catch(err => { console.error('Erreur de copie:', err); });
+        }).catch(() => { notify('warning', "La copie automatique est bloquée par le navigateur. Sélectionnez la clé puis copiez-la manuellement."); });
     }
 </script>
 {{end}}
@@ -240,6 +304,19 @@
                                 <button onclick="openEditModal('{{.ID}}', '{{.Role}}')" class="text-primary hover:opacity-80 transition" title="Mettre à jour le rôle">
                                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                 </button>
+                                {{/* Réinitialisation 2FA (Admin) : l'échappatoire quand
+                                     un utilisateur perd son authenticator — ou après une
+                                     rotation de SESSION_SECRET, qui rend les secrets TOTP
+                                     stockés indéchiffrables. Révoque aussi ses sessions. */}}
+                                {{if $.IsAdmin}}
+                                <form action="/api/users/reset-mfa" method="POST" class="inline-block"
+                                    onsubmit="return confirm('Réinitialiser la 2FA de {{.Username}} ? Son second facteur sera supprimé et ses sessions déconnectées.');">
+                                    <input type="hidden" name="user_id" value="{{.ID}}">
+                                    <button type="submit" class="text-warning hover:opacity-80 transition" title="Réinitialiser la 2FA">
+                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                    </button>
+                                </form>
+                                {{end}}
                                 <form action="/api/users/delete" method="POST" class="inline-block" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');">
                                     <input type="hidden" name="user_id" value="{{.ID}}">
                                     <button type="submit" class="text-error hover:opacity-80 transition" title="Supprimer">
@@ -291,9 +368,11 @@
 </div>
 
 <!-- Edit role modal -->
-<div id="edit-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
+<div id="edit-modal" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title" tabindex="-1" data-modal-dismiss
+    data-modal-exit-ms="300"
+    class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
     <div class="rounded-xl p-6 bg-surface-container border border-outline-variant w-full max-w-md transform scale-95 transition-transform duration-300" id="edit-modal-content">
-        <h3 class="text-xl font-semibold text-on-surface mb-4">Modifier le rôle</h3>
+        <h3 id="edit-modal-title" class="text-xl font-semibold text-on-surface mb-4">Modifier le rôle</h3>
         <form action="/api/users/update" method="POST" class="space-y-4">
             <input type="hidden" id="edit-user-id" name="user_id">
             <div>
@@ -305,7 +384,7 @@
             </div>
             <div class="flex justify-end gap-3 pt-2">
                 <button type="button" onclick="closeEditModal()" class="px-4 py-2 text-on-surface-variant hover:text-on-surface transition">Annuler</button>
-                <button type="submit" class="bg-primary text-on-primary font-bold py-2 px-6 rounded-full transition">Sauvegarder</button>
+                <button type="submit" class="bg-primary text-on-primary font-bold py-2 px-3 md:px-6 rounded-full transition">Sauvegarder</button>
             </div>
         </form>
     </div>
@@ -319,7 +398,7 @@
         const content = document.getElementById('edit-modal-content');
         document.getElementById('edit-user-id').value = id;
         document.getElementById('edit-role').value = currentRole;
-        modal.classList.remove('hidden');
+        GoaUI.openModal(modal);
         setTimeout(() => {
             modal.classList.remove('opacity-0');
             content.classList.remove('scale-95');
@@ -327,15 +406,16 @@
         }, 10);
     }
     function closeEditModal() {
+        GoaUI.closeModal('edit-modal');
+    }
+    // L'animation de sortie est rejouée quelle que soit la façon de fermer
+    // (bouton, Échap, clic sur le fond) : le module émet toujours cet événement.
+    document.getElementById('edit-modal').addEventListener('goa:modal-close', () => {
         const modal = document.getElementById('edit-modal');
         const content = document.getElementById('edit-modal-content');
         modal.classList.add('opacity-0');
         content.classList.remove('scale-100');
         content.classList.add('scale-95');
-        setTimeout(() => { modal.classList.add('hidden'); }, 300);
-    }
-    document.getElementById('edit-modal').addEventListener('click', (e) => {
-        if (e.target === document.getElementById('edit-modal')) { closeEditModal(); }
     });
 </script>
 {{end}}

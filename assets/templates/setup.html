@@ -5,9 +5,6 @@
     {{template "head-common"}}
     <title>GoaCore | Initialisation</title>
     <style>
-        body {
-            font-family: 'Outfit', sans-serif;
-        }
         /* Hide all native browser-added controls inside password / text inputs */
         input::-ms-reveal,
         input::-ms-clear,
@@ -34,17 +31,10 @@
 <body
     class="flex items-center justify-center min-h-screen bg-surface text-on-surface relative overflow-hidden">
 
-    <!-- Decoration Gradients (sidebar palette) -->
-    <div class="absolute top-0 left-0 w-96 h-96 bg-purple-500/20 rounded-full pointer-events-none blur-2xl"></div>
-    <div class="absolute bottom-0 right-0 w-96 h-96 bg-cyan-600/5 rounded-full pointer-events-none blur-2xl"></div>
-    <div class="absolute top-0 right-0 w-32 h-32 bg-red-500/20 rounded-full pointer-events-none blur-2xl"></div>
-    <div class="absolute top-1/2 right-0 w-48 h-48 bg-orange-500/20 rounded-full pointer-events-none blur-2xl -translate-y-1/2"></div>
-    <div class="absolute bottom-0 left-1/2 w-48 h-48 bg-yellow-500/20 rounded-full pointer-events-none blur-2xl -translate-x-1/2"></div>
-    <div class="absolute top-1/2 left-0 w-32 h-32 bg-green-500/20 rounded-full pointer-events-none blur-2xl -translate-y-1/2"></div>
-    <div class="absolute top-0 left-1/2 w-48 h-48 bg-blue-500/20 rounded-full pointer-events-none blur-2xl -translate-x-1/2"></div>
+    {{template "bubbles"}}
 
     <!-- Main Container -->
-    <div class="relative z-10 w-full max-w-md px-6">
+    <div class="relative z-10 w-full max-w-md px-3 md:px-6">
         <div class="bg-surface-container rounded-xl p-8 shadow-lg border border-outline-variant">
             <!-- Header -->
             <div class="text-center mb-8">
@@ -76,7 +66,7 @@
                 </div>
                 {{end}}
 
-                <div class="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-300 text-sm text-center">
+                <div class="p-4 rounded-lg bg-info/10 border border-info/20 text-info text-sm text-center">
                     Aucun utilisateur détecté.<br>Créez votre compte <strong>Administrateur</strong>.
                 </div>
 
@@ -171,8 +161,11 @@
             &copy; 2024 GoaCore. All rights reserved.
         </p>
     </div>
+    {{template "toast-host"}}
+
     <script src="/static/theme.js"></script>
     <script src="/static/csrf.js"></script>
+    <script src="/static/ui.js"></script>
     <script>
         // Clear field value on first focus
         document.querySelectorAll('.js-clear-on-focus').forEach(function (input) {
