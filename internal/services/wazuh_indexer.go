@@ -168,6 +168,7 @@ type WazuhAlert struct {
 	} `json:"agent"`
 	Data struct {
 		SrcIP   string `json:"srcip"`
+		SrcUser string `json:"srcuser"`
 		DstUser string `json:"dstuser"`
 	} `json:"data"`
 	Syscheck struct {

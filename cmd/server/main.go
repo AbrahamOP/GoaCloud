@@ -206,12 +206,16 @@ func main() {
 		SameSite: http.SameSiteStrictMode,
 	}
 
+	// SOAR triage store: backs the alert triage buttons of every Discord bot
+	// (env seed here, hot-reloads via the registry) and the worker's suppression.
+	triageStore := services.NewTriageStore(db)
+
 	// Discord (env seed). The bot is published into the registry below; at shutdown we
 	// close the CURRENT registry bot (which may have been hot-reloaded), not this boot
 	// pointer — so the defer is registered after the registry is built (see below).
 	var discordBot *services.DiscordBot
 	if cfg.DiscordBotToken != "" && cfg.DiscordChannelID != "" {
-		bot, botErr := services.NewDiscordBot(cfg.DiscordBotToken, cfg.DiscordChannelID, cfg.DiscordAuthChannel, cfg.DiscordAnsibleChannel)
+		bot, botErr := services.NewDiscordBot(cfg.DiscordBotToken, cfg.DiscordChannelID, cfg.DiscordAuthChannel, cfg.DiscordAnsibleChannel, triageStore)
 		if botErr != nil {
 			slog.Error("Failed to init Discord Bot", "error", botErr)
 		} else {
@@ -226,6 +230,7 @@ func main() {
 	// worker starts), freezing each service's env snapshot for rollback. The DB rows
 	// then override the seeds via reloadServicesFromDB, exactly like Proxmox.
 	registry := services.NewServiceRegistry(cfg.SkipTLSVerify)
+	registry.SetTriageStore(triageStore)
 	registry.SeedWazuh(wazuhClient, cfg.WazuhAPIURL, cfg.WazuhUser, cfg.WazuhPassword)
 	registry.SeedIndexer(wazuhIndexer, cfg.WazuhIndexerURL, cfg.WazuhIndexerUser, cfg.WazuhIndexerPass)
 	registry.SeedAI(aiClient, cfg.AIProvider, cfg.AIURL, cfg.AIAPIKey, cfg.AIModel, cfg.OpenAIBaseURL)

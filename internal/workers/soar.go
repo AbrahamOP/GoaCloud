@@ -3,6 +3,7 @@ package workers
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -69,6 +70,10 @@ func StartSoarWorker(
 		}
 	}
 
+	// Triage apprenant : verdicts + compteurs de suppression (table soar_triage).
+	// Le store est nil-safe, le worker fonctionne sans lui (tests db=nil).
+	triage := services.NewTriageStore(db)
+
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
@@ -82,7 +87,10 @@ func StartSoarWorker(
 			// proceed with the current snapshot rather than skipping the tick.
 			_ = loadSoarConfig(db, soarConfig)
 			// Snapshot ALL hot-reloadable clients (incl. Discord) for this tick.
-			checkSoarEvents(ctx, db, registry.Wazuh(), registry.Indexer(), registry.AI(), registry.Discord(), soarConfig, agentStatus, alertDedup, &lastAlertPoll)
+			checkSoarEvents(ctx, db, registry.Wazuh(), registry.Indexer(), registry.AI(), registry.Discord(), soarConfig, triage, agentStatus, alertDedup, &lastAlertPoll)
+			// Digest hebdo des suppressions de triage (no-op tant que la
+			// semaine n'est pas écoulée ou qu'il n'y a rien à rapporter).
+			maybeSendTriageDigest(db, triage, registry.Discord())
 		}
 	}
 }
@@ -305,6 +313,7 @@ func checkSoarEvents(
 	aiClient services.AIClient,
 	discord *services.DiscordBot,
 	soarConfig *models.SoarConfigState,
+	triage *services.TriageStore,
 	agentStatus *sync.Map,
 	alertDedup *sync.Map,
 	lastAlertPoll *time.Time,
@@ -343,23 +352,38 @@ func checkSoarEvents(
 							}
 						}
 						if agent.Status == "disconnected" {
-							alertInfo := services.AIAlertContext{
-								Title:       "🔴 Agent Perdu",
-								Description: fmt.Sprintf("L'agent **%s** ne répond plus.", agent.Name),
-								AgentName:   agent.Name,
-								AgentIP:     agent.IP,
-								RuleLevel:   10,
+							// Triage : une machine volontairement éteinte se classe
+							// « by design » → transition consommée sans post (et sans
+							// restaurer l'ancien statut : ce n'est pas un échec d'envoi).
+							fp := services.TriageAgentStatusFingerprint(agent.Name, "disconnected")
+							if triageSuppressesAlert(triage, fp) {
+								recordTriageSuppression(triage, fp)
+							} else {
+								recordTriageSeen(triage, fp, "agent-status", agent.Name, "🔴 Agent Perdu", nil)
+								alertInfo := services.AIAlertContext{
+									Title:       "🔴 Agent Perdu",
+									Description: fmt.Sprintf("L'agent **%s** ne répond plus.", agent.Name),
+									AgentName:   agent.Name,
+									AgentIP:     agent.IP,
+									RuleLevel:   10,
+								}
+								go sendEnrichedAlert(ctx, alertInfo, "critical", fp, aiClient, discord, retryOnFail)
 							}
-							go sendEnrichedAlert(ctx, alertInfo, "critical", aiClient, discord, retryOnFail)
 						} else if agent.Status == "active" && prevStatus == "disconnected" {
-							alertInfo := services.AIAlertContext{
-								Title:       "🟢 Agent Retrouvé",
-								Description: fmt.Sprintf("L'agent **%s** est de nouveau en ligne.", agent.Name),
-								AgentName:   agent.Name,
-								AgentIP:     agent.IP,
-								RuleLevel:   0,
+							fp := services.TriageAgentStatusFingerprint(agent.Name, "active")
+							if triageSuppressesAlert(triage, fp) {
+								recordTriageSuppression(triage, fp)
+							} else {
+								recordTriageSeen(triage, fp, "agent-status", agent.Name, "🟢 Agent Retrouvé", nil)
+								alertInfo := services.AIAlertContext{
+									Title:       "🟢 Agent Retrouvé",
+									Description: fmt.Sprintf("L'agent **%s** est de nouveau en ligne.", agent.Name),
+									AgentName:   agent.Name,
+									AgentIP:     agent.IP,
+									RuleLevel:   0,
+								}
+								go sendEnrichedAlert(ctx, alertInfo, "info", fp, aiClient, discord, retryOnFail)
 							}
-							go sendEnrichedAlert(ctx, alertInfo, "info", aiClient, discord, retryOnFail)
 						}
 					}
 				}
@@ -450,25 +474,39 @@ func checkSoarEvents(
 						}
 					}
 
+					// Triage : une empreinte classée « by design » ou « faux positif »
+					// est supprimée AVANT le post — comptée pour le digest hebdo,
+					// jamais retentée (même contrat que catégorie désactivée).
 					if shouldSend {
-						aiCtx := services.AIAlertContext{
-							Title:       title,
-							Description: msg,
-							AgentName:   alert.Agent.Name,
-							AgentIP:     alert.Agent.IP,
-							RuleID:      alert.Rule.ID,
-							RuleLevel:   alert.Rule.Level,
-							FullLog:     alert.FullLog,
-							SourceIP:    alert.Data.SrcIP,
-						}
-						key := alertKey
-						go sendEnrichedAlert(ctx, aiCtx, severity, aiClient, discord, func(sent bool) {
-							if sent {
-								persistAlertDedup(db, key)
-							} else {
-								alertDedup.Delete(key)
+						fp := services.TriageFingerprint(alert)
+						if triageSuppressesAlert(triage, fp) {
+							recordTriageSuppression(triage, fp)
+							persistAlertDedup(db, alertKey)
+						} else {
+							sample, merr := json.Marshal(alert)
+							if merr != nil {
+								sample = nil
 							}
-						})
+							recordTriageSeen(triage, fp, alert.Rule.ID, alert.Agent.Name, title, sample)
+							aiCtx := services.AIAlertContext{
+								Title:       title,
+								Description: msg,
+								AgentName:   alert.Agent.Name,
+								AgentIP:     alert.Agent.IP,
+								RuleID:      alert.Rule.ID,
+								RuleLevel:   alert.Rule.Level,
+								FullLog:     alert.FullLog,
+								SourceIP:    alert.Data.SrcIP,
+							}
+							key := alertKey
+							go sendEnrichedAlert(ctx, aiCtx, severity, fp, aiClient, discord, func(sent bool) {
+								if sent {
+									persistAlertDedup(db, key)
+								} else {
+									alertDedup.Delete(key)
+								}
+							})
+						}
 					} else {
 						// Catégorie désactivée : on persiste quand même pour ne pas
 						// retraiter la même alerte à chaque tick de la fenêtre.
@@ -490,7 +528,8 @@ func checkSoarEvents(
 // rendre la clé / restaurer l'état sur échec pour retenter au tick suivant).
 // parentCtx borne l'enrichissement : à l'arrêt du worker, l'appel Ollama en
 // vol est annulé au lieu de survivre au process.
-func sendEnrichedAlert(parentCtx context.Context, alertCtx services.AIAlertContext, severity string, aiClient services.AIClient, discord *services.DiscordBot, onSent func(sent bool)) {
+// fingerprint est l'empreinte de triage de l'alerte ("" accepté : pas de boutons).
+func sendEnrichedAlert(parentCtx context.Context, alertCtx services.AIAlertContext, severity, fingerprint string, aiClient services.AIClient, discord *services.DiscordBot, onSent func(sent bool)) {
 	if onSent == nil {
 		onSent = func(bool) {}
 	}
@@ -502,7 +541,7 @@ func sendEnrichedAlert(parentCtx context.Context, alertCtx services.AIAlertConte
 	msg := alertCtx.Description
 
 	// 1. Post first — the alert reaches the user within the tick, enriched or not.
-	messageID, err := discord.SendSoarAlert(alertCtx.Title, msg, severity)
+	messageID, err := discord.SendSoarAlert(alertCtx.Title, msg, severity, fingerprint)
 	if err != nil {
 		slog.Error("Discord SOAR alert failed", "error", err)
 		onSent(false)
@@ -551,7 +590,114 @@ func sendEnrichedAlert(parentCtx context.Context, alertCtx services.AIAlertConte
 	// NB: si un hot-reload Discord intervient entre le post et l'édition, le
 	// snapshot `discord` de ce tick peut pointer sur une session fermée ;
 	// l'édition échoue alors proprement et l'alerte reste en version brute.
-	if err := discord.EditSoarAlertAnalysis(messageID, alertCtx.Title, msg, severity, analysis); err != nil {
+	if err := discord.EditSoarAlertAnalysis(messageID, alertCtx.Title, msg, severity, analysis, fingerprint); err != nil {
 		slog.Error("Discord SOAR alert enrichment edit failed", "error", err, "message_id", messageID)
+	}
+}
+
+// --- Triage apprenant (suppression avant post + digest hebdo) ---
+
+// triageSuppressesAlert dit si l'empreinte est classée « bruit » (by design /
+// faux positif). FAIL-OPEN : sur erreur DB on n'étouffe JAMAIS une alerte de
+// sécurité — elle part, l'erreur est loguée. Store nil-safe (tests db=nil).
+func triageSuppressesAlert(triage *services.TriageStore, fingerprint string) bool {
+	st, _, err := triage.Decision(fingerprint)
+	if err != nil {
+		slog.Error("SOAR triage: lookup impossible, alerte envoyée par défaut", "error", err)
+		return false
+	}
+	return services.TriageStatusSuppresses(st)
+}
+
+// recordTriageSuppression compte une occurrence supprimée (best effort : un échec
+// de comptage ne change pas la décision de suppression, déjà prise).
+func recordTriageSuppression(triage *services.TriageStore, fingerprint string) {
+	if err := triage.RecordSuppressed(fingerprint); err != nil {
+		slog.Error("SOAR triage: comptage de suppression impossible", "error", err)
+	}
+}
+
+// recordTriageSeen upserte la row d'empreinte d'une alerte qui part sur Discord
+// (best effort : l'alerte part même si la persistance triage échoue).
+func recordTriageSeen(triage *services.TriageStore, fingerprint, ruleID, agentName, title string, sample []byte) {
+	if err := triage.RecordSeen(fingerprint, ruleID, agentName, title, sample); err != nil {
+		slog.Error("SOAR triage: enregistrement d'empreinte impossible", "error", err)
+	}
+}
+
+const (
+	// triageDigestStateKey est la clé soar_state du dernier digest envoyé (RFC3339).
+	triageDigestStateKey = "last_triage_digest"
+	// triageDigestInterval sépare deux digests de suppression.
+	triageDigestInterval = 7 * 24 * time.Hour
+)
+
+// maybeSendTriageDigest posts the weekly suppression digest when due — le
+// contrat « jamais de silence aveugle » du triage. Appelé à chaque tick :
+//   - premier passage : ancre la période courante sans rien envoyer ;
+//   - période non écoulée, ou écoulée sans aucune suppression : avance sans post ;
+//   - Discord indisponible ou envoi échoué : l'ancre n'avance PAS, on retente au
+//     tick suivant (un digest ne doit pas se perdre sur un hoquet) ;
+//   - envoi réussi : les compteurs rapportés sont décrémentés puis l'ancre avance.
+func maybeSendTriageDigest(db *sql.DB, triage *services.TriageStore, discord *services.DiscordBot) {
+	if db == nil {
+		return
+	}
+	now := time.Now()
+	v, err := loadSoarState(db, triageDigestStateKey)
+	if err != nil {
+		slog.Error("SOAR triage digest: lecture de l'ancre impossible", "error", err)
+		return
+	}
+	if v == "" {
+		if serr := saveSoarState(db, triageDigestStateKey, now.Format(time.RFC3339)); serr != nil {
+			slog.Error("SOAR triage digest: ancrage initial impossible", "error", serr)
+		}
+		return
+	}
+	last, perr := time.Parse(time.RFC3339, v)
+	if perr != nil {
+		// Ancre corrompue : réancrer plutôt que de bloquer le digest pour toujours.
+		slog.Warn("SOAR triage digest: ancre illisible, réancrage", "value", v)
+		_ = saveSoarState(db, triageDigestStateKey, now.Format(time.RFC3339))
+		return
+	}
+	if last.After(now) {
+		// Ancre dans le futur (horloge corrigée en arrière après un ancrage sous
+		// une horloge en avance) : sans réancrage, le digest resterait muet
+		// jusqu'à ce que le temps réel rattrape l'ancre — un silence aveugle.
+		slog.Warn("SOAR triage digest: ancre dans le futur, réancrage", "value", v)
+		_ = saveSoarState(db, triageDigestStateKey, now.Format(time.RFC3339))
+		return
+	}
+	if now.Sub(last) < triageDigestInterval {
+		return
+	}
+
+	rows, err := triage.DigestRows()
+	if err != nil {
+		slog.Error("SOAR triage digest: lecture des compteurs impossible", "error", err)
+		return
+	}
+	if len(rows) == 0 {
+		// Rien supprimé cette période : rien d'invisible à resurfacer, pas de bruit.
+		_ = saveSoarState(db, triageDigestStateKey, now.Format(time.RFC3339))
+		return
+	}
+	if discord == nil || !discord.IsReady() {
+		return
+	}
+	if err := discord.SendTriageDigest(rows); err != nil {
+		slog.Error("SOAR triage digest: envoi Discord échoué, nouvel essai au tick suivant", "error", err)
+		return
+	}
+	if err := triage.ResetDigestCounts(rows); err != nil {
+		// Le digest est parti mais les compteurs n'ont pas été décrémentés : le
+		// prochain digest re-rapportera ces suppressions (doublon visible, jamais
+		// de perte). On avance l'ancre quand même.
+		slog.Error("SOAR triage digest: reset des compteurs échoué", "error", err)
+	}
+	if err := saveSoarState(db, triageDigestStateKey, now.Format(time.RFC3339)); err != nil {
+		slog.Error("SOAR triage digest: avancement de l'ancre impossible", "error", err)
 	}
 }
