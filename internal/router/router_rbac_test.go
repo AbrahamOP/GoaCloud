@@ -91,6 +91,27 @@ func execsContaining(fragment string) []fakeExec {
 	return out
 }
 
+// auditEntriesFor returns the audit inserts whose action column matches action
+// EXACTLY. Le middleware AuditTrail écrit en SYNCHRONE des actions au format
+// "METHOD /path" ; les handlers, eux, écrivent leurs propres entrées nommées
+// ("AddUser", "AnsibleRun"…) via des goroutines `go services.LogAudit` qui
+// peuvent atterrir à N'IMPORTE quel moment — y compris après le resetExecLog
+// d'un segment ultérieur (flake vécu en CI : « a self-service POST produced 1
+// middleware audit entries »). Filtrer sur l'action exacte rend chaque
+// assertion aveugle à ce bruit asynchrone et ne mesure QUE le middleware.
+func auditEntriesFor(action string) []fakeExec {
+	execMu.Lock()
+	defer execMu.Unlock()
+	var out []fakeExec
+	for _, e := range execLog {
+		if strings.Contains(e.query, "insert into audit_logs") &&
+			len(e.args) > 2 && fmt.Sprint(e.args[2]) == action {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
 func resetExecLog() {
 	execMu.Lock()
 	defer execMu.Unlock()
@@ -767,7 +788,7 @@ func TestRouter_AuditTrailCoversTheAdminGroup(t *testing.T) {
 	// A REFUSED admin attempt must be recorded (middleware in front of AdminOnly).
 	resetExecLog()
 	doRequest(t, router, http.MethodPost, "/api/users/add", sessionCookie(t, store, "audit_viewer", csrfTok))
-	entries := execsContaining("insert into audit_logs")
+	entries := auditEntriesFor("POST /api/users/add")
 	if len(entries) == 0 {
 		t.Fatal("a Viewer POSTing /api/users/add left NO audit entry — AuditTrail is missing, or mounted behind AdminOnly")
 	}
@@ -776,9 +797,6 @@ func TestRouter_AuditTrailCoversTheAdminGroup(t *testing.T) {
 	if got := fmt.Sprint(last.args[1]); got != "audit_viewer" {
 		t.Fatalf("audit entry attributed to %q, want audit_viewer", got)
 	}
-	if got := fmt.Sprint(last.args[2]); got != "POST /api/users/add" {
-		t.Fatalf("audit action = %q, want \"POST /api/users/add\"", got)
-	}
 	if got := fmt.Sprint(last.args[3]); !strings.Contains(got, "403") {
 		t.Fatalf("audit outcome = %q, want the 403 refusal to be visible", got)
 	}
@@ -786,14 +804,14 @@ func TestRouter_AuditTrailCoversTheAdminGroup(t *testing.T) {
 	// An ADMIN mutation is recorded too — the trail is the net under the whole group.
 	resetExecLog()
 	doRequest(t, router, http.MethodPost, "/api/apps/reorder", sessionCookie(t, store, "audit_admin", csrfTok))
-	if len(execsContaining("insert into audit_logs")) == 0 {
+	if len(auditEntriesFor("POST /api/apps/reorder")) == 0 {
 		t.Fatal("an Admin POST on /api/apps/reorder left no audit entry")
 	}
 
 	// Reads are NOT recorded: /audit-logs would become unreadable within a day.
 	resetExecLog()
 	doRequest(t, router, http.MethodGet, "/users", sessionCookie(t, store, "audit_admin", csrfTok))
-	if n := len(execsContaining("insert into audit_logs")); n != 0 {
+	if n := len(auditEntriesFor("GET /users")); n != 0 {
 		t.Fatalf("a GET produced %d audit entries — only state-changing methods must be recorded", n)
 	}
 
@@ -801,7 +819,7 @@ func TestRouter_AuditTrailCoversTheAdminGroup(t *testing.T) {
 	// authenticated group carries no infra-sensitive mutation.
 	resetExecLog()
 	doRequest(t, router, http.MethodPost, "/api/profile/github", sessionCookie(t, store, "audit_viewer", csrfTok))
-	if n := len(execsContaining("insert into audit_logs")); n != 0 {
+	if n := len(auditEntriesFor("POST /api/profile/github")); n != 0 {
 		t.Fatalf("a self-service POST produced %d middleware audit entries — AuditTrail is mounted too widely", n)
 	}
 }
