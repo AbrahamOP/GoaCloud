@@ -95,6 +95,7 @@ func runTick(t *testing.T, indexer *services.WazuhIndexerClient, cursor time.Tim
 		indexer,
 		nil, nil,
 		cfg,
+		nil, // triage : store nil-safe, aucun classement → aucune suppression
 		&sync.Map{}, &sync.Map{},
 		&cursor,
 	)

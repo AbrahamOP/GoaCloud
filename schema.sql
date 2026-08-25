@@ -106,6 +106,28 @@ CREATE TABLE IF NOT EXISTS soar_alert_dedup (
     INDEX idx_seen_at (seen_at)
 );
 
+-- Triage apprenant des alertes SOAR : une row par empreinte d'alerte
+-- (sha256 rule.id|agent|champ-clé). Les statuts by_design/false_positive
+-- suppriment les occurrences futures AVANT le post Discord ; chaque suppression
+-- est comptée (jamais de silence aveugle) et resurfacée par le digest hebdo,
+-- qui décrémente suppressed_since_digest de ce qu'il a rapporté.
+CREATE TABLE IF NOT EXISTS soar_triage (
+    fingerprint CHAR(64) PRIMARY KEY,
+    status ENUM('open','by_design','false_positive','investigating','resolved') NOT NULL DEFAULT 'open',
+    rule_id VARCHAR(32) NOT NULL DEFAULT '',
+    agent_name VARCHAR(191) NOT NULL DEFAULT '',
+    title VARCHAR(191) NOT NULL DEFAULT '',
+    sample_alert JSON NULL,
+    count_suppressed INT NOT NULL DEFAULT 0,
+    suppressed_since_digest INT NOT NULL DEFAULT 0,
+    first_seen DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    decided_at DATETIME NULL,
+    decided_by VARCHAR(191) NOT NULL DEFAULT '',
+    decided_by_id VARCHAR(32) NOT NULL DEFAULT '',
+    INDEX idx_triage_status (status)
+);
+
 -- Journal d'audit. idx_created_at porte la lecture antéchronologique et la
 -- purge par date (la rétention est appliquée hors de ce fichier).
 CREATE TABLE IF NOT EXISTS audit_logs (

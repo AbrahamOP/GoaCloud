@@ -105,6 +105,22 @@ func Migrate(db *sql.DB) error {
 			seen_at BIGINT NOT NULL,
 			INDEX idx_seen_at (seen_at)
 		)`,
+		`CREATE TABLE IF NOT EXISTS soar_triage (
+			fingerprint CHAR(64) PRIMARY KEY,
+			status ENUM('open','by_design','false_positive','investigating','resolved') NOT NULL DEFAULT 'open',
+			rule_id VARCHAR(32) NOT NULL DEFAULT '',
+			agent_name VARCHAR(191) NOT NULL DEFAULT '',
+			title VARCHAR(191) NOT NULL DEFAULT '',
+			sample_alert JSON NULL,
+			count_suppressed INT NOT NULL DEFAULT 0,
+			suppressed_since_digest INT NOT NULL DEFAULT 0,
+			first_seen DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			last_seen DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			decided_at DATETIME NULL,
+			decided_by VARCHAR(191) NOT NULL DEFAULT '',
+			decided_by_id VARCHAR(32) NOT NULL DEFAULT '',
+			INDEX idx_triage_status (status)
+		)`,
 		`CREATE TABLE IF NOT EXISTS audit_logs (
 			id INT AUTO_INCREMENT PRIMARY KEY,
 			user_id INT,

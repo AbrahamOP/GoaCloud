@@ -149,11 +149,15 @@ jobs:
       # GOACORE_REQUIRE_DB_TESTS : transforme un DSN manquant en ÉCHEC au lieu d'un
       # skip. Sans ce verrou, retirer le service MySQL ci-dessus repasserait la CI
       # au vert avec zéro test exécuté — exactement l'angle mort qu'on répare ici.
+      # SOAR_TEST_DSN active les tests DB du SOAR (persistance anti-rejeu + store
+      # de triage, dans services/ et workers/) sur la même base jetable — sans lui
+      # ils restent skippés et la CI ne les exécuterait jamais.
       - name: Migrations sur une base MySQL réelle
         env:
           GOACORE_TEST_DSN: root:goacore-ci@tcp(127.0.0.1:3306)/goacore_test?parseTime=true
+          SOAR_TEST_DSN: root:goacore-ci@tcp(127.0.0.1:3306)/goacore_test?parseTime=true
           GOACORE_REQUIRE_DB_TESTS: "1"
-        run: go test ./internal/database/ -race -count=1 -v
+        run: go test ./internal/database/ ./internal/services/ ./internal/workers/ -race -count=1 -v
 
   # The goabackup SSH helper is the AUTHORITATIVE security boundary on the Proxmox
   # host (forced-command, closed op set, the readonly 9500-9599 sandbox VMID guard).
