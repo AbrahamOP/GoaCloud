@@ -53,6 +53,12 @@ type ServiceRegistry struct {
 	// skipTLS is the boot TLS-verification policy, reused to rebuild Wazuh/Indexer
 	// clients on Apply* (the onboarding form does not re-ask it).
 	skipTLS bool
+
+	// triage is the SOAR triage store handed to every Discord bot built by
+	// ApplyDiscord (the alert buttons need it). Set once at boot via
+	// SetTriageStore, before workers start — never mutated afterwards. nil keeps
+	// hot-reloaded bots send-only (le comportement pré-triage).
+	triage *TriageStore
 }
 
 // aiHolder wraps the AIClient interface so it can be stored in an atomic.Pointer.
@@ -104,6 +110,13 @@ type ChannelProvider interface {
 // holders are seeded via Seed* before any worker starts.
 func NewServiceRegistry(skipTLS bool) *ServiceRegistry {
 	return &ServiceRegistry{skipTLS: skipTLS}
+}
+
+// SetTriageStore wires the SOAR triage store used by every Discord bot the
+// registry builds (ApplyDiscord). Boot only, BEFORE reloadServicesFromDB and the
+// workers — jamais après (le champ n'est pas protégé pour une écriture tardive).
+func (r *ServiceRegistry) SetTriageStore(t *TriageStore) {
+	r.triage = t
 }
 
 // --- Accessors (lock-free; any may return nil — all consumers nil-guard) ---
@@ -236,8 +249,12 @@ const discordCloseTimeout = 10 * time.Second
 //     the second filter.)
 //  4. Atomically publish the new bot (Swap).
 //  5. Close the OLD session AFTER the swap, in a bounded goroutine. The transient
-//     few-ms double session is harmless: the bot registers no inbound handlers (it
-//     only sends), so nothing is double-processed.
+//     few-ms double session is harmless: the bot's ONLY inbound handler (the SOAR
+//     triage buttons) is idempotent by construction — a double-delivered
+//     InteractionCreate re-applies the same DB upsert and Discord accepts a single
+//     response per interaction (the second acknowledgement fails cleanly, logged
+//     as a warning in handleTriageInteraction) — so nothing is double-processed
+//     into a wrong state.
 //
 // It returns an error ONLY when building/opening the new session fails (the live bot
 // is untouched in that case). A nil error covers no-op, disable, and successful swap.
@@ -267,7 +284,7 @@ func (r *ServiceRegistry) ApplyDiscord(token, channelID, authChannel, ansibleCha
 	}
 
 	// (3) Build + Open the NEW session first. On failure, keep the old one live.
-	bot, err := NewDiscordBot(token, channelID, authChannel, ansibleChannel)
+	bot, err := NewDiscordBot(token, channelID, authChannel, ansibleChannel, r.triage)
 	if err != nil {
 		return err
 	}

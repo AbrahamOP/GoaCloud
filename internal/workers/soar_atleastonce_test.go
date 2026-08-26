@@ -17,7 +17,7 @@ func TestSendEnrichedAlertOnSentFailure(t *testing.T) {
 	onSent := func(sent bool) { got = &sent }
 
 	// discord == nil → échec de livraison garanti, sans I/O réseau.
-	sendEnrichedAlert(context.Background(), services.AIAlertContext{Title: "x", Description: "y"}, "critical", nil, nil, onSent)
+	sendEnrichedAlert(context.Background(), services.AIAlertContext{Title: "x", Description: "y"}, "critical", "", nil, nil, onSent)
 
 	if got == nil {
 		t.Fatal("onSent n'a pas été appelé")
@@ -40,7 +40,7 @@ func TestDedupReleaseOnFailure(t *testing.T) {
 			dedup.Delete(key)
 		}
 	}
-	sendEnrichedAlert(context.Background(), services.AIAlertContext{Title: "x", Description: "y"}, "critical", nil, nil, onSent)
+	sendEnrichedAlert(context.Background(), services.AIAlertContext{Title: "x", Description: "y"}, "critical", "", nil, nil, onSent)
 
 	if _, still := dedup.Load(key); still {
 		t.Fatal("la clé est restée dedupée après échec de post — alerte perdue à jamais")

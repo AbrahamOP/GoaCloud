@@ -70,6 +70,7 @@ services:
     mem_reservation: 256m
     cpus: 1.5
     pids_limit: 512
+    init: true
     networks:
       - goacloud-dev
 

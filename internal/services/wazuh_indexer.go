@@ -168,6 +168,7 @@ type WazuhAlert struct {
 	} `json:"agent"`
 	Data struct {
 		SrcIP   string `json:"srcip"`
+		SrcUser string `json:"srcuser"`
 		DstUser string `json:"dstuser"`
 	} `json:"data"`
 	Syscheck struct {
@@ -421,11 +422,9 @@ var alertTimestampLayouts = []string{
 	"2006-01-02T15:04:05-0700",
 }
 
-// OldestReturnedTime parses OldestReturned into a time.Time. The second result is
-// false when the window is empty or the timestamp is unparsable — in which case a
-// caller must keep its previous cursor rather than invent one.
-func (a AlertWindow) OldestReturnedTime() (time.Time, bool) {
-	raw := strings.TrimSpace(a.OldestReturned)
+// parseAlertTimestamp tries every known layout on a raw alert timestamp.
+func parseAlertTimestamp(raw string) (time.Time, bool) {
+	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		return time.Time{}, false
 	}
@@ -435,6 +434,20 @@ func (a AlertWindow) OldestReturnedTime() (time.Time, bool) {
 		}
 	}
 	return time.Time{}, false
+}
+
+// Time parses the alert's own timestamp. ok=false quand il est absent ou d'un
+// format inconnu — l'appelant rend alors le message sans horodatage plutôt que
+// d'en inventer un.
+func (a WazuhAlert) Time() (time.Time, bool) {
+	return parseAlertTimestamp(a.Timestamp)
+}
+
+// OldestReturnedTime parses OldestReturned into a time.Time. The second result is
+// false when the window is empty or the timestamp is unparsable — in which case a
+// caller must keep its previous cursor rather than invent one.
+func (a AlertWindow) OldestReturnedTime() (time.Time, bool) {
+	return parseAlertTimestamp(a.OldestReturned)
 }
 
 // sealOldest records the timestamp of the oldest alert actually returned. The sort

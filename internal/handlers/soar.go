@@ -174,7 +174,9 @@ func (h *Handler) sendEnrichedDiscordAlert(reqCtx context.Context, alertCtx serv
 	// Post first, enrich after: même contrat que le worker (l'alerte part tout
 	// de suite, l'analyse IA arrive par édition du message), sans le sémaphore
 	// pour les raisons documentées ci-dessus.
-	messageID, err := discord.SendSoarAlert(alertCtx.Title, msg, severity)
+	// Empreinte vide : une alerte de test ne doit pas entrer dans le triage
+	// apprenant (pas de boutons, pas de row soar_triage).
+	messageID, err := discord.SendSoarAlert(alertCtx.Title, msg, severity, "")
 	if err != nil {
 		slog.Error("Discord SOAR alert failed", "error", err)
 		return
@@ -190,7 +192,7 @@ func (h *Handler) sendEnrichedDiscordAlert(reqCtx context.Context, alertCtx serv
 			slog.Error("AI Enrichment Failed", "error", err)
 			return
 		}
-		if err := discord.EditSoarAlertAnalysis(messageID, alertCtx.Title, msg, severity, analysis); err != nil {
+		if err := discord.EditSoarAlertAnalysis(messageID, alertCtx.Title, msg, severity, analysis, ""); err != nil {
 			slog.Error("Discord SOAR alert enrichment edit failed", "error", err, "message_id", messageID)
 		}
 	}

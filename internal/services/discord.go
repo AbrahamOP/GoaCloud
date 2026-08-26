@@ -33,10 +33,16 @@ type DiscordBot struct {
 	channelID        string
 	authChannelID    string
 	ansibleChannelID string
+	// triage is the SOAR triage store backing the alert buttons (nil = triage off:
+	// no inbound handler is registered and alerts ship without buttons).
+	triage *TriageStore
 }
 
-// NewDiscordBot creates and opens a new Discord bot session.
-func NewDiscordBot(token, channelID, authChannelID, ansibleChannelID string) (*DiscordBot, error) {
+// NewDiscordBot creates and opens a new Discord bot session. triage may be nil
+// (tests, DB-less paths): the bot is then send-only, exactly the pre-triage
+// behaviour. When non-nil, the SOAR triage InteractionCreate handler is attached
+// BEFORE Open so no early click can slip past it.
+func NewDiscordBot(token, channelID, authChannelID, ansibleChannelID string, triage *TriageStore) (*DiscordBot, error) {
 	if token == "" || channelID == "" {
 		return nil, fmt.Errorf("missing token or channel ID")
 	}
@@ -46,18 +52,24 @@ func NewDiscordBot(token, channelID, authChannelID, ansibleChannelID string) (*D
 		return nil, err
 	}
 
-	if err := session.Open(); err != nil {
-		return nil, fmt.Errorf("error opening connection: %v", err)
-	}
-
-	slog.Info("Discord Bot is now running", "channel", channelID, "auth_channel", authChannelID, "ansible_channel", ansibleChannelID)
-	return &DiscordBot{
+	bot := &DiscordBot{
 		session:          session,
 		token:            token,
 		channelID:        channelID,
 		authChannelID:    authChannelID,
 		ansibleChannelID: ansibleChannelID,
-	}, nil
+		triage:           triage,
+	}
+	if triage != nil {
+		session.AddHandler(bot.handleTriageInteraction)
+	}
+
+	if err := session.Open(); err != nil {
+		return nil, fmt.Errorf("error opening connection: %v", err)
+	}
+
+	slog.Info("Discord Bot is now running", "channel", channelID, "auth_channel", authChannelID, "ansible_channel", ansibleChannelID)
+	return bot, nil
 }
 
 // Close closes the Discord session.
@@ -72,17 +84,32 @@ func (d *DiscordBot) IsReady() bool {
 	return d != nil && d.session != nil
 }
 
-// severityColor maps a SOAR severity to the container accent color.
+// severityColor maps a SOAR severity to the container accent color. Palette
+// alignée sur la charte GoaCloud (l'info reprend le vert Goa #1D9E75).
 func severityColor(severity string) int {
 	switch severity {
 	case "critical":
-		return 0xff0000
+		return 0xE5484D // rouge
 	case "high":
-		return 0xffa500
+		return 0xF76B15 // orange
 	case "medium":
-		return 0xffff00
+		return 0xFFC53D // ambre
 	}
-	return 0x00ff00 // Green (Info)
+	return 0x1D9E75 // vert Goa (info)
+}
+
+// severityLabel is the operator-facing French name of a severity, shown in the
+// alert footer (la couleur seule ne survit pas au mode clair / daltonisme).
+func severityLabel(severity string) string {
+	switch severity {
+	case "critical":
+		return "critique"
+	case "high":
+		return "élevée"
+	case "medium":
+		return "moyenne"
+	}
+	return "info"
 }
 
 // truncateRunes caps user/LLM-provided text so the message stays under the
@@ -95,50 +122,91 @@ func truncateRunes(s string, max int) string {
 	return string(r[:max]) + "…"
 }
 
+// soarAlertView is the render input of a SOAR alert message: the alert text plus
+// its triage state. Fingerprint == "" → alerte sans triage (ex. alerte de test),
+// rendue exactement comme avant l'arrivée du triage.
+type soarAlertView struct {
+	Title, Message, Severity, Analysis string
+	Fingerprint                        string
+	TriageStatus                       string // "" ou "open" → non classée
+	DecidedBy                          string
+}
+
 // soarAlertComponents builds the Components V2 payload of a SOAR alert.
-// analysis == "" → alerte brute (post immédiat) ; non vide → version enrichie
+// v.Analysis == "" → alerte brute (post immédiat) ; non vide → version enrichie
 // (utilisée par l'édition du même message une fois l'analyse IA disponible).
-// Les entrées doivent déjà être passées par neutralizeDiscord.
-func soarAlertComponents(title, message, severity, analysis string) []discordgo.MessageComponent {
-	color := severityColor(severity)
+// Title/Message/Analysis doivent déjà être passés par neutralizeDiscord.
+func soarAlertComponents(v soarAlertView) []discordgo.MessageComponent {
+	color := severityColor(v.Severity)
+	if c, ok := triageStatusColor(v.TriageStatus); ok {
+		color = c
+	}
 	divider := true
 
 	inner := []discordgo.MessageComponent{
-		discordgo.TextDisplay{Content: "## 🛡️ SOAR Alert: " + truncateRunes(title, 150)},
-		discordgo.TextDisplay{Content: truncateRunes(message, 1500)},
+		discordgo.TextDisplay{Content: "## " + truncateRunes(v.Title, 150)},
+		discordgo.TextDisplay{Content: truncateRunes(v.Message, 1500)},
 	}
-	if analysis != "" {
+	if v.Analysis != "" {
 		inner = append(inner,
 			discordgo.Separator{Divider: &divider},
-			discordgo.TextDisplay{Content: "🤖 **Analyse IA :**\n" + truncateRunes(analysis, 1800)},
+			discordgo.TextDisplay{Content: "🤖 **Analyse IA :**\n" + truncateRunes(v.Analysis, 1800)},
 		)
 	}
 	inner = append(inner,
 		discordgo.Separator{Divider: &divider},
-		discordgo.TextDisplay{Content: "-# GoaCore Security"},
+		discordgo.TextDisplay{Content: "-# GoaCore Security · " + severityLabel(v.Severity)},
 	)
+	if v.Fingerprint != "" {
+		if label := triageStatusLabel(v.TriageStatus, v.DecidedBy); label != "" {
+			inner = append(inner, discordgo.TextDisplay{Content: label})
+		}
+		inner = append(inner, triageButtonsRow(v.Fingerprint, v.TriageStatus))
+	}
 
 	return []discordgo.MessageComponent{
 		discordgo.Container{AccentColor: &color, Components: inner},
 	}
 }
 
+// soarAlertViewFor assembles the render view of an alert: neutralizes the
+// untrusted text and reads the live triage decision (label « classée par X » et
+// couleur) — utile quand un clic de triage est arrivé entre le post et l'édition
+// d'enrichissement, pour ne pas effacer le classement au re-rendu. Une erreur de
+// lecture triage dégrade en « non classée », jamais en échec d'envoi.
+func (d *DiscordBot) soarAlertViewFor(title, message, severity, analysis, fingerprint string) soarAlertView {
+	v := soarAlertView{
+		Title:       neutralizeDiscord(title),
+		Message:     neutralizeDiscord(message),
+		Severity:    severity,
+		Analysis:    neutralizeDiscord(analysis),
+		Fingerprint: fingerprint,
+	}
+	if fingerprint != "" && d.triage != nil {
+		status, decidedBy, err := d.triage.Decision(fingerprint)
+		if err != nil {
+			slog.Error("SOAR triage: lecture du classement impossible, rendu non classé", "error", err)
+		} else {
+			v.TriageStatus = status
+			v.DecidedBy = decidedBy
+		}
+	}
+	return v
+}
+
 // SendSoarAlert posts a SOAR alert (Components V2) to the main channel and
 // returns the Discord message ID, so the caller can enrich the SAME message
 // later via EditSoarAlertAnalysis. The alert is sent raw (no AI analysis):
 // posting first guarantees the notification latency never depends on the LLM.
-func (d *DiscordBot) SendSoarAlert(title, message, severity string) (string, error) {
+// fingerprint est l'empreinte de triage ("" = pas de boutons de triage).
+func (d *DiscordBot) SendSoarAlert(title, message, severity, fingerprint string) (string, error) {
 	if d == nil || d.session == nil {
 		return "", fmt.Errorf("discord session not initialized")
 	}
-	// title/message proviennent de Wazuh (non fiables) → neutraliser les
-	// mentions/markdown avant de les embarquer dans le message.
-	title = neutralizeDiscord(title)
-	message = neutralizeDiscord(message)
-
+	// title/message proviennent de Wazuh (non fiables) → neutralisés dans la vue.
 	m, err := d.session.ChannelMessageSendComplex(d.channelID, &discordgo.MessageSend{
 		Flags:      discordgo.MessageFlagsIsComponentsV2,
-		Components: soarAlertComponents(title, message, severity, ""),
+		Components: soarAlertComponents(d.soarAlertViewFor(title, message, severity, "", fingerprint)),
 	})
 	if err != nil {
 		return "", err
@@ -147,17 +215,15 @@ func (d *DiscordBot) SendSoarAlert(title, message, severity string) (string, err
 }
 
 // EditSoarAlertAnalysis rewrites a previously posted SOAR alert to append the
-// AI analysis section. title/message/severity must be the same values passed to
-// SendSoarAlert (a Components V2 edit replaces the whole components tree).
-func (d *DiscordBot) EditSoarAlertAnalysis(messageID, title, message, severity, analysis string) error {
+// AI analysis section. title/message/severity/fingerprint must be the same values
+// passed to SendSoarAlert (a Components V2 edit replaces the whole components
+// tree) ; le statut de triage est relu au moment de l'édition pour préserver un
+// classement cliqué pendant l'enrichissement.
+func (d *DiscordBot) EditSoarAlertAnalysis(messageID, title, message, severity, analysis, fingerprint string) error {
 	if d == nil || d.session == nil {
 		return fmt.Errorf("discord session not initialized")
 	}
-	title = neutralizeDiscord(title)
-	message = neutralizeDiscord(message)
-	analysis = neutralizeDiscord(analysis)
-
-	components := soarAlertComponents(title, message, severity, analysis)
+	components := soarAlertComponents(d.soarAlertViewFor(title, message, severity, analysis, fingerprint))
 	_, err := d.session.ChannelMessageEditComplex(&discordgo.MessageEdit{
 		Channel:    d.channelID,
 		ID:         messageID,
