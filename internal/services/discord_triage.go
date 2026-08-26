@@ -79,11 +79,11 @@ func triageStatusLabel(status, decidedBy string) string {
 func triageStatusColor(status string) (int, bool) {
 	switch status {
 	case TriageByDesign, TriageFalsePositive:
-		return 0x808080, true // gris : bruit classé, volontairement éteint
+		return 0x8B8D98, true // gris : bruit classé, volontairement éteint
 	case TriageInvestigating:
-		return 0x3498db, true // bleu : pris en charge
+		return 0x3E63DD, true // bleu : pris en charge
 	case TriageResolved:
-		return 0x2ecc71, true // vert : traité
+		return 0x1D9E75, true // vert Goa : traité
 	}
 	return 0, false
 }

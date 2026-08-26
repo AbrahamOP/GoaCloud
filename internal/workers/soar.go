@@ -445,28 +445,38 @@ func checkSoarEvents(
 						if cfg.AlertSudo {
 							shouldSend = true
 							title = "👑 Élévation de Privilèges"
-							msg = fmt.Sprintf("**Machine:** %s\n**Event:** Sudo to ROOT\n**Log:** `%s`", alert.Agent.Name, alert.FullLog)
+							who := alert.Data.SrcUser
+							if who == "" {
+								who = "un utilisateur non identifié"
+							}
+							msg = fmt.Sprintf("%s\n\n**%s** a obtenu un shell root (sudo)\n> %s",
+								alertMetaLine(alert), who, alert.FullLog)
 							severity = "critical"
 						}
 					case "550", "553", "554":
 						if cfg.AlertFIM {
 							shouldSend = true
 							title = "📝 Intégrité des Fichiers"
-							msg = fmt.Sprintf("**Machine:** %s\n**Fichier:** `%s`\n**Event:** %s", alert.Agent.Name, alert.Syscheck.Path, alert.Rule.Description)
+							msg = fmt.Sprintf("%s\n\n**Fichier :** %s\n%s",
+								alertMetaLine(alert), alert.Syscheck.Path, alert.Rule.Description)
 							severity = "high"
 						}
 					case "2902", "2903":
 						if cfg.AlertPackages {
 							shouldSend = true
 							title = "📦 Gestion Logicielle"
-							msg = fmt.Sprintf("**Machine:** %s\n**Changement:** %s\n**Log:** `%s`", alert.Agent.Name, alert.Rule.Description, alert.FullLog)
+							msg = fmt.Sprintf("%s\n\n%s\n> %s",
+								alertMetaLine(alert), alert.Rule.Description, alert.FullLog)
 							severity = "info"
 						}
 					default:
 						if cfg.AlertSSH {
 							shouldSend = true
 							title = "🛡️ Alerte Sécurité"
-							msg = fmt.Sprintf("**Machine:** %s\n**Event:** %s\n**Source IP:** %s", alert.Agent.Name, alert.Rule.Description, alert.Data.SrcIP)
+							msg = fmt.Sprintf("%s\n\n%s", alertMetaLine(alert), alert.Rule.Description)
+							if ip := alert.Data.SrcIP; ip != "" {
+								msg += "\n**IP source :** " + ip
+							}
 							severity = "medium"
 							if alert.Rule.ID == "5712" {
 								severity = "high"
@@ -596,6 +606,17 @@ func sendEnrichedAlert(parentCtx context.Context, alertCtx services.AIAlertConte
 }
 
 // --- Triage apprenant (suppression avant post + digest hebdo) ---
+
+// alertMetaLine renders the shared header line of an indexer alert: machine,
+// règle, et horodatage Discord relatif (<t:…:R>) quand le timestamp de l'alerte
+// est lisible — sinon la ligne s'arrête à la règle, on n'invente pas d'heure.
+func alertMetaLine(alert services.WazuhAlert) string {
+	meta := fmt.Sprintf("🖥️ **%s** · règle %s", alert.Agent.Name, alert.Rule.ID)
+	if t, ok := alert.Time(); ok {
+		meta += fmt.Sprintf(" · <t:%d:R>", t.Unix())
+	}
+	return meta
+}
 
 // triageSuppressesAlert dit si l'empreinte est classée « bruit » (by design /
 // faux positif). FAIL-OPEN : sur erreur DB on n'étouffe JAMAIS une alerte de

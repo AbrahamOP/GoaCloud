@@ -145,8 +145,8 @@ func TestSoarAlertComponentsClassified(t *testing.T) {
 	})
 	cont := containerOf(t, comps)
 
-	if cont.AccentColor == nil || *cont.AccentColor != 0x808080 {
-		t.Errorf("couleur %v, attendu le gris by_design (0x808080)", cont.AccentColor)
+	if cont.AccentColor == nil || *cont.AccentColor != 0x8B8D98 {
+		t.Errorf("couleur %v, attendu le gris by_design (0x8B8D98)", cont.AccentColor)
 	}
 	var label string
 	for _, txt := range textContents(cont) {
@@ -205,8 +205,8 @@ func TestRetagSoarComponentsGatewayRoundTrip(t *testing.T) {
 	retagged := retagSoarComponents(received, TriageFalsePositive, "abraham", testFP)
 	cont := containerOf(t, retagged)
 
-	if cont.AccentColor == nil || *cont.AccentColor != 0x808080 {
-		t.Errorf("couleur %v après classement faux positif, attendu 0x808080", cont.AccentColor)
+	if cont.AccentColor == nil || *cont.AccentColor != 0x8B8D98 {
+		t.Errorf("couleur %v après classement faux positif, attendu 0x8B8D98", cont.AccentColor)
 	}
 
 	texts := textContents(cont)
@@ -258,8 +258,8 @@ func TestRetagSoarComponentsGatewayRoundTrip(t *testing.T) {
 	if got := len(buttonsOf(t, cont2)); got != 4 {
 		t.Fatalf("%d bouton(s) après reclassement, attendu 4", got)
 	}
-	if cont2.AccentColor == nil || *cont2.AccentColor != 0x3498db {
-		t.Errorf("couleur %v après « j'enquête », attendu 0x3498db", cont2.AccentColor)
+	if cont2.AccentColor == nil || *cont2.AccentColor != 0x3E63DD {
+		t.Errorf("couleur %v après « j'enquête », attendu 0x3E63DD", cont2.AccentColor)
 	}
 }
 

@@ -84,17 +84,32 @@ func (d *DiscordBot) IsReady() bool {
 	return d != nil && d.session != nil
 }
 
-// severityColor maps a SOAR severity to the container accent color.
+// severityColor maps a SOAR severity to the container accent color. Palette
+// alignée sur la charte GoaCloud (l'info reprend le vert Goa #1D9E75).
 func severityColor(severity string) int {
 	switch severity {
 	case "critical":
-		return 0xff0000
+		return 0xE5484D // rouge
 	case "high":
-		return 0xffa500
+		return 0xF76B15 // orange
 	case "medium":
-		return 0xffff00
+		return 0xFFC53D // ambre
 	}
-	return 0x00ff00 // Green (Info)
+	return 0x1D9E75 // vert Goa (info)
+}
+
+// severityLabel is the operator-facing French name of a severity, shown in the
+// alert footer (la couleur seule ne survit pas au mode clair / daltonisme).
+func severityLabel(severity string) string {
+	switch severity {
+	case "critical":
+		return "critique"
+	case "high":
+		return "élevée"
+	case "medium":
+		return "moyenne"
+	}
+	return "info"
 }
 
 // truncateRunes caps user/LLM-provided text so the message stays under the
@@ -129,7 +144,7 @@ func soarAlertComponents(v soarAlertView) []discordgo.MessageComponent {
 	divider := true
 
 	inner := []discordgo.MessageComponent{
-		discordgo.TextDisplay{Content: "## 🛡️ SOAR Alert: " + truncateRunes(v.Title, 150)},
+		discordgo.TextDisplay{Content: "## " + truncateRunes(v.Title, 150)},
 		discordgo.TextDisplay{Content: truncateRunes(v.Message, 1500)},
 	}
 	if v.Analysis != "" {
@@ -140,7 +155,7 @@ func soarAlertComponents(v soarAlertView) []discordgo.MessageComponent {
 	}
 	inner = append(inner,
 		discordgo.Separator{Divider: &divider},
-		discordgo.TextDisplay{Content: "-# GoaCore Security"},
+		discordgo.TextDisplay{Content: "-# GoaCore Security · " + severityLabel(v.Severity)},
 	)
 	if v.Fingerprint != "" {
 		if label := triageStatusLabel(v.TriageStatus, v.DecidedBy); label != "" {
