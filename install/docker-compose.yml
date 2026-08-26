@@ -131,6 +131,10 @@ services:
     mem_reservation: 256m
     cpus: 2.0
     pids_limit: 512
+    # docker-init en PID 1 : le binaire Go ne moissonne pas les orphelins, or le wget
+    # du HEALTHCHECK laisse un zombie ssl_client à chaque probe — sans init, les
+    # zombies saturent pids_limit en ~4 h (plus aucun fork possible, unhealthy).
+    init: true
 
   db:
     # Épinglée par digest (tag mysql:8.0) : un tag mouvant peut changer la version
