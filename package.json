@@ -18,6 +18,6 @@
   },
   "homepage": "https://github.com/GoaCloud/GoaCore#readme",
   "dependencies": {
-    "tailwindcss": "^3.4.19"
+    "tailwindcss": "^4.3.3"
   }
 }
