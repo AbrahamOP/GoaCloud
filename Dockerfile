@@ -14,7 +14,7 @@
 # builder trop ancien échoue au lieu de télécharger le toolchain manquant.
 # 1.25.12 est aussi le patch qui corrige les vulnérabilités de la bibliothèque
 # standard encore remontées par govulncheck sur les versions antérieures.
-FROM --platform=$BUILDPLATFORM golang@sha256:56961d79ea8129efddcc0b8643fd8a5416b4e6228cfd477e3fd61deb2672c587 AS builder
+FROM --platform=$BUILDPLATFORM golang@sha256:4013ae0f9e7994f8535c58c811f8f863fbed38b72e0d51e6592156f758d66146 AS builder
 
 WORKDIR /app
 
