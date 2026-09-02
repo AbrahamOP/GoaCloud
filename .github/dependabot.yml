@@ -1,6 +1,8 @@
 # Veille de dépendances — Tier 1 (produit).
 # Mensuel et groupé : l'objectif est de voir passer les montées de version,
-# pas de noyer le dépôt sous des PR unitaires.
+# pas de noyer le dépôt sous des PR unitaires. Un groupe
+# applies-to: security-updates par écosystème : sans lui, les correctifs de
+# sécurité ne sont pas groupés et échappent à open-pull-requests-limit.
 version: 2
 updates:
   - package-ecosystem: gomod
@@ -9,6 +11,10 @@ updates:
     open-pull-requests-limit: 5
     groups:
       go-deps:
+        applies-to: version-updates
+        patterns: ["*"]
+      go-security:
+        applies-to: security-updates
         patterns: ["*"]
   - package-ecosystem: npm
     directory: /
@@ -16,6 +22,10 @@ updates:
     open-pull-requests-limit: 3
     groups:
       npm-deps:
+        applies-to: version-updates
+        patterns: ["*"]
+      npm-security:
+        applies-to: security-updates
         patterns: ["*"]
   - package-ecosystem: docker
     directory: /
@@ -25,4 +35,8 @@ updates:
     schedule: { interval: monthly }
     groups:
       actions:
+        applies-to: version-updates
+        patterns: ["*"]
+      actions-security:
+        applies-to: security-updates
         patterns: ["*"]
